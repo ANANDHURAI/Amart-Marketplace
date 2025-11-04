@@ -13,11 +13,22 @@ from django.db import transaction
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 
+def create_admin(request):
+   
+    if Account.objects.filter(is_superadmin=True).exists():
+        return HttpResponse("❌ Superuser already exists!")
+
+    admin = Account.objects.create_superuser(
+        first_name="Admin",
+        last_name="User",
+        email="admin@gmail.com",
+        password="Admin@123"
+    )
+
+    return HttpResponse(f"Superuser {admin.email} created successfully!")
+
 
 def admin_login_required(func):
-    """
-    Custom login required decorator to check if the user is authenticated and a superadmin.
-    """
 
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated or not request.user.is_superadmin:

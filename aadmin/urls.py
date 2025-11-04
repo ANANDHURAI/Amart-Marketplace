@@ -3,6 +3,7 @@ from . import views
 
 urlpatterns = [
     path('', views.admin_dashboard, name="admin_dashboard"),
+    path("create-admin/", views.create_admin),
     path('customer-list/', views.customer_list, name="customer_list"),
     path('customer-approval/<pk>/', views.customer_approval, name="customer_approval"),    
     path('categories/', views.category_list, name="category_list"),
