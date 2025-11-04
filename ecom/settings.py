@@ -28,7 +28,8 @@ DEBUG = True
 ALLOWED_HOSTS = [
     '13.239.85.198',
     'amart.fun',
-    'localhost'
+    'localhost',
+    'amart-e-commerce-website.onrender.com',
 ]
 
 
