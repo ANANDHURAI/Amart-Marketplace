@@ -36,6 +36,7 @@ ALLOWED_HOSTS = [
 CSRF_TRUSTED_ORIGINS = [
     "http://amart.fun",
     "https://amart.fun",
+    "https://amart-e-commerce-website.onrender.com",
     
 ]
 # Application definition
