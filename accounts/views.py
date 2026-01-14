@@ -6,64 +6,75 @@ from .utils import send_otp, pyotp
 from datetime import datetime
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-
-
-
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+import re
 
 
 def customer_signup(request):
-
     if request.method == "POST":
-        first_name = request.POST.get("first_name").title()
-        last_name = request.POST.get("last_name").title()
-        email = request.POST.get("email").lower()
+        first_name = request.POST.get("first_name", "").strip().title()
+        last_name = request.POST.get("last_name", "").strip().title()
+        email = request.POST.get("email", "").strip().lower()
         password = request.POST.get("password")
         password2 = request.POST.get("password2")
 
-        if password != password2:
-            error_message = "Passwords don't match. Please try again."
-            messages.error(request, error_message)
+        # Basic empty validation
+        if not all([first_name, last_name, email, password, password2]):
+            messages.error(request, "All fields are required")
             return redirect("customer_signup")
 
-        if Customer.objects.filter(email=email).exists():
-            error_message = (
-                "Email already registered. Please log in or use a different email."
+    
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, "Enter a valid email address")
+            return redirect("customer_signup")
+
+        #  Password match
+        if password != password2:
+            messages.error(request, "Passwords do not match")
+            return redirect("customer_signup")
+
+        #  Strong password (min 8 chars, 1 number)
+        if not re.match(r"^(?=.*\d).{8,}$", password):
+            messages.error(
+                request,
+                "Password must be at least 8 characters and contain a number",
             )
-            messages.error(request, error_message)
-        else:
-            try:
-                # Creating Customer
-                customer = Customer.objects.create_user(
-                    first_name=first_name,
-                    last_name=last_name,
-                    email=email,
-                    password=password,
-                )
-                customer.is_customer = True
-                customer.approved = True
-                customer.save()
-                success_message = "Please verify your email."
-                messages.success(request, success_message)
+            return redirect("customer_signup")
 
-                # Customer activation
-                request.session["email"] = customer.email
-                request.session["target_page"] = "customer_login"
-                request.session["account_type"] = "customer"
-                return redirect("otp_view")
+        #  Email existence
+        if Account.objects.filter(email=email).exists():
+            messages.error(
+                request,
+                "Email already registered. Please login or use another email",
+            )
+            return redirect("customer_signup")
 
-            except Exception as e:
+        #  Create customer
+        customer = Customer.objects.create_user(
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            password=password,
+        )
+        customer.is_customer = True
+        customer.is_active = False
+        customer.approved = True
+        customer.save()
 
-                # Checking if the email is already registered but not as a customer profile
-                if Account.objects.filter(email=email).exists():
-                    error_message = "Email already registered and not associated with a customer account. Please use a different email."
-                    messages.error(request, error_message)
-                else:
-                    error_message = "Something went wrong, please try again"
-                    messages.error(request, error_message)
+        #  OTP session setup
+        request.session.update({
+            "email": email,
+            "target_page": "customer_login",
+            "account_type": "customer",
+        })
 
-    title = "Signup"
-    context = {"title": title}
-    return render(request, "accounts/customer-signup.html", context)
+        messages.success(request, "OTP sent to your email for verification")
+        return redirect("otp_view")
+
+    return render(request, "accounts/customer-signup.html", {"title": "Signup"})
 
 
 def customer_login(request):
@@ -147,52 +158,81 @@ def admin_logout(request):
 
 # Account activation views
 def otp_view(request):
+    if not request.session.get("email"):
+        messages.error(request, "Session expired. Please signup again")
+        return redirect("customer_signup")
+
     send_otp(request)
     return redirect("customer_activation")
+
+
+
+from datetime import datetime
+import pyotp
 
 
 def customer_activation(request):
     email = request.session.get("email")
     otp_secret_key = request.session.get("otp_secret_key")
     otp_counter = request.session.get("otp_counter")
-    otp_valid_till = datetime.fromisoformat(request.session.get("otp_valid_till"))
-    time_left = round((otp_valid_till - datetime.now()).total_seconds())
+    otp_valid_till = request.session.get("otp_valid_till")
+
+    if not all([email, otp_secret_key, otp_counter, otp_valid_till]):
+        messages.error(request, "OTP session expired. Please resend OTP")
+        return redirect("otp_view")
+
+    otp_valid_till = datetime.fromisoformat(otp_valid_till)
+    time_left = max(0, int((otp_valid_till - datetime.now()).total_seconds()))
 
     if request.method == "POST":
-        otp = request.POST.get("otp")
+        otp = request.POST.get("otp", "").strip()
 
-        if otp_secret_key and otp_valid_till is not None:
-            if otp_valid_till > datetime.now():
-                hotp = pyotp.HOTP(otp_secret_key)
-                if hotp.verify(otp, otp_counter):
-                    # Activating account
-                    account = Account.objects.get(email=email)
-                    account.is_active = True
-                    account.save()
+        if not otp.isdigit() or len(otp) != 6:
+            messages.error(request, "Enter a valid 6-digit OTP")
+            return redirect("customer_activation")
 
-                    # Deleting OTP cookies from session
-                    request.session.pop("otp_secret_key", None)
-                    request.session.pop("otp_valid_till", None)
-                    request.session.pop("otp_counter", None)
+        if datetime.now() > otp_valid_till:
+            messages.error(request, "OTP expired. Please resend OTP")
+            return redirect("customer_activation")
 
-                    success_message = "Your email is verified. Please Login now"
-                    messages.success(request, success_message)
+        hotp = pyotp.HOTP(otp_secret_key)
+        if not hotp.verify(otp, otp_counter):
+            messages.error(request, "Invalid OTP")
+            return redirect("customer_activation")
 
-                    # redirecting to targeted page
-                    target_page = request.session.get("target_page")
-                    return redirect(target_page)
-                else:
-                    error_message = "Invalid OTP"
-                    messages.error(request, error_message)
-            else:
-                error_message = "OTP expired. Click 'Resend OTP' to get a new one."
-                messages.error(request, error_message)
-        else:
-            error_message = "Something went wrong. Please try again."
-            messages.error(request, error_message)
+        # Activate account
+        account = Account.objects.get(email=email)
+        account.is_active = True
+        account.save()
 
-    context = {"time_left": time_left}
-    account_type = request.session.get("account_type")
+        # Clear OTP session
+        for key in ["otp_secret_key", "otp_counter", "otp_valid_till"]:
+            request.session.pop(key, None)
 
-    if account_type == "customer":
-        return render(request, "accounts/customer-activation.html", context)
+        messages.success(request, "Email verified successfully. Please login")
+        return redirect(request.session.get("target_page", "customer_login"))
+
+    return render(
+        request,
+        "accounts/customer-activation.html",
+        {"time_left": time_left},
+    )
+
+
+def resend_otp(request):
+    email = request.session.get("email")
+    otp_valid_till = request.session.get("otp_valid_till")
+
+    if not email or not otp_valid_till:
+        messages.error(request, "Session expired. Please signup again")
+        return redirect("customer_signup")
+
+    otp_valid_till = datetime.fromisoformat(otp_valid_till)
+
+    if datetime.now() < otp_valid_till:
+        messages.error(request, "Please wait until OTP expires before resending")
+        return redirect("customer_activation")
+
+    send_otp(request)
+    messages.success(request, "New OTP sent to your email")
+    return redirect("customer_activation")

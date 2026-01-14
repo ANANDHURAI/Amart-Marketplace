@@ -1,6 +1,14 @@
 
-from easy_thumbnails.conf import Settings as thumbnail_settings
+
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
+
+import certifi
+import os
+
+os.environ['SSL_CERT_FILE'] = certifi.where()
+
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -129,19 +137,16 @@ MEDIA_ROOT = BASE_DIR / "media"
 AUTH_USER_MODEL = "accounts.Account"
 
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_USE_SSL = True
-EMAIL_USE_TSL = False
-EMAIL_PORT = 465
-EMAIL_HOST_USER = "anandhurai2004@gmail.com"
-EMAIL_HOST_PASSWORD = 'gtbi lfgc qhcj sedp'
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_HOST = "smtp.gmail.com"
+# EMAIL_USE_SSL = True
+# EMAIL_USE_TSL = False
+# EMAIL_PORT = 465
+# EMAIL_HOST_USER = "anandhurai2004@gmail.com"
+# EMAIL_HOST_PASSWORD = 'gtbi lfgc qhcj sedp'
 
 
 
-
-#LOGIN_REDIRECT_URL = 'customer_login'
-#LOGOUT_REDIRECT_URL = 'customer_login'
 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -179,3 +184,7 @@ LOGGING = {
 
 LOGIN_URL = 'customer_login' 
 LOGOUT_REDIRECT_URL = 'customer_dashboard'
+
+
+SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")

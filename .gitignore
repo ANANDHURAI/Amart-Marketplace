@@ -17,13 +17,11 @@ db.sqlite3
 
 # Virtual environment
 venv/
-env/
+
 
 # IDE and editor specific files
 .vscode/
 *.swp
 .idea/
 
-# Migrations (optional: include if you want to ignore auto-generated migration files)
-# **/migrations/*
 

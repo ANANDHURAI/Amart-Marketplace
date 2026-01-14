@@ -1,64 +1,91 @@
 {% extends "home/base.html" %}
-
 {% load static %}
 
 {% block content %}
-    <section class="signin-page account">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6 col-md-offset-3">
-                    <div class="block text-center">
-                        <a class="logo" href="{% url "home" %}">
-                            <img style="width:150px" src="{% static "images/logo-no-background.png" %}" alt="logo">
-                        </a>
-                        <h2 class="text-center">OTP Verification</h2>
-                        <form method="post" class="text-left clearfix" enctype="multipart/form-data">
-                            {% csrf_token %}
-                            {% for message in messages %}
-                                {% if message.tags == "success" %}
-                                    <div class="alert alert-success alert-common" role="alert">
-                                        <i class="tf-ion-thumbsup"></i>
-                                        <span></span>{{ message }}
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
-                            <p class="">Please check your email for the OTP.</p>
-                            <div class="form-group">
-                                <input pattern="^[0-9]{6}$" oninvalid="this.setCustomValidity('Enter a 6-digit OTP')" id="otp" required maxlength="6" type="text" class="form-control" placeholder="Enter OTP here" name="otp">
-                            </div>
-                            {% for message in messages %}
-                                {% if message.tags == "error" %}
-                                    <div class="alert alert-danger alert-common" role="alert">
-                                        <i class="tf-ion-close-circled"></i>
-                                        <span></span>{{ message }}
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
-                            {% if time_left > 0 %}
-                                <p>Enter OTP in <span id="countdowntimer">{{ time_left }}</span> Seconds</p>
-                            {% else %}
-                                <p class="text-center"><a href="{% url "otp_view" %}">Resend OTP</a></p>
-                            {% endif %}
-                            <div class="text-center">
-                                <button type="submit" class="btn btn-main text-center" name="customer_login">Verify</button>
-                            </div>
-                        </form>
-                    </div>
+<section class="signin-page account">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-6 col-md-offset-3">
+        <div class="block text-center">
+
+          <a class="logo" href="{% url 'home' %}">
+            <img style="width:150px" src="{% static 'images/logo-no-background.png' %}">
+          </a>
+
+          <h2>OTP Verification</h2>
+
+          <!-- ✅ Messages -->
+          {% if messages %}
+            <div id="msg-box">
+              {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} auto-hide text-center">
+                  {{ message }}
                 </div>
+              {% endfor %}
             </div>
+          {% endif %}
+
+          <p>Please check your email for the OTP.</p>
+
+          <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+              <input
+                type="text"
+                name="otp"
+                maxlength="6"
+                pattern="[0-9]{6}"
+                class="form-control"
+                placeholder="Enter 6-digit OTP"
+                required>
+            </div>
+
+            {% if time_left > 0 %}
+              <p>
+                OTP expires in
+                <span id="countdowntimer">{{ time_left }}</span>
+                seconds
+              </p>
+            {% else %}
+              <p>
+                <a href="{% url 'resend_otp' %}">
+                  Resend OTP
+                </a>
+              </p>
+            {% endif %}
+
+            <button type="submit" class="btn btn-main btn-block">
+              Verify
+            </button>
+          </form>
+
         </div>
-    </section>
-{% endblock content %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
 
 {% block extra_scripts %}
-    <script>
-        // Script for OTP countdown timer
-        var timeleft = {{time_left}};
-        var downloadTimer = setInterval(function(){
-            timeleft--;
-            document.getElementById("countdowntimer").textContent = timeleft;
-            if(timeleft <= 0)
-                clearInterval(downloadTimer);
-        }, 1000);
-    </script>
-{% endblock extra_scripts %}
+<script>
+  // Countdown timer
+  let timeLeft = {{ time_left }};
+  const timer = setInterval(() => {
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      return;
+    }
+    timeLeft--;
+    document.getElementById("countdowntimer").innerText = timeLeft;
+  }, 1000);
+
+  // Auto-hide messages (1.5 sec)
+  setTimeout(() => {
+    document.querySelectorAll(".auto-hide").forEach(msg => {
+      msg.style.opacity = "0";
+      setTimeout(() => msg.remove(), 400);
+    });
+  }, 1500);
+</script>
+{% endblock %}
