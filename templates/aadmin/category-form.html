@@ -2,65 +2,126 @@
 
 {% block content %}
 
-<div class="card card-default col-lg-8 mx-auto">
+<div class="card card-default col-lg-8 mx-auto mt-4">
     <div class="card-header card-header-border-bottom">
-        <h2>{% if category %}Edit {% else %}Add a new {% endif %}category</h2>
+        <h2>{% if category %}Edit{% else %}Add New{% endif %} Category</h2>
     </div>
+
     <div class="card-body">
-        <form method="post" enctype="multipart/form-data" {% if category %}action="{% url "edit_category" category.slug %}"{% endif %}>
+
+        <!-- Messages -->
+        {% if messages %}
+        <div id="message-container">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} text-center mb-3 auto-hide">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data"
+              {% if category %}action="{% url 'edit_category' category.slug %}"{% endif %}>
             {% csrf_token %}
+
             <div class="form-group">
-                <label>Category name:</label>
-                <input name="category_name" type="text" maxlength="50" class="form-control" placeholder="Category name" value="{% if category %}{{ category.name }}{% endif %}" required>
+                <label>Category Name</label>
+                <input
+                    type="text"
+                    name="category_name"
+                    class="form-control"
+                    maxlength="50"
+                    placeholder="Category name"
+                    value="{% if category %}{{ category.name }}{% endif %}"
+                    required>
             </div>
 
             <div class="form-group">
-                <label>Category Description:</label>
-                <textarea name="category_description" class="form-control" maxlength="255" placeholder="Enter Description (under 255 charecters)" rows="4" required>{% if category %}{{ category.description }}{% endif %}</textarea>
+                <label>Category Description</label>
+                <textarea
+                    name="category_description"
+                    class="form-control"
+                    maxlength="255"
+                    rows="4"
+                    placeholder="Enter description (max 255 characters)"
+                    required>{% if category %}{{ category.description }}{% endif %}</textarea>
             </div>
-            <div class="row">
+
+            <div class="row mt-3">
                 <div class="form-group col-md-8">
-                    <label>Category Image:</label>
-                    <input id="imageInput" name="category_image" type="file" accept="image/*" class="form-control-file" title="Choose image" {% if not category %} required {% endif %}>
+                    <label>Category Image</label>
+                    <input
+                        id="imageInput"
+                        name="category_image"
+                        type="file"
+                        accept="image/*"
+                        class="form-control-file"
+                        {% if not category %}required{% endif %}>
                 </div>
+
                 <div class="col-md-4 d-flex justify-content-center align-items-center">
-                    <img style="width: 100px; height: auto; object-fit: cover;" class="border border-light bg-light text-center mb-3" id="preview" src="{% if category %}{{ category.image.url }}{% endif %}" alt="Image Preview">
+                    <img
+                        id="preview"
+                        src="{% if category %}{{ category.image.url }}{% endif %}"
+                        alt="Image Preview">
                 </div>
             </div>
-            <div class="form-footer pt-3 border-top">
-                {% for message in messages %}
-                    <div class="alert alert-danger text-center" role="alert">{{message}}</div>
-                {% endfor %}
-                <button type="submit" class="btn btn-primary btn-default">Submit</button>
+
+            <div class="form-footer pt-4 border-top mt-4 text-right">
+                <button type="submit" class="btn btn-primary px-4">
+                    Submit
+                </button>
             </div>
+
         </form>
     </div>
 </div>
+
 {% endblock content %}
 
 {% block extra_styles %}
+<style>
+    #preview {
+        width: 160px;
+        height: 160px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        background-color: #f8f9fa;
+    }
 
-#preview {
-}
-
+    /* Smooth fade animation */
+    .fade-out {
+        opacity: 0;
+        transition: opacity 0.8s ease-out;
+    }
+</style>
 {% endblock extra_styles %}
 
 {% block extra_scripts %}
-
 <script>
-    const imageInput = document.getElementById('imageInput');
-    const preview = document.getElementById('preview');
-  
-    imageInput.addEventListener('change', function() {
-      const file = this.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          preview.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-</script>
+    // Image preview
+    const imageInput = document.getElementById("imageInput");
+    const preview = document.getElementById("preview");
 
+    imageInput.addEventListener("change", function () {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                preview.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+
+    setTimeout(() => {
+        const alerts = document.querySelectorAll(".auto-hide");
+        alerts.forEach(alert => {
+            alert.classList.add("fade-out");
+            setTimeout(() => alert.remove(), 800);
+        });
+    }, 2500);
+</script>
 {% endblock extra_scripts %}

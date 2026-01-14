@@ -248,34 +248,57 @@ def add_category(request):
     return render(request, "aadmin/category-form.html", context)
 
 
+
 @admin_login_required
 def edit_category(request, slug):
     title = f"{slug.capitalize()} | Edit Category"
     category = Category.objects.get(slug=slug)
-    image_url = category.image.url
+    image_url = category.image.url if category.image else None
 
     if request.method == "POST":
-        category_name = request.POST.get("category_name").title()
-        category_description = request.POST.get("category_description")
+        category_name = request.POST.get("category_name").title().strip()
+        category_description = request.POST.get("category_description").strip()
         category_image = request.FILES.get("category_image")
         new_slug = slugify(category_name)
 
-        if Category.objects.filter(name=category_name).exists():
-            error_message = "Category already exists"
-            messages.error(request, error_message)
+        #Check if NO changes were made
+        if (
+            category.name == category_name and
+            category.description == category_description and
+            not category_image
+        ):
+            messages.info(request, "No changes were made")
             return redirect("edit_category", slug=slug)
 
-        # Updating the category
+        #Check duplicate category name (exclude current category)
+        if Category.objects.filter(name=category_name).exclude(id=category.id).exists():
+            messages.error(request, "Category already exists")
+            return redirect("edit_category", slug=slug)
+
+        #Update only if changes exist
         category.name = category_name
         category.description = category_description
         category.slug = new_slug
+
         if category_image:
             category.image = category_image
+
         category.save()
+        messages.success(request, "Category updated successfully")
         return redirect("category_list")
 
-    context = {"title": title, "category": category, "image_url": image_url}
+    context = {
+        "title": title,
+        "category": category,
+        "image_url": image_url,
+    }
     return render(request, "aadmin/category-form.html", context)
+
+
+
+
+
+
 
 
 @admin_login_required
