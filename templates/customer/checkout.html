@@ -235,6 +235,30 @@
          </div>
       </div>
    </div>
+   <!-- Confirmation Modal -->
+   <div class="modal fade" id="confirmOrderModal" tabindex="-1" role="dialog" aria-labelledby="confirmOrderLabel" aria-hidden="true">
+   <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+         <div class="modal-header">
+         <h5 class="modal-title" id="confirmOrderLabel">Confirm Order</h5>
+         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+         </button>
+         </div>
+         <div class="modal-body">
+         Are you sure you want to place this order?
+         </div>
+         <div class="modal-footer">
+   
+         <button type="button" class="btn btn-secondary" data-dismiss="modal">
+            Cancel
+         </button>
+         <button type="button" class="btn btn-primary" id="confirm-order-btn">Yes, Place Order</button>
+         </div>
+      </div>
+   </div>
+   </div>
+
 
    
 {% include 'home/includes/footer.html' %}
@@ -265,28 +289,42 @@
 document.addEventListener("DOMContentLoaded", function() {
     const placeOrderBtn = document.getElementById("place-order-btn");
     const addressWarning = document.getElementById("address-warning");
-    
+    const confirmBtn = document.getElementById("confirm-order-btn");
+    const orderForm = document.querySelector('form[name="place_order"]');
+    const confirmModalEl = $('#confirmOrderModal');
+
     placeOrderBtn.addEventListener("click", function(e) {
+        e.preventDefault();
+
+        // Address check
         const addressRadios = document.querySelectorAll('input[name="address_id"]');
         let hasAddress = false;
         addressRadios.forEach(radio => {
-            if(radio.checked) hasAddress = true;
+            if (radio.checked) hasAddress = true;
         });
 
         if (!hasAddress) {
-            e.preventDefault(); 
             addressWarning.style.display = "block";
-
-            setTimeout(() => {
-                addressWarning.style.transition = "opacity 0.5s ease";
-                addressWarning.style.opacity = 0;
-            }, 2000);
-
+            setTimeout(() => addressWarning.style.opacity = 0, 2000);
             setTimeout(() => {
                 addressWarning.style.display = "none";
-                addressWarning.style.opacity = 1; 
+                addressWarning.style.opacity = 1;
             }, 2500);
+            return;
         }
+
+        // Payment check
+        const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+        if (selectedPayment && (selectedPayment.value === "cod" || selectedPayment.value === "wallet")) {
+            confirmModalEl.modal('show');
+        } else {
+            orderForm.submit();
+        }
+    });
+
+    confirmBtn.addEventListener("click", function() {
+        confirmModalEl.modal('hide');
+        orderForm.submit();
     });
 });
 </script>
