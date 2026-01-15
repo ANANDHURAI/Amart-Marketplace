@@ -42,71 +42,77 @@ def home(request):
 
 def shop(request):
     title = "Shop"
-    sort_by = request.session.get("sort_by", "Relevance")
-    selected_category = request.session.get("selected_category", "All Categories")
-    
 
-    if "search" in request.GET:
-        search_term = request.GET.get("search")
-        products = (
-            Product.approved_objects.filter(
-                Q(name__icontains=search_term)
-            )
-            
-        )
-    else:
-        products = (
-            Product.approved_objects.all()
-            
+    sort_by = request.session.get("sort_by", "")
+    selected_category = request.session.get("selected_category", "")
+
+    products = Product.approved_objects.all()
+
+    # Search
+    if request.GET.get("search"):
+        products = products.filter(
+            name__icontains=request.GET["search"]
         )
 
     if request.method == "POST":
+        sort_by = request.POST.get("sort_by", "")
+        selected_category = request.POST.get("selected_category", "")
 
-        selected_category = request.POST.get("selected_category")
-        request.session[selected_category] = selected_category
-        sort_by = request.POST.get("sort_by")
-        request.session[sort_by] = sort_by
+        request.session["sort_by"] = sort_by
+        request.session["selected_category"] = selected_category
 
-        if selected_category != "All Categories":
-            category = Category.objects.get(name=selected_category)
-            products = (
-                Product.approved_objects.filter(main_category=category)
-                
-            )
-        if sort_by == "Price Low to High":
-            products = products.annotate(min_price=Min('inventory_sizes__price')).order_by('min_price')
-        elif sort_by == "Price High to Low":
-            products = products.annotate(max_price=Max('inventory_sizes__price')).order_by('-max_price')
-        elif sort_by == "New Arrivals":
-            products = products.order_by("-created_at")
-        elif sort_by == "aA - zZ":
-            products = products.order_by("name")
-        elif sort_by == "zZ - aA":
-            products = products.order_by("-name")
-        elif sort_by == "Popularity":
-            products = products.annotate(
-                total_quantity_ordered=Sum("orderitem__quantity")
-            )
-            products = products.order_by("-total_quantity_ordered")
+    # Category filter
+    if selected_category:
+        products = products.filter(main_category_id=selected_category)
 
-    for product in products:
-        product.primary_image = product.product_images.filter(priority=1).first()
-        product.shop_price = product.inventory_sizes.aggregate(Min('price'))['price__min'] or 0
-        
-        if FavouriteItem.objects.filter(
-            customer__id=request.user.id, product=product
-        ).exists():
-            product.is_favourite = True
-        else:
-            product.is_favourite = False
+    # Sorting
+    if sort_by == "price_asc":
+        products = products.annotate(
+            price=Min("inventory_sizes__price")
+        ).order_by("price")
 
-    #products = [product for product in products for _ in range(1)]
+    elif sort_by == "price_desc":
+        products = products.annotate(
+            price=Max("inventory_sizes__price")
+        ).order_by("-price")
+
+    elif sort_by == "new":
+        products = products.order_by("-created_at")
+
+    elif sort_by == "name_asc":
+        products = products.order_by("name")
+
+    elif sort_by == "name_desc":
+        products = products.order_by("-name")
+
+    elif sort_by == "popularity":
+        products = products.annotate(
+            total_sold=Sum("orderitem__quantity")
+        ).order_by("-total_sold")
+
+    
+    products = products.prefetch_related(
+        "product_images", "inventory_sizes"
+    )
+
     paginator = Paginator(products, 6)
-    page = request.GET.get("page")
-    paged_products = paginator.get_page(page)
+    paged_products = paginator.get_page(request.GET.get("page"))
 
     categories = Category.objects.all()
     
+    for product in paged_products:
+        product.primary_image = (
+            product.product_images
+            .order_by("priority")
+            .first()
+        )
+
+        product.shop_price = (
+            product.inventory_sizes
+            .aggregate(Min("price"))["price__min"]
+            or 0
+        )
+
     context = {
         "products": paged_products,
         "categories": categories,

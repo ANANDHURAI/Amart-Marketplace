@@ -1,130 +1,119 @@
 {% load static %}
 
 <style>
-    .truncate {
-        white-space: nowrap;
-		overflow: hidden;
-        text-overflow: ellipsis;
-    }
+.truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.product-thumb img {
+    height: 260px;
+    width: 100%;
+    object-fit: cover;
+}
 </style>
 
 <div class="product-item">
-    <div id="product-thumb" class="product-thumb">
-        {% comment %} <span class="bage">Sale</span> {% endcomment %}
-		<img id="product-image-id" class="img-responsive" src="{{ product.primary_image.image.url }}" alt="product-img" />
+    <div class="product-thumb">
+
+        {% if product.primary_image %}
+            <img src="{{ product.primary_image.image.url }}"
+                 alt="{{ product.name }}"
+                 class="img-responsive">
+        {% else %}
+            <img src="{% static 'images/no-image.png' %}"
+                 alt="No image"
+                 class="img-responsive">
+        {% endif %}
+
         <div class="preview-meta">
             <ul>
                 <li>
-                    <span title="Product Info" data-toggle="modal" data-target="#product-modal-{{ product.id }}">
+                    <span data-toggle="modal" data-target="#product-modal-{{ product.id }}">
                         <i class="tf-ion-information"></i>
                     </span>
                 </li>
                 <li>
-                    <a title="Favouite" href="{% url "add_to_favourite" product.id %}"><i {% if product.is_favourite %}style="color: red;" {% endif %} class="tf-ion-ios-heart"></i></a>
+                    <a href="{% url 'add_to_favourite' product.id %}">
+                        <i class="tf-ion-ios-heart"
+                           {% if product.is_favourite %}style="color:red"{% endif %}></i>
+                    </a>
                 </li>
-				<li>
-					<a title="Add to cart" title="Product Info" data-toggle="modal" data-target="#add-to-cart-modal-{{ product.id }}"><i class="tf-ion-android-cart"></i></a>
-				</li>
+                <li>
+                    <a data-toggle="modal" data-target="#add-to-cart-modal-{{ product.id }}">
+                        <i class="tf-ion-android-cart"></i>
+                    </a>
+                </li>
             </ul>
         </div>
     </div>
-    <div class="product-content">    
-        <a href="{% url "product_page" product.slug %}" target="_blank">
-            
+
+    <div class="product-content">
+        <a href="{% url 'product_page' product.slug %}" target="_blank">
             <p class="truncate">{{ product.name }}</p>
-            <p class="price"><strong class="h4">&#8377; {{ product.shop_price }} </strong>
-				{% if product.price < product.mrp %}
-					<del class="h6"> MRP: {{ product.mrp }}</del>
-				{% endif %}
-			</p>
+            <p class="price">
+                <strong class="h4">₹ {{ product.shop_price }}</strong>
+                {% if product.mrp and product.shop_price < product.mrp %}
+                    <del class="h6">MRP: {{ product.mrp }}</del>
+                {% endif %}
+            </p>
         </a>
     </div>
 </div>
 
+<!-- Product Info Modal -->
+<div class="modal fade" id="product-modal-{{ product.id }}">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content p-3">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <div class="row">
+                <div class="col-md-6">
+                    {% if product.primary_image %}
+                        <img src="{{ product.primary_image.image.url }}" class="img-responsive">
+                    {% else %}
+                        <img src="{% static 'images/no-image.png' %}" class="img-responsive">
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <h3>{{ product.name }}</h3>
+                    <p class="h4">₹ {{ product.shop_price }}</p>
+                    <p>{{ product.description|linebreaksbr }}</p>
+                    <a href="{% url 'product_page' product.slug %}" class="btn btn-main">
+                        View Details
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-<!-- Modal -->
-<div class="modal product-modal fade" id="product-modal-{{ product.id }}">
-	<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-		<i class="tf-ion-close"></i>
-	</button>
-	<div class="modal-dialog " role="document">
-		<div class="modal-content">
-			<div class="modal-body">
-				<div class="row">
-					<div class="col-md-8 col-sm-6 col-xs-12">
-						<div class="modal-image">
-							<img class="img-responsive" src="{{ product.primary_image.image.url }}" alt="product-img" />
-						</div>
-					</div>
-					<div class="col-md-4 col-sm-6 col-xs-12">
-						<div class="product-short-details">
-							<br>
-							
-							<h2 class="product-title">{{ product.name }}</h2>
-							<p class="product-price">₹ {{ product.shop_price }}</p>
-						
-							<a href="{% url "product_page" product.slug %}" class="btn btn-transparent">View Product Details</a>
-							<br>
-							<br>
-							<h4>Product Description:</h4>
-							<p class="product-short-description">{{ product.description|linebreaksbr }}</p>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-</div><!-- /.modal -->
+<!-- Add to Cart Modal -->
+<div class="modal fade" id="add-to-cart-modal-{{ product.id }}">
+    <div class="modal-dialog">
+        <div class="modal-content p-3">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
 
+            <h4>{{ product.name }}</h4>
+            <form method="post" action="{% url 'add_to_cart' product.id %}">
+                {% csrf_token %}
 
-<!--Add to cart Modal -->
-<div class="modal product-modal fade" id="add-to-cart-modal-{{ product.id }}">
-	<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-		<i class="tf-ion-close"></i>
-	</button>
-	<div class="modal-dialog " role="document">
-		<div class="modal-content">
-			<div class="modal-body">
-				<div class="row">
-					<div class="col-md-8 col-sm-6 col-xs-12">
-						<div class="product-short-details">
-							<br>
-							
-							<h2 class="product-title">{{ product.name }}</h2>
-							<hr>
-							<p>Select size and quantity</p>
-							<hr>
-							<form method="post" action="{% url 'add_to_cart' product.id %}">
-								{% csrf_token %}
-								<div class="product-size">
-									<span>Size:</span>
-									<select class="form-control" name="product-size">
-										<option value="S">Small</option>
-										<option value="M">Medium</option>
-										<option value="L">Large</option>
-										<option value="XL">Extra Large</option>
-									</select>
-								</div>
-								<div class="product-quantity">
-									<span>Quantity:</span>
-									<div class="product-quantity-slider">
-										<input type="number" min="1" max="10" value="1" name="product-quantity">
-									</div>
-									<p class="h6">Maximum 10 quantity per customer	</p>
-								</div>
-								<br>
-								<button type="submit" class="btn btn-main">Add To Cart</button>
-							</form>
-						</div>
-					</div>
-					
-					<div class="col-md-4 col-sm-6 col-xs-12">
-						<div class="modal-image">
-							<img class="img-responsive" src="{{ product.primary_image.image.url }}" alt="product-img" />
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-</div><!--  Add to cart modal -->
+                <div class="form-group">
+                    <label>Size</label>
+                    <select name="product-size" class="form-control">
+                        <option>S</option>
+                        <option>M</option>
+                        <option>L</option>
+                        <option>XL</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" name="product-quantity" value="1" min="1" max="10" class="form-control">
+                </div>
+
+                <button class="btn btn-main btn-block">Add to Cart</button>
+            </form>
+        </div>
+    </div>
+</div>

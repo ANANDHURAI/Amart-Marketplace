@@ -91,55 +91,6 @@
                         <br>
                         <hr>
                         <br>
-                        <div>
-                            <h4><strong>Recent Orders</strong></h4>
-                            {% if orders %}
-                            <div class="table-responsive">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>Order ID</th>
-                                            <th>Date</th>
-                                            <th>Items</th>
-                                            <th>Total Price</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for order in orders %}
-                                            <tr>
-                                                <td>#{{ order.id }}</td>
-                                                <td>{{ order.created_at|date:"d-m-Y" }}</td>
-                                                <td>
-                                                    {% for order_item in order.items.all %}
-                                                    <p>{{ order_item.product.name }} (x{{ order_item.quantity }})</p>
-                                                    {% endfor %}
-                                                </td>
-                                                <td>{{ order.total_amount }}</td>
-                                                <td>
-                                                    {% if order.status == "pending" %}
-                                                        <span class="label label-warning">Pending</span>
-                                                    {% elif order.status == "cancelled" %}
-                                                        <span class="label label-danger">Cancelled</span>
-                                                    {% elif order.status == "confirmed" %}
-                                                        <span class="label label-info">Confirmed</span>
-                                                    {% elif order.status == "shipped" %}
-                                                        <span class="label label-primary">Shipped</span>
-                                                    {% elif order.status == "delivered" %}
-                                                        <span class="label label-success">Delivered</span>
-                                                    {% endif %}
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                            {% else %}
-                            <p>No Orders Yet. Shop Now!</p>
-                            <hr>
-                            <a href="{% url "shop" %}" class="btn btn-main btn-small">Shop Now</a >
-                            {% endif %}
-                        </div>
                     </div>
                 </div>
             </div>

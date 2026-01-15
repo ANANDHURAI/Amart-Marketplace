@@ -4,10 +4,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
 
-import certifi
+import certifi # SSL: CERTIFICATE_VERIFY_FAILED
 import os
 
-os.environ['SSL_CERT_FILE'] = certifi.where()
+os.environ['SSL_CERT_FILE'] = certifi.where() # This tells Python libraries: “Use this certificate file to verify HTTPS connections”
 
 
 

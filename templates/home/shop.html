@@ -1,142 +1,113 @@
 {% extends "home/base.html" %}
+{% load static %}
 
 {% block content %}
-    {% include "home/includes/navigation.html" %}
-    <section class="page-header">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="content">
-                        <h1 class="page-name">Shop</h1>
-                        <ol class="breadcrumb">
-                            <li><a href="{% url "home" %}">Home</a></li>
-                            <li class="active"><a href="{% url "shop" %}">Shop</a></li>
-                        </ol>
-                    </div>
-                </div>
-            </div>
-        </div> 
-    </section>
-    
-    <section class="products section">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-3">
-                    <form method="POST">
-                        {% csrf_token %}
-                        <div class="widget">
-                            <h4 class="widget-title">Sort By</h4>
-                            <select name="sort_by" class="form-control">
-                                <option>Relevance</option>
-                                <option {% if sort_by == "Popularity" %}selected{% endif %}>Popularity</option>
-                                <option {% if sort_by == "Price Low to High" %}selected{% endif %}>Price Low to High</option>
-                                <option {% if sort_by == "Price High to Low" %}selected{% endif %}>Price High to Low</option>
-                                <option {% if sort_by == "New Arrivals" %}selected{% endif %}>New Arrivals</option>
-                                <option {% if sort_by == "aA - zZ" %}selected{% endif %}>aA - zZ</option>
-                                <option {% if sort_by == "zZ - aA" %}selected{% endif %}>zZ - aA</option>
-                            </select>
-                        </div>
-                        <div class="widget">
-                            <h4 class="widget-title">Categories</h4>
-                            <select name="selected_category" class="form-control">
-                                <option>All Categories</option>
-                                {% for category in categories %}
-                                    <option {% if selected_category == category.name %}selected{% endif %}>{{ category.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        {% comment %} <div class="widget product-category">
-                            <h4 class="widget-title">Categories</h4>
-                            <div class="panel-group commonAccordion" id="accordion" role="tablist" aria-multiselectable="true">
-                                {% for category in categories %}
-                                    <div class="panel panel-default">
-                                        <div class="panel-heading" role="tab" id="heading{{ forloop.counter }}">
-                                            <h4 class="panel-title">
-                                                <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapse{{ forloop.counter }}" aria-expanded="{{ forloop.first }}" aria-controls="collapse{{ forloop.counter }}">
-                                                    {{ category.name }}
-                                                </a>
-                                            </h4>
-                                        </div>
-                                        <div id="collapse{{ forloop.counter }}" class="panel-collapse collapse {% if forloop.first %}in{% endif %}" role="tabpanel" aria-labelledby="heading{{ forloop.counter }}">
-                                            <div class="panel-body">
-                                                <ul>
-                                                    {% for subcategory in category.subcategories %}
-                                                        <li><a href="#!">{{ subcategory.name }}</a></li>
-                                                    {% endfor %}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div> {% endcomment %}
+{% include "home/includes/navigation.html" %}
 
-                        <button type="submit" class="btn btn-main btn-small">Apply</button>
-                    </form>
-
-                </div>
-                <div class="col-md-9">
-                    <div class="row display-flex">
-                        {% if not products %}
-                            <h2>No products</h2>
-                        {% endif %}
-                        {% for product in products %}
-                            <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-                                {% include "home/includes/product.html" %}
-                            </div>
-                        {% endfor %}
-                    </div>
-                    {% if products.has_other_pages %}
-                        <div class="text-center">
-                            <ul class="pagination post-pagination">
-                                {% if products.has_previous %}
-                                    <li><a href="?page={{ products.previous_page_number }}">Prev</a></li>
-                                    {% if products.number > 2 %}
-                                        <li><a href="?page=1">1</a></li>
-                                    {% endif %}
-                                {% endif %}
-                                {% for page_number in products.paginator.page_range %}
-                                    {% if page_number >= products.number|add:"-1" and page_number <= products.number|add:"1" %}
-                                        {% if products.number == page_number %}
-                                            <li class="active"><a href="#">{{ page_number }}</a></li>
-                                        {% else %}
-                                            <li><a href="?page={{ page_number }}">{{ page_number }}</a></li>
-                                        {% endif %}
-                                    {% elif page_number == products.number|add:"-3" or page_number == products.number|add:"3" %}
-                                        <li><span>...</span></li>
-                                    {% endif %}
-                                {% endfor %}
-                                {% if products.has_next %}
-                                    {% if products.number < products.paginator.num_pages|add:"-1" %}
-                                        <li><a href="?page={{ products.paginator.num_pages }}">{{ products.paginator.num_pages }}</a></li>
-                                    {% endif %}
-                                    <li><a href="?page={{ products.next_page_number }}">Next</a></li>
-                                {% endif %}
-                            </ul>
-                        </div>
-                    
-                    {% endif %}
-                </div>
+<!-- Page Header -->
+<section class="page-header">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="page-name">Shop</h1>
+                <ol class="breadcrumb">
+                    <li><a href="{% url 'home' %}">Home</a></li>
+                    <li class="active">Shop</li>
+                </ol>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
-      
+<!-- Shop Section -->
+<section class="products section">
+    <div class="container">
+        <div class="row">
 
-    {% include "home/includes/footer.html" %}
-{% endblock content %}
+            <!-- Sidebar -->
+            <div class="col-lg-3 col-md-4 mb-4">
+                <form method="post">
+                    {% csrf_token %}
 
+                    <div class="widget mb-4">
+                        <h4 class="widget-title">Sort By</h4>
+                        <select name="sort_by" class="form-control">
+                            <option value="">Relevance</option>
+                            <option value="popularity" {% if sort_by == "popularity" %}selected{% endif %}>Popularity</option>
+                            <option value="price_asc" {% if sort_by == "price_asc" %}selected{% endif %}>Price: Low to High</option>
+                            <option value="price_desc" {% if sort_by == "price_desc" %}selected{% endif %}>Price: High to Low</option>
+                            <option value="new" {% if sort_by == "new" %}selected{% endif %}>New Arrivals</option>
+                            <option value="name_asc" {% if sort_by == "name_asc" %}selected{% endif %}>A → Z</option>
+                            <option value="name_desc" {% if sort_by == "name_desc" %}selected{% endif %}>Z → A</option>
+                        </select>
+                    </div>
 
-{% block extra_styles %}
-<style>
-    .row.display-flex {
-		display: flex;
-		flex-wrap: wrap;
-	}
-	.row.display-flex > [class*='col-'] {
-		display: flex;
-		flex-direction: column;
-	}
-</style>
-{% endblock extra_styles %}
+                    <div class="widget mb-4">
+                        <h4 class="widget-title">Categories</h4>
+                        <select name="selected_category" class="form-control">
+                            <option value="">All Categories</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}"
+                                    {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ category.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-main btn-block">
+                        Apply Filters
+                    </button>
+                </form>
+            </div>
+
+            <!-- Products -->
+            <div class="col-lg-9 col-md-8">
+                {% if not products %}
+                    <div class="text-center py-5">
+                        <h4>No products found</h4>
+                    </div>
+                {% endif %}
+
+                <div class="row">
+                    {% for product in products %}
+                        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-4">
+                            {% include "home/includes/product.html" %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Pagination -->
+                {% if products.has_other_pages %}
+                    <ul class="pagination justify-content-center mt-4">
+                        {% if products.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ products.previous_page_number }}">Prev</a>
+                            </li>
+                        {% endif %}
+
+                        {% for page in products.paginator.page_range %}
+                            {% if page == products.number %}
+                                <li class="page-item active"><span class="page-link">{{ page }}</span></li>
+                            {% elif page >= products.number|add:"-1" and page <= products.number|add:"1" %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page }}">{{ page }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if products.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ products.next_page_number }}">Next</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</section>
+
+{% include "home/includes/footer.html" %}
+{% endblock %}
