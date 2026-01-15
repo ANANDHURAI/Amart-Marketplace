@@ -37,7 +37,8 @@
                   </h4>
                     {% for message in messages %}
                         {% if message.tags == "error" %}
-                            <div class="alert alert-danger alert-common" role="alert">
+                            <div class="alert alert-danger alert-common auto-dismiss" role="alert">
+
                                 <i class="tf-ion-close-circled"></i><span></span>{{ message }}
                             </div>
                         {% endif %}
@@ -46,25 +47,50 @@
                     {% csrf_token %}
                     <div class="form-group">
                         <label for="full_name">Full Name</label>
-                        <input type="text" class="form-control" id="full_name" name="name" placeholder="Full name *" pattern="[A-Za-z]+(?: [A-Za-z]+)*" oninvalid="this.setCustomValidity('Enter a valid name')" value="{{ address.name }}" required>
+                        <input type="text"
+                            class="form-control"
+                            id="full_name"
+                            name="name"
+                            placeholder="Full name *"
+                            pattern="^[A-Za-z]+(?:[\s-][A-Za-z]+)*$"
+                            maxlength="255"
+                            
+                            oninput="this.setCustomValidity('')"
+                            oninvalid="this.setCustomValidity('Enter a valid full name')"
+                            value="{{ address.name }}">
+
                     </div>
                     <div class="checkout-country-code clearfix">
                         <div class="form-group">
                             <label for="user_pin_code">Pin Code</label>
-                            <input type="text" class="form-control" id="user_pin_code" name="pincode" placeholder="Pin code *" pattern="\d{6}" required oninvalid="this.setCustomValidity('Invalid Pin code')" value="{{address.pincode}}">
+                            <input type="text"
+                                name="pincode"
+                                pattern="^[1-9]\d{5}$"
+                                maxlength="6"
+                                
+                                oninput="this.setCustomValidity('')"
+                                oninvalid="this.setCustomValidity('Enter a valid 6-digit pincode')">
+
                         </div>
                         <div class="form-group">
                             <label for="user_mobile">Mobile No. <strong> +91</strong></label>
-                            <input type="text" class="form-control" id="user_mobile" name="mobile" placeholder="10 digit mobile number *" pattern="\d{10}" required oninvalid="this.setCustomValidity('Invalid mobile number')" value="{{address.mobile}}">
+                            <input type="text"
+                                name="mobile"
+                                pattern="^[6-9]\d{9}$"
+                                maxlength="10"
+                                
+                                oninput="this.setCustomValidity('')"
+                                oninvalid="this.setCustomValidity('Enter a valid 10-digit Indian mobile number')">
+
                         </div>
                     </div>
                     <div class="form-group">
                         <label for="user_house">Building</label>
-                        <input type="text" class="form-control" id="user_house" name="building" placeholder="House/Building/Apartment *" pattern="[A-Za-z0-9]+(?: [A-Za-z0-9]+)*" oninvalid="this.setCustomValidity('Invalid Input')" value="{{address.building}}" required>
+                        <input type="text" class="form-control" id="user_house" name="building" placeholder="House/Building/Apartment *" pattern="[A-Za-z0-9]+(?: [A-Za-z0-9]+)*" oninvalid="this.setCustomValidity('Invalid Input')" value="{{address.building}}" >
                     </div>
                     <div class="form-group">
                         <label for="user_street">Street</label>
-                        <input type="text" class="form-control" id="user_street" name="street" placeholder="Street/Locality *" pattern="[A-Za-z0-9]+(?: [A-Za-z0-9]+)*" oninvalid="this.setCustomValidity('Invalid Input')" value="{{address.street}}" required>
+                        <input type="text" class="form-control" id="user_street" name="street" placeholder="Street/Locality *" pattern="[A-Za-z0-9]+(?: [A-Za-z0-9]+)*" oninvalid="this.setCustomValidity('Invalid Input')" value="{{address.street}}" >
                     </div>
                     <div class="form-group">
                         <label for="user_city">City</label>
@@ -72,11 +98,11 @@
                     </div>
                     <div class="form-group">
                         <label for="user_district">district</label>
-                        <input type="text" class="form-control" id="user_district" name="district" placeholder="district *" pattern="[A-Za-z]+(?: [A-Za-z]+)*" oninvalid="this.setCustomValidity('Invalid Input')" required value="{{address.district}}">
+                        <input type="text" class="form-control" id="user_district" name="district" placeholder="district *" pattern="[A-Za-z]+(?: [A-Za-z]+)*" oninvalid="this.setCustomValidity('Invalid Input')"  value="{{address.district}}">
                     </div>
                     <div class="checkout-country-code clearfix">
                         <div class="form-group">
-                            <select style="height: 50px;" class="form-control" id="user_state" name="state" required>
+                            <select style="height: 50px;" class="form-control" id="user_state" name="state" >
                                 {% for state in states %}
                                     <option {% if address.state == state %}selected{% endif %} value="{{ state }}">{{ state }}</option>
                                 {% endfor %}
@@ -84,7 +110,7 @@
                         </div>
                         <div class="form-group">
                             <label for="user_country">Country</label>
-                            <input type="text" class="form-control" id="user_country" name="country" value="India" readonly required>
+                            <input type="text" class="form-control" id="user_country" name="country" value="India" readonly >
                         </div>
                     </div>
                     <button type="submit" class="btn btn-main mt-20">{% if address %}Edit Address{% else %}Save Address{% endif %}</button>
@@ -102,3 +128,20 @@
 {% block extra_styles %}
 
 {% endblock extra_styles %}
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const alerts = document.querySelectorAll(".auto-dismiss");
+
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            alert.style.transition = "opacity 0.4s ease, transform 0.4s ease";
+            alert.style.opacity = "0";
+            alert.style.transform = "translateY(-10px)";
+
+            setTimeout(() => alert.remove(), 400);
+        }, 1500);
+    });
+});
+</script>
+{% endblock extra_scripts %}

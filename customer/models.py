@@ -34,12 +34,20 @@ class Address(models.Model):
             )
         ],
     )
-    mobile = models.PositiveIntegerField(
-        validators=[MinValueValidator(1000000000), MaxValueValidator(9999999999)]
+    mobile = models.CharField(
+        max_length=10,
+        validators=[
+            RegexValidator(regex=r"^[6-9]\d{9}$", message="Invalid mobile number")
+        ],
     )
-    pincode = models.PositiveIntegerField(
-        validators=[MinValueValidator(100000), MaxValueValidator(999999)]
+
+    pincode = models.CharField(
+        max_length=6,
+        validators=[
+            RegexValidator(regex=r"^[1-9]\d{5}$", message="Invalid pincode")
+        ],
     )
+
     state = models.CharField(max_length=255)
     building = models.CharField(max_length=255)
     street = models.CharField(max_length=255)

@@ -123,39 +123,84 @@ def change_password(request):
     return render(request, "customer/change-password.html")
 
 
+
+import re
+from django.core.exceptions import ValidationError
+
+def validate_address_data(data):
+    errors = []
+
+    name = data.get("name", "").strip()
+    mobile = data.get("mobile", "").strip()
+    pincode = data.get("pincode", "").strip()
+    building = data.get("building", "").strip()
+    street = data.get("street", "").strip()
+    city = data.get("city", "").strip()
+    district = data.get("district", "").strip()
+    state = data.get("state", "").strip()
+
+    if not re.fullmatch(r"[A-Za-z]+(?:[\s-][A-Za-z]+)*", name):
+        errors.append("Invalid full name.")
+
+    if not re.fullmatch(r"[6-9]\d{9}", mobile):
+        errors.append("Invalid mobile number.")
+
+    if not re.fullmatch(r"[1-9]\d{5}", pincode):
+        errors.append("Invalid pincode.")
+
+    if len(building) < 3:
+        errors.append("Building name is too short.")
+
+    if len(street) < 3:
+        errors.append("Street name is too short.")
+
+    if not re.fullmatch(r"[A-Za-z ]+", district):
+        errors.append("Invalid district name.")
+
+    if state not in list_of_states_in_india:
+        errors.append("Invalid state selected.")
+
+    return errors
+
+
 @login_required
 def new_address(request):
     if request.method == "POST":
-        name = request.POST.get("name").title()
-        pincode = int(request.POST.get("pincode"))
-        mobile = int(request.POST.get("mobile"))
-        building = request.POST.get("building").title()
-        street = request.POST.get("street").title()
-        city = request.POST.get("city").title()
-        district = request.POST.get("district").title()
-        state = request.POST.get("state").title()
+        errors = validate_address_data(request.POST)
+
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+            return redirect("new_address")
+
+        name = request.POST["name"].strip().title()
+        mobile = request.POST["mobile"].strip()
+        pincode = request.POST["pincode"].strip()
+        building = request.POST["building"].strip().title()
+        street = request.POST["street"].strip().title()
+        city = request.POST.get("city", "").strip().title()
+        district = request.POST["district"].strip().title()
+        state = request.POST["state"].strip()
+
         customer = Customer.objects.get(id=request.user.id)
+
         address_parts = [
             name,
             building,
             street,
+            city if city else None,
             f"{district}, {state}",
-            f"Pincode - {str(pincode)}",
-            f"Mobile: {str(mobile)}",
+            f"Pincode - {pincode}",
+            f"Mobile: {mobile}",
         ]
-        if city:
-            address_parts.insert(3, city)
-        address_text = "\n".join(address_parts)
 
-        if not all([name, pincode, mobile, building, street, district, state]):
-            messages.error(request, "Please fill in all required fields.")
-            return redirect("new_address")
+        address_text = "\n".join(filter(None, address_parts))
 
-        new_address = Address.objects.create(
+        address = Address.objects.create(
             customer=customer,
             name=name,
-            pincode=pincode,
             mobile=mobile,
+            pincode=pincode,
             building=building,
             street=street,
             city=city,
@@ -164,16 +209,15 @@ def new_address(request):
             address_text=address_text,
         )
 
-        if Address.objects.filter(customer=customer).count() == 1:
-            new_address.is_default = True
+        if not Address.objects.filter(customer=customer).exclude(id=address.id).exists():
+            address.is_default = True
+            address.save()
 
-        if "checkout_submit" in request.POST:
-            return redirect("checkout")
+        return redirect("checkout" if "checkout_submit" in request.POST else "customer_address")
 
-        return redirect("customer_address")
-
-    context = {"states": list_of_states_in_india}
-    return render(request, "customer/address_form.html", context)
+    return render(request, "customer/address_form.html", {
+        "states": list_of_states_in_india
+    })
 
 
 @login_required
