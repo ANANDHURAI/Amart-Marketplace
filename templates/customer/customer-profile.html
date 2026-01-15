@@ -1,9 +1,10 @@
 {% extends "home/base.html" %}
-
 {% load static %}
 
 {% block content %}
 {% include 'home/includes/navigation.html' %}
+
+<!-- Page Header -->
 <section class="page-header">
   <div class="container">
       <div class="row">
@@ -11,7 +12,7 @@
               <div class="content">
                   <h1 class="page-name">Profile Details</h1>
                   <ol class="breadcrumb">
-                      <li><a href="{% url "home" %}">Home</a></li>
+                      <li><a href="{% url 'home' %}">Home</a></li>
                       <li><a href="">Profile</a></li>
                       <li class="active"><a href="">Details</a></li>
                   </ol>
@@ -21,98 +22,145 @@
   </div> 
 </section>
 
+<!-- User Dashboard -->
 <section class="user-dashboard page-wrapper">
     <div class="container">
         <div class="row">
             <div class="col-md-12">
+                <!-- Dashboard Menu -->
                 <ul class="list-inline dashboard-menu text-center">
-                    <li><a href="{% url "customer_dashboard" %}">Dashboard</a></li>
-                    <li><a href="{% url "customer_orders" %}">Orders</a></li>
-                    <li><a href="{% url "customer_address" %}">Address</a></li>
-                    <li><a class="active" href="{% url "customer_profile" %}">Profile Details</a></li> 
-                    <li><a href="{% url "customer_wallet" %}">Wallet</a></li>   
+                    <li><a href="{% url 'customer_dashboard' %}">Dashboard</a></li>
+                    <li><a href="{% url 'customer_orders' %}">Orders</a></li>
+                    <li><a href="{% url 'customer_address' %}">Address</a></li>
+                    <li><a class="active" href="{% url 'customer_profile' %}">Profile Details</a></li>
+                    <li><a href="{% url 'customer_wallet' %}">Wallet</a></li>
                 </ul>
+
+                <!-- Profile Info -->
                 <div class="dashboard-wrapper dashboard-user-profile">
                     <div class="media">
-                      <div class="pull-left text-center" href="#!">
-                        {% if customer.profile_image %}
-                            <img class="media-object user-img" src="{{ customer.profile_image.url }}" alt="Image">
-                        {% else %}
-                            <img class="media-object user-img" src="{% static "images\default_profile_picture.png" %}" alt="Image">
-                        {% endif %}
-                      </div>
-                      <div class="media-body">
-                        <ul class="user-profile-list">
-                          <li><span>Full Name:</span>{{ customer.first_name }} {{ customer.last_name }}</li>
-                          <li><span>Country:</span>India</li>
-                          <li><span>Email:</span>{{ customer.email }}</li>
-                          {% if customer.mobile %}
-                              <li><span>Mobile:</span>+91 {{ customer.mobile }}</li>
-                          {% endif %}
-                          <li><span>Date of Join:</span>{{ customer.date_joined|date:"d-m-Y" }}</li>
-                          <br>
-                          <a data-toggle="modal" data-target="#edit-profile-modal" class="btn btn-main btn-small">Edit Profile</a>
-                          <a href="{% url "change_password" %}" class="btn btn-main btn-small">Change Password</a>
-                        </ul>
-                      </div>
+                        <div class="pull-left text-center">
+                            {% if customer.profile_image %}
+                                <img class="media-object user-img" src="{{ customer.profile_image.url }}" alt="Profile Image" style="width:150px; height:150px; border-radius:50%; object-fit:cover;">
+                            {% else %}
+                                <img class="media-object user-img" src="{% static 'images/default_profile_picture.png' %}" alt="Profile Image" style="width:150px; height:150px; border-radius:50%; object-fit:cover;">
+                            {% endif %}
+                        </div>
+                        <div class="media-body">
+                            <ul class="user-profile-list">
+                                <li><span>Full Name:</span> {{ customer.first_name }} {{ customer.last_name }}</li>
+                                <li><span>Country:</span> India</li>
+                                <li><span>Email:</span> {{ customer.email }}</li>
+                                {% if customer.mobile %}
+                                    <li><span>Mobile:</span> +91 {{ customer.mobile }}</li>
+                                {% endif %}
+                                <li><span>Date of Join:</span> {{ customer.date_joined|date:"d-m-Y" }}</li>
+                                <br>
+                                <a data-toggle="modal" data-target="#edit-profile-modal" class="btn btn-main btn-small">Edit Profile</a>
+                                <a href="{% url 'change_password' %}" class="btn btn-main btn-small">Change Password</a>
+                            </ul>
+                        </div>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
 </section>
 
-<!--Edit Profile Modal -->
+<!-- Edit Profile Modal -->
 <div class="modal product-modal fade" id="edit-profile-modal">
     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
         <i class="tf-ion-close"></i>
     </button>
-    <div class="modal-dialog " role="document">
+    <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-body">
                 <div class="row">
-                        <div class="block billing-details">
-                            <h4 class="widget-title">Edit profile</h4>
-                            {% for message in messages %}
-                                {% if message.tags == "error" %}
-                                    <div class="alert alert-danger alert-common" role="alert">
-                                        <i class="tf-ion-close-circled"></i><span></span>{{ message }}
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
-                            <form class="checkout-form" method="post" action="{% url "edit_profile" %}" enctype="multipart/form-data">
+                    <div class="block billing-details">
+                        <h4 class="widget-title">Edit Profile</h4>
+
+                        {% for message in messages %}
+                            {% if message.tags == "error" %}
+                                <div class="alert alert-danger alert-common auto-dismiss">{{ message }}</div>
+                            {% elif message.tags == "success" %}
+                                <div class="alert alert-success alert-common auto-dismiss">{{ message }}</div>
+                            {% endif %}
+                        {% endfor %}
+
+                        <form class="checkout-form" method="post" action="{% url 'edit_profile' %}" enctype="multipart/form-data">
                             {% csrf_token %}
+
+                            <!-- First & Last Name -->
                             <div class="checkout-country-code clearfix">
                                 <div class="form-group">
-                                    <label for="first-name">First Name</label>
-                                    <input type="text" class="form-control" id="first-name" name="first_name" placeholder="First name *" value="{{ customer.first_name }}" required>
+                                    <label for="first-name">First Name *</label>
+                                    <input type="text" class="form-control" id="first-name" name="first_name" placeholder="First name" value="{{ customer.first_name }}" required>
                                 </div>
                                 <div class="form-group">
-                                    <label for="last-name">Last Name</label>
-                                    <input type="text" class="form-control" id="last-name" name="last_name" placeholder="Last name *" value="{{ customer.last_name }}" required>
+                                    <label for="last-name">Last Name *</label>
+                                    <input type="text" class="form-control" id="last-name" name="last_name" placeholder="Last name" value="{{ customer.last_name }}" required>
                                 </div>
                             </div>
+
+                            <!-- Mobile -->
                             <div class="form-group">
                                 <label for="user_mobile">Mobile No. <strong> +91</strong></label>
-                                <input type="text" class="form-control" id="user_mobile" name="mobile" placeholder="10 digit mobile number *" pattern="\d{10}" required oninvalid="this.setCustomValidity('Invalid mobile number')"{% if customer.mobile %} value="{{customer.mobile}}"{% endif %}>
+                                <input type="text" class="form-control" id="user_mobile" name="mobile" placeholder="10 digit mobile number" pattern="\d{10}" required value="{{ customer.mobile }}">
                             </div>
+
+                            <!-- Profile Image Preview -->
+                            <div class="form-group text-center">
+                                <label>Profile Image</label><br>
+                                <img id="profile_preview" 
+                                     src="{% if customer.profile_image %}{{ customer.profile_image.url }}{% else %}{% static 'images/default_profile_picture.png' %}{% endif %}" 
+                                     alt="Profile Preview" 
+                                     style="max-width:150px; max-height:150px; border-radius:50%; margin-bottom:10px;">
+                            </div>
+
+                            <!-- Upload -->
                             <div class="form-group">
-                                <label for="profile_image">Profile Image</label>
                                 <input type="file" class="form-control-file" id="profile_image" name="profile_image" accept="image/*">
                             </div>
-                            <button type="submit" class="btn btn-main mt-20">Edit Profile</button>
+
+                            <!-- Submit -->
+                            <button type="submit" class="btn btn-main mt-20">Save Changes</button>
                         </form>                
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div><!--  Edit Profile modal -->
+</div><!-- End Edit Profile Modal -->
 
 {% include 'home/includes/footer.html' %}
 {% endblock content %}
 
-{% block extra_styles %}
+{% block extra_scripts %}
+<script>
+// Auto-dismiss messages
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".auto-dismiss").forEach(alert => {
+        setTimeout(() => {
+            alert.style.opacity = "0";
+            alert.style.transform = "translateY(-8px)";
+            setTimeout(() => alert.remove(), 400);
+        }, 1500);
+    });
+});
 
-{% endblock extra_styles %}
+// Profile image preview
+const profileInput = document.getElementById("profile_image");
+const preview = document.getElementById("profile_preview");
+if(profileInput){
+    profileInput.addEventListener("change", function() {
+        const file = this.files[0];
+        if(file){
+            const reader = new FileReader();
+            reader.onload = e => preview.src = e.target.result;
+            reader.readAsDataURL(file);
+        }
+    });
+}
+</script>
+{% endblock extra_scripts %}

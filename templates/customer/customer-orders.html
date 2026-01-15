@@ -161,10 +161,10 @@
                                                                                     <div class="modal-dialog" role="document">
                                                                                         <div class="modal-content">
                                                                                             <div class="modal-body">
-                                                                                                <h3 class="modal-title">Do you want to remove this address?</h3>
+                                                                                                <h3 class="modal-title">Do you want to remove this Order?
                                                                                                 {% comment %} <h4>{{ address.address_text|linebreaksbr }}</h4> {% endcomment %}
                                                                                                 <br>
-                                                                                                <p>If you are currently using this address for any active orders, removing it may result in potential delivery delays or errors. Are you sure you want to proceed with removing this address?</p>
+                                                                                                <p> Are you sure you want to proceed with removing this Order?</p>
                                                                                                 <div class="modal-footer">
                                                                                                     <a href="{% url "cancel_order_item" order_item.id %}" type="button" class="btn btn-main">Cancel</a>
                                                                                                 </div>

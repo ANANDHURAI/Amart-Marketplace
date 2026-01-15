@@ -81,17 +81,21 @@ def profile(request):
 @login_required
 def edit_profile(request):
     if request.method == "POST":
-        first_name = request.POST.get("first_name").title()
-        last_name = request.POST.get("last_name").title()
-        mobile = request.POST.get("mobile")
-
         customer = Customer.objects.get(id=request.user.id)
-        customer.first_name = first_name
-        customer.last_name = last_name
-        customer.mobile = mobile
+        customer.first_name = request.POST.get("first_name").title()
+        customer.last_name = request.POST.get("last_name").title()
+        customer.mobile = request.POST.get("mobile")
+
+        # Handle profile image if uploaded
+        profile_image = request.FILES.get("profile_image")
+        if profile_image:
+            customer.profile_image = profile_image
+
         customer.save()
+        messages.success(request, "Profile updated successfully!")
 
     return redirect("customer_profile")
+
 
 
 @login_required
