@@ -113,7 +113,11 @@
                        </div>
                      </div>
                   <br>
-                  <button type="submit" class="btn btn-main mt-20">Place Order</button>
+                  <div id="address-warning" class="alert alert-warning" role="alert" style="display:none;">
+                     Please add an address before placing the order!
+                  </div>
+                  <button type="submit" class="btn btn-main mt-20" id="place-order-btn">Place Order</button>
+
                   </form>
                </div>
                <div class="block billing-details">
@@ -165,31 +169,6 @@
                      </div>
                      <button type="submit" class="btn btn-main mt-20" name="checkout_submit">Save Address</button>
                  </form>   
-               </div>
-               <div class="block">
-                  <h4 class="widget-title">Payment Method</h4>
-                  <p>Credit Cart Details (Secure payment)</p>
-                  <div class="checkout-product-details">
-                     <div class="payment">
-                        <div class="card-details">
-                           <form  class="checkout-form">
-                              <div class="form-group">
-                                 <label for="card-number">Card Number <span class="required">*</span></label>
-                                 <input  id="card-number" class="form-control"   type="tel" placeholder="•••• •••• •••• ••••">
-                              </div>
-                              <div class="form-group half-width padding-right">
-                                 <label for="card-expiry">Expiry (MM/YY) <span class="required">*</span></label>
-                                 <input id="card-expiry" class="form-control" type="tel" placeholder="MM / YY">
-                              </div>
-                              <div class="form-group half-width padding-left">
-                                 <label for="card-cvc">Card Code <span class="required">*</span></label>
-                                 <input id="card-cvc" class="form-control"  type="tel" maxlength="4" placeholder="CVC" >
-                              </div>
-                              {% comment %} <a href="confirmation.html" class="btn btn-main mt-20">Place Order</a > {% endcomment %}
-                           </form>
-                        </div>
-                     </div>
-                  </div>
                </div>
             </div>
             <div class="col-md-4">
@@ -281,3 +260,35 @@
 </style>
 
 {% endblock extra_styles %}
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const placeOrderBtn = document.getElementById("place-order-btn");
+    const addressWarning = document.getElementById("address-warning");
+    
+    placeOrderBtn.addEventListener("click", function(e) {
+        const addressRadios = document.querySelectorAll('input[name="address_id"]');
+        let hasAddress = false;
+        addressRadios.forEach(radio => {
+            if(radio.checked) hasAddress = true;
+        });
+
+        if (!hasAddress) {
+            e.preventDefault(); 
+            addressWarning.style.display = "block";
+
+            setTimeout(() => {
+                addressWarning.style.transition = "opacity 0.5s ease";
+                addressWarning.style.opacity = 0;
+            }, 2000);
+
+            setTimeout(() => {
+                addressWarning.style.display = "none";
+                addressWarning.style.opacity = 1; 
+            }, 2500);
+        }
+    });
+});
+</script>
+
+{% endblock extra_scripts %}
