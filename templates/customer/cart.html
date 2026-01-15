@@ -88,10 +88,12 @@
                                       <div class="product-size">
                                         <span>Size:</span>
                                         <select class="form-control" name="product-size">
-                                          <option {% if cart_item.inventory.size == "S" %} selected {% endif %} value="S">Small</option>
-                                          <option {% if cart_item.inventory.size == "M" %} selected {% endif %} value="M">Medium</option>
-                                          <option {% if cart_item.inventory.size == "L" %} selected {% endif %} value="L">Large</option>
-                                          <option {% if cart_item.inventory.size == "XL" %} selected {% endif %} value="XL">Extra Large</option>
+                                          {% for inv in cart_item.available_inventories %}
+                                            <option value="{{ inv.size }}"
+                                              {% if inv.id == cart_item.inventory.id %}selected{% endif %}>
+                                              {{ inv.get_size_display }}
+                                            </option>
+                                          {% endfor %}
                                         </select>
                                       </div>
                                       <div class="">

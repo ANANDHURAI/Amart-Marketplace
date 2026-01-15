@@ -102,7 +102,7 @@ class OrderItem(models.Model):
         return f"{self.quantity} x{self.product.name}"
 
 
-# Check notepad++ for payment model
+
 
 
 class FavouriteItem(models.Model):

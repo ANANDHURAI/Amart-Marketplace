@@ -395,25 +395,47 @@ def remove_favourite_item(request, favourite_item_id):
     return redirect(next_url)
 
 
-# Customer Cart Session
+# Customer Cart
+
 @login_required
 def cart(request):
     customer = Customer.objects.get(id=request.user.id)
-    cart, cart_created = Cart.objects.get_or_create(customer=customer)
-    cart_items = CartItem.objects.filter(cart=cart)
+    cart, _ = Cart.objects.get_or_create(customer=customer)
+
+    cart_items = CartItem.objects.select_related(
+        "product", "inventory"
+    ).prefetch_related(
+        "product__inventory_sizes"
+    ).filter(cart=cart)
+
     total_amount = 0
 
-    for cart_item in cart_items:
-        cart_item.product.primary_image = cart_item.product.product_images.filter(
-            priority=1
-        ).first()
+    for item in cart_items:
+        # product image
+        item.product.primary_image = (
+            item.product.product_images.filter(priority=1).first()
+        )
 
-        total_amount += cart_item.quantity * cart_item.inventory.price
+        # only available inventories for THIS product
+        item.available_inventories = item.product.inventory_sizes.filter(
+            is_active=True,
+            stock__gt=0
+        )
+
+        total_amount += item.quantity * item.inventory.price
 
     cart.total_amount = total_amount
 
-    context = {"customer": customer, "cart_items": cart_items, "cart": cart}
-    return render(request, "customer/cart.html", context)
+    return render(
+        request,
+        "customer/cart.html",
+        {
+            "customer": customer,
+            "cart_items": cart_items,
+            "cart": cart,
+        },
+    )
+
 
 
 @login_required
