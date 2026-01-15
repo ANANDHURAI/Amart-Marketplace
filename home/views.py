@@ -5,39 +5,54 @@ from django.http import HttpResponse
 from django.db.models import F, Sum, Q , Min ,Max
 from customer.models import OrderItem, FavouriteItem
 from aadmin.models import CategoryOffer
+from django.db.models import Min
 
-
-# Create your views here.
 def home(request):
     title = "Home"
-    products = Product.approved_objects.filter(is_available=True)[:9]
-    inventery=Inventory.objects.filter(product__in=products)
+
+    products = (
+        Product.approved_objects
+        .filter(is_available=True)
+        .prefetch_related("product_images", "inventory_sizes")[:9]
+    )
+
     for product in products:
-        primary_image = product.product_images.filter(priority=1).first()
-        product.primary_image = primary_image
-        inventory_item = inventery.filter(product=product).first()
-        if inventory_item:
-            product.shop_price = inventory_item.price
-        else:
-            product.shop_price = None
-    
-    # for product in products:
-        # small_size = product.inventory_sizes.get(size="S")
-        # small_size_price = small_size.price
-        # product.price = small_size_price
-        if FavouriteItem.objects.filter(
-            customer__id=request.user.id, product=product
-        ).exists():
-            product.is_favourite = True
+        # Primary image
+        product.primary_image = (
+            product.product_images.filter(priority=1).first()
+        )
+
+        # Only valid inventories for this product
+        product.available_inventories = product.inventory_sizes.filter(
+            is_active=True,
+            stock__gt=0
+        )
+
+        # Lowest available price
+        product.shop_price = (
+            product.available_inventories.aggregate(
+                Min("price")
+            )["price__min"]
+        )
+
+        # Favourite check
+        if request.user.is_authenticated:
+            product.is_favourite = FavouriteItem.objects.filter(
+                customer__id=request.user.id,
+                product=product
+            ).exists()
         else:
             product.is_favourite = False
 
     categories = Category.objects.all()[:4]
-    context = {"products": products,
-                "categories": categories,
-                  "title": title,
-                  'inventery':inventery}
+
+    context = {
+        "products": products,
+        "categories": categories,
+        "title": title,
+    }
     return render(request, "home/home.html", context)
+
 
 
 def shop(request):
@@ -106,12 +121,19 @@ def shop(request):
             .order_by("priority")
             .first()
         )
+        
+        product.available_inventories = product.inventory_sizes.filter(
+            is_active=True,
+            stock__gt=0
+        )
 
         product.shop_price = (
-            product.inventory_sizes
-            .aggregate(Min("price"))["price__min"]
-            or 0
+            product.available_inventories.aggregate(
+                Min("price")
+            )["price__min"] or 0
         )
+
+        
 
     context = {
         "products": paged_products,

@@ -99,11 +99,14 @@
 
                 <div class="form-group">
                     <label>Size</label>
-                    <select name="product-size" class="form-control">
-                        <option>S</option>
-                        <option>M</option>
-                        <option>L</option>
-                        <option>XL</option>
+                    <select name="product-size" class="form-control" required>
+                        {% for inv in product.available_inventories %}
+                            <option value="{{ inv.size }}">
+                                {{ inv.get_size_display }}
+                            </option>
+                        {% empty %}
+                            <option disabled>No sizes available</option>
+                        {% endfor %}
                     </select>
                 </div>
 

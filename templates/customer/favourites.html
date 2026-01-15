@@ -50,7 +50,7 @@
                                 <a href="{% url "product_page" favourite_item.product.slug %}">
                                     
                                     <p class="truncate">{{ favourite_item.product.name }}</p>
-                                    <p class="price"><strong class="h4">&#8377; {{ favourite_item.product.price }} </strong><del class="h6"> MRP: {{ favourite_item.product.mrp }}</del></p>
+                                    <p class="price"><strong class="h4">&#8377; {{ favourite_item.product.price }} </strong>
                                 </a>
                                 <a href="{% url "remove_favourite_item" favourite_item.id %}" class="btn btn-small btn-primary">Remove</a>
                             </div>
