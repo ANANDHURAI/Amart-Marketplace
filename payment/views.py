@@ -48,6 +48,7 @@ def razorpay_order_creation(request, amount):
 logger = logging.getLogger(__name__)
 
 
+
 @csrf_exempt
 @login_required
 def razorpay_paymenthandler(request):
@@ -58,26 +59,36 @@ def razorpay_paymenthandler(request):
         payment_id = request.POST.get("razorpay_payment_id", "")
         razorpay_order_id = request.POST.get("razorpay_order_id", "")
         signature = request.POST.get("razorpay_signature", "")
+
         params_dict = {
             "razorpay_order_id": razorpay_order_id,
             "razorpay_payment_id": payment_id,
             "razorpay_signature": signature,
         }
 
-        try:
-            razorpay_client.utility.verify_payment_signature(params_dict)
-            request.session["payment_successful"] = True
-            request.session["payment_method"] = "razorpay"
-            return redirect("finalize_order")
-        except:
-            # Payment verification failed
-            request.session["payment_successful"] = False
-            return redirect("payment_failed")
+        razorpay_client.utility.verify_payment_signature(params_dict)
+
+        if request.session.get("pay_now"):
+            order_id = request.session.get("order_id")
+            order = Order.objects.get(id=order_id)
+            order.is_paid = True
+            order.payment_method = "razorpay"
+            order.save()
+
+            del request.session["pay_now"]
+            del request.session["order_id"]
+
+        request.session["payment_successful"] = True
+        request.session["payment_method"] = "razorpay"
+
+        return redirect("orders")
 
     except Exception as e:
-        logger.error(f"Razorpay payment handler error: {str(e)}")
         request.session["payment_successful"] = False
         return redirect("payment_failed")
+
+
+
 
 
 @login_required
@@ -85,6 +96,83 @@ def cash_on_delivery(request):
     request.session["payment_method"] = "cod"
     request.session["payment_successful"] = True
     return redirect("finalize_order")
+
+
+
+def handle_cod_payment(request, customer, total_amount):
+    if total_amount > 1000:
+        messages.error(request, "COD is not available for orders above 1000 Rs.")
+    else:
+        request.session["payment_successful"] = True
+        request.session["payment_method"] = "cod"
+        return redirect("finalize_order")
+    return redirect("payment_failed")
+
+
+@login_required
+def pay_now(request, order_id):
+    order = Order.objects.get(id=order_id)
+    request.session["pay_now"] = "pay_now"
+    request.session["order_id"] = order_id
+    return redirect("razorpay_order_creation", amount=order.total_amount)
+
+
+@login_required
+def pay_now_update(request):
+    try:
+        order_id = request.session.get("order_id")
+        order = Order.objects.get(id=order_id)
+        order.is_paid = True
+        order.payment_method = "razorpay"
+        order.save()
+        del request.session["pay_now"]
+        del request.session["order_id"]
+        return True
+    except Exception as e:
+        logger.error(f"Error in pay_now_update: {str(e)}")
+        return False
+    
+    
+@login_required
+def razorpay_callback(request):
+    if request.method == "GET":
+        payment_id = request.GET.get("razorpay_payment_id", "")
+        razorpay_order_id = request.GET.get("razorpay_order_id", "")
+        signature = request.GET.get("razorpay_signature", "")
+        params_dict = {
+            "razorpay_order_id": razorpay_order_id,
+            "razorpay_payment_id": payment_id,
+            "razorpay_signature": signature,
+        }
+        try:
+            razorpay_client.utility.verify_payment_signature(params_dict)
+            order = razorpay_client.order.fetch(razorpay_order_id)
+            amount = order["amount"] / 100
+            customer = request.user.customer
+            wallet = Wallet.objects.get(customer=customer)
+            wallet.balance += amount
+            wallet.save()
+
+            messages.success(request, f"Successfully added ₹{amount} to your wallet!")
+        except:
+            messages.error(request, "Payment verification failed. Please try again.")
+    return redirect("customer_wallet")
+
+
+def handle_wallet_payment(request, customer, total_amount):
+    wallet = Wallet.objects.get(customer=customer)
+    if wallet.balance >= total_amount:
+        with transaction.atomic():
+            wallet.balance -= total_amount
+            wallet.save()
+            request.session["payment_successful"] = True
+            request.session["payment_method"] = "wallet"
+        return redirect("finalize_order")
+    else:
+        messages.error(request, "Insufficient wallet balance.")
+    return redirect("payment_failed")
+
+
 
 
 @login_required
@@ -125,53 +213,6 @@ def payment_failed(request):
 
     return render(request, "customer/payment_failed.html", context)
 
-
-def handle_wallet_payment(request, customer, total_amount):
-    wallet = Wallet.objects.get(customer=customer)
-    if wallet.balance >= total_amount:
-        with transaction.atomic():
-            wallet.balance -= total_amount
-            wallet.save()
-            request.session["payment_successful"] = True
-            request.session["payment_method"] = "wallet"
-        return redirect("finalize_order")
-    else:
-        messages.error(request, "Insufficient wallet balance.")
-    return redirect("payment_failed")
-
-
-def handle_cod_payment(request, customer, total_amount):
-    if total_amount > 1000:
-        messages.error(request, "COD is not available for orders above 1000 Rs.")
-    else:
-        request.session["payment_successful"] = True
-        request.session["payment_method"] = "cod"
-        return redirect("finalize_order")
-    return redirect("payment_failed")
-
-
-@login_required
-def pay_now(request, order_id):
-    order = Order.objects.get(id=order_id)
-    request.session["pay_now"] = "pay_now"
-    request.session["order_id"] = order_id
-    return redirect("razorpay_order_creation", amount=order.total_amount)
-
-
-@login_required
-def pay_now_update(request):
-    try:
-        order_id = request.session.get("order_id")
-        order = Order.objects.get(id=order_id)
-        order.is_paid = True
-        order.payment_method = "razorpay"
-        order.save()
-        del request.session["pay_now"]
-        del request.session["order_id"]
-        return True
-    except Exception as e:
-        logger.error(f"Error in pay_now_update: {str(e)}")
-        return False
 
 
 @login_required
@@ -231,27 +272,3 @@ def wallet_payment_complete(request):
         return redirect("checkout")
 
 
-@login_required
-def razorpay_callback(request):
-    if request.method == "GET":
-        payment_id = request.GET.get("razorpay_payment_id", "")
-        razorpay_order_id = request.GET.get("razorpay_order_id", "")
-        signature = request.GET.get("razorpay_signature", "")
-        params_dict = {
-            "razorpay_order_id": razorpay_order_id,
-            "razorpay_payment_id": payment_id,
-            "razorpay_signature": signature,
-        }
-        try:
-            razorpay_client.utility.verify_payment_signature(params_dict)
-            order = razorpay_client.order.fetch(razorpay_order_id)
-            amount = order["amount"] / 100
-            customer = request.user.customer
-            wallet = Wallet.objects.get(customer=customer)
-            wallet.balance += amount
-            wallet.save()
-
-            messages.success(request, f"Successfully added ₹{amount} to your wallet!")
-        except:
-            messages.error(request, "Payment verification failed. Please try again.")
-    return redirect("customer_wallet")

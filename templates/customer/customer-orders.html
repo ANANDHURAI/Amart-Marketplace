@@ -90,15 +90,14 @@
                                             <td>₹ {{ order.total_amount }}</td>
                                             <td>{{ order.payment_method }}</td>
                                             <td class="text-center">
-                                                {% if order.payment_method == 'wallet' %}
+                                                {% if order.is_paid %}
                                                     Paid
-                                                {% elif order.is_paid %}
-                                                    Paid
-                                                {% elif order.payment_status == 'failed' %}
-                                                    Failed
-                                                    <button onclick="retryPayment({{ order.id }})" class="retry-payment-btn">Retry Payment</button>
+                                                {% elif order.payment_method == 'cod' %}
+                                                    <a href="{% url "pay_now" order.id %}" class="btn btn-small btn-round-full">
+                                                        Pay Now
+                                                    </a>
                                                 {% else %}
-                                                    <a href="{% url "pay_now" order.id %}" class="btn btn-small btn-round-full">Pay Now</a>
+                                                    Failed
                                                 {% endif %}
                                             </td>
                                             <td>
@@ -223,58 +222,15 @@
                                                                     <br>
                                                                 </div>
                                                             </div>
-                                                            <div>
-                                                                {% comment %} {% if order.status != "cancelled" and order.status != "delivered" %}
-                                                                    <div>
-                                                                        <button data-toggle="modal" data-target="#cancel-order-modal-{{ order.id }}" type="button" class="btn btn-danger pull-right">Cancel order</button>
-                                                                    </div>
-                                                                {% endif %} {% endcomment %}
-                                                            </div>
+                                                        
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div><!--  order view modal -->
+                                        </div>
 
 
-                                        {% comment %} <!-- candcel order Modal -->
-                                        <div class="modal product-modal fade" id="cancel-order-modal-{{ order.id }}">
-                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                <i class="tf-ion-close"></i>
-                                            </button>
-                                            <div class="modal-dialog " role="document">
-                                                <div class="modal-content">
-                                                    <div class="modal-body">
-                                                        <div class="row">
-                                                        <h4 class="modal-title text-center">Do you want to cancel this order?</h4>
-                                                        <div class="modal-body">
-                                                        </div>
-                                                        <div class="modal-footer">
-                                                            <a href="{% url "cancel_order" order.id %}" type="button" class="btn btn-danger">Cancel</a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div><!-- cancel order view modal --> {% endcomment %}
-                                        
-                                        {% comment %} <script src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js'></script>
-                                        <script>
-                                            window.onload = function () {
-                                                document.getElementById("download-invoice-{{order.id}}").addEventListener("click", () => {
-                                                    const order_invoice = document.getElementById("order-invoice-{{order.id}}");
-                                                    const filename = 'order_invoice_' + {{order.id}} + '.pdf';
-                                                    console.log(order_invoice);
-                                                    console.log(window);
-                                                    var opt = {
-                                                        margin: 0.2,
-                                                        filename: filename,
-                                                        image: { type: 'jpeg', quality: 0.98 },
-                                                        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-                                                    };
-                                                    html2pdf().from(order_invoice).set(opt).save();
-                                                });
-                                            }    
-                                        </script> {% endcomment %}
+                     
 
                                     {% endfor %}
                                 </tbody>
