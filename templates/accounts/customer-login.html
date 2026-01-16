@@ -15,26 +15,22 @@
                         <h2 class="text-center">Welcome</h2>
                         <form method="post" class="text-left clearfix" enctype="multipart/form-data">
                             {% csrf_token %}
-                            {% for message in messages %}
-                                {% if message.tags == "success" %}
-                                    <div class="alert alert-success alert-common" role="alert">
-                                        <i class="tf-ion-thumbsup"></i><span></span>{{ message }}
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
+                            {% if messages %}
+                                {% for message in messages %}
+                                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                                {% endfor %}
+                            {% endif %}
                             <div class="form-group">
                                 <input required id="email" type="email" class="form-control" placeholder="Email" name="email">
                             </div>
                             <div class="form-group">
                                 <input required type="password" id="password" class="form-control" placeholder="Password" name="password" pattern="^.{8,}$" oninvalid="this.setCustomValidity('Password must be at least 8 characters long')">
                             </div>
-                            {% for message in messages %}
-                                {% if message.tags == "error" %}
-                                    <div class="alert alert-danger alert-common" role="alert">
-                                        <i class="tf-ion-close-circled"></i><span></span>{{ message }}
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
+                            {% if messages %}
+                                {% for message in messages %}
+                                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                                {% endfor %}
+                            {% endif %}
                             <div class="text-center">
                                 <button type="submit" class="btn btn-main text-center" name="customer_login">Login</button>
                             </div>

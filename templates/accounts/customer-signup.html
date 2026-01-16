@@ -14,35 +14,50 @@
                         <h2 class="text-center">Create Your Account</h2>
                         <form class="text-left clearfix"  method="POST" enctype="multipart/form-data">
                             {% csrf_token %}
-                            {% for message in messages %}
-                                {% if message.tags == "success" %}
-                                    <div class="alert alert-success alert-common" role="alert">
-                                        <i class="tf-ion-thumbsup"></i><span></span>{{ message }}
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
+                            {% if messages %}
+                                {% for message in messages %}
+                                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                                {% endfor %}
+                            {% endif %}
                             <div class="form-group">
-                                <input required type="text" class="form-control"  placeholder="First Name" name="first_name">
+                                <input
+                                    
+                                    type="text"
+                                    class="form-control"
+                                    placeholder="First Name"
+                                    name="first_name"
+                                    pattern="[A-Za-z ]+"
+                                    title="Only letters are allowed"
+                                    />
+
+
                             </div>
                             <div class="form-group">
-                                <input required type="text" class="form-control"  placeholder="Last Name" name="last_name">
+                                <input
+                                    
+                                    type="text"
+                                    class="form-control"
+                                    placeholder="Last Name"
+                                    name="last_name"
+                                    pattern="[A-Za-z ]+"
+                                    title="Only letters are allowed"
+                                    />
+
                             </div>
                             <div class="form-group">
-                                <input required id="email" type="email" class="form-control"  placeholder="Email" name="email">
+                                <input  id="email" type="email" class="form-control"  placeholder="Email" name="email">
                             </div>
                             <div class="form-group">
-                                <input required type="password" id="password" class="form-control" placeholder="Password" name="password" pattern="^.{8,}$" oninvalid="this.setCustomValidity('Password must be at least 8 characters long')">
+                                <input  type="password" id="password" class="form-control" placeholder="Password" name="password" pattern="^.{8,}$" oninvalid="this.setCustomValidity('Password must be at least 8 characters long')">
                             </div>
                             <div class="form-group">
-                                <input required type="password" id="password" class="form-control" placeholder="Confirm Password" name="password2" pattern="^.{8,}$" oninvalid="this.setCustomValidity('Password must be at least 8 characters long')">
+                                <input  type="password" id="password" class="form-control" placeholder="Confirm Password" name="password2" pattern="^.{8,}$" oninvalid="this.setCustomValidity('Password must be at least 8 characters long')">
                             </div>
-                            {% for message in messages %}
-                                {% if message.tags == "error" %}
-                                    <div class="alert alert-danger alert-common" role="alert">
-                                        <i class="tf-ion-close-circled"></i><span></span>{{ message }}
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
+                            {% if messages %}
+                                {% for message in messages %}
+                                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                                {% endfor %}
+                            {% endif %}
                             <div class="text-center">
                                 <button type="submit" class="btn btn-main text-center" name="customer_signup">Sign Up</button>
                             </div>

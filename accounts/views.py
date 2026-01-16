@@ -32,6 +32,17 @@ def customer_signup(request):
             return redirect("customer_signup")
 
         #  Password match
+        
+        name_regex = r'^[A-Za-z ]+$'
+
+        if not re.match(name_regex, first_name):
+            messages.error(request, "First name should contain only letters")
+            return redirect("customer_signup")
+
+        if not re.match(name_regex, last_name):
+            messages.error(request, "Last name should contain only letters")
+            return redirect("customer_signup")
+
         if password != password2:
             messages.error(request, "Passwords do not match")
             return redirect("customer_signup")
@@ -77,40 +88,50 @@ def customer_signup(request):
     return render(request, "accounts/customer-signup.html", {"title": "Signup"})
 
 
-def customer_login(request):
 
+
+
+def customer_login(request):
     if request.method == "POST":
-        email = request.POST.get("email")
+        email = request.POST.get("email", "").strip().lower()
         password = request.POST.get("password")
+
+        if not email or not password:
+            messages.error(request, "Email and password are required")
+            return redirect("customer_login")
+
         try:
             customer = Customer.objects.get(email=email)
         except Customer.DoesNotExist:
-            error_message = "Account not found. Please check your email and try again."
-            messages.error(request, error_message)
+            messages.error(request, "Account not found. Please check your email.")
             return redirect("customer_login")
 
+        # Blocked / inactive
         if not customer.is_active:
-            request.session["email"] = email
-            request.session["target_page"] = "customer_login"
-            request.session["account_type"] = "customer"
-
-            error_message = "Please verify your email to login."
-            messages.error(request, error_message)
-            return redirect("otp_view")
-
-        authenticated_user = authenticate(email=email, password=password)
-        if authenticated_user is None:
-            error_message = "Invalid password. Please try again."
-            messages.error(request, error_message)
+            messages.error(request, "Your account is currently blocked. Please contact support.")
             return redirect("customer_login")
 
-        login(request, authenticated_user)
-        target_url = request.session.pop("customer_target_url", reverse("home"))
+        # Not approved by admin
+        if not customer.approved:
+            messages.error(request, "Your account is pending approval.")
+            return redirect("customer_login")
+
+        # Admin trying customer login
+        if customer.is_superadmin or customer.is_staff:
+            messages.error(request, "Admin accounts cannot login here.")
+            return redirect("customer_login")
+
+        user = authenticate(request, email=email, password=password)
+        if user is None:
+            messages.error(request, "Invalid email or password.")
+            return redirect("customer_login")
+
+        login(request, user)
         return redirect("home")
 
-    title = "LogIn"
-    context = {"title": title}
-    return render(request, "accounts/customer-login.html", context)
+    return render(request, "accounts/customer-login.html", {"title": "Login"})
+
+
 
 
 def customer_logout(request):
@@ -122,33 +143,41 @@ def customer_logout(request):
 
 
 def admin_login(request):
-
     if request.method == "POST":
-        email = request.POST.get("email")
+        email = request.POST.get("email", "").strip().lower()
         password = request.POST.get("password")
 
+        if not email or not password:
+            messages.error(request, "Email and password are required")
+            return redirect("admin_login")
+
         try:
-            account = Account.objects.get(email=email)
-            if not account.is_superadmin:
-                error_message = "Access denied. Please check your email and password"
-                messages.error(request, error_message)
-                return redirect("admin_login")
+            admin = Account.objects.get(email=email)
         except Account.DoesNotExist:
-            error_message = "Access denied. Please check your email and password"
-            messages.error(request, error_message)
+            messages.error(request, "Access denied.")
             return redirect("admin_login")
 
-        authenticated_user = authenticate(email=email, password=password)
-        if authenticated_user is None:
-            error_message = "Invalid password. Please try again."
-            messages.error(request, error_message)
+        if not admin.is_superadmin:
+            messages.error(request, "Access denied.")
             return redirect("admin_login")
 
-        login(request, authenticated_user)
-        target_url = request.session.pop("admin_target_url", reverse("admin_dashboard"))
+        if not admin.is_active:
+            messages.error(request, "Admin account is blocked.")
+            return redirect("admin_login")
+
+        user = authenticate(request, email=email, password=password)
+        if user is None:
+            messages.error(request, "Invalid email or password.")
+            return redirect("admin_login")
+
+        login(request, user)
         return redirect("admin_dashboard")
 
     return render(request, "aadmin/admin-login.html")
+
+
+
+
 
 
 def admin_logout(request):
