@@ -25,13 +25,15 @@
               <div class="form-group col-md-12 mb-4">
                 {% if messages %}
                   {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                    <div id="login-message" class="alert alert-danger text-center">
+                      {{ message }}
+                    </div>
                   {% endfor %}
                 {% endif %}
-                <input required name="email" type="email" class="form-control input-lg" id="email" aria-describedby="emailHelp" placeholder="Email">
+                <input  name="email" type="email" class="form-control input-lg" id="email" aria-describedby="emailHelp" placeholder="Email">
               </div>
               <div class="form-group col-md-12 ">
-                <input required name="password" type="password" class="form-control input-lg" id="password" placeholder="Password">
+                <input  name="password" type="password" class="form-control input-lg" id="password" placeholder="Password">
               </div>
               <div class="col-md-12">
                 <div class="d-flex my-2 justify-content-between">
@@ -47,4 +49,15 @@
     </div>
   </div>
 </div>
+
+<script>
+  setTimeout(function () {
+    const msg = document.getElementById("login-message");
+    if (msg) {
+      msg.style.transition = "opacity 0.4s ease";
+      msg.style.opacity = "0";
+      setTimeout(() => msg.remove(), 400);
+    }
+  }, 1500);
+</script>
 {% endblock content %}

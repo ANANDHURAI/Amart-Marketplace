@@ -142,19 +142,26 @@ def customer_logout(request):
 # Custom admin Login and logout views
 
 
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+
 def admin_login(request):
     if request.method == "POST":
         email = request.POST.get("email", "").strip().lower()
         password = request.POST.get("password")
 
-        if not email or not password:
-            messages.error(request, "Email and password are required")
+        if not email:
+            messages.error(request, "Email is required.")
+            return redirect("admin_login")
+
+        if not password:
+            messages.error(request, "Password is required.")
             return redirect("admin_login")
 
         try:
             admin = Account.objects.get(email=email)
         except Account.DoesNotExist:
-            messages.error(request, "Access denied.")
+            messages.error(request, "Email does not exist.")
             return redirect("admin_login")
 
         if not admin.is_superadmin:
@@ -165,12 +172,12 @@ def admin_login(request):
             messages.error(request, "Admin account is blocked.")
             return redirect("admin_login")
 
-        user = authenticate(request, email=email, password=password)
-        if user is None:
-            messages.error(request, "Invalid email or password.")
+        
+        if not admin.check_password(password):
+            messages.error(request, "Incorrect password.")
             return redirect("admin_login")
 
-        login(request, user)
+        login(request, admin)
         return redirect("admin_dashboard")
 
     return render(request, "aadmin/admin-login.html")

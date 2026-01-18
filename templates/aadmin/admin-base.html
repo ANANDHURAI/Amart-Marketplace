@@ -1255,22 +1255,6 @@
                         </div>
                       </li>
     
-                      {% comment %} <li>  
-                        <a href="user-profile.html">
-                          <i class="mdi mdi-account"></i> My Profile
-                        </a>
-                      </li>
-                      <li>
-                        <a href="#">
-                          <i class="mdi mdi-email"></i> Message
-                        </a>
-                      </li>
-                      <li>
-                        <a href="#"> <i class="mdi mdi-diamond-stone"></i> Projects </a>
-                      </li>
-                      <li class="right-sidebar-in">
-                        <a href="javascript:0"> <i class="mdi mdi-settings"></i> Setting </a>
-                      </li> {% endcomment %}
     
                       <li class="dropdown-footer">
                         <a href="{% url "admin_logout" %}"> <i class="mdi mdi-logout"></i> Log Out</a>
@@ -1297,45 +1281,17 @@
     
       </div> <!-- End Content -->
     </div> <!-- End Content Wrapper -->
-    
-    
-    <!-- Footer -->
-    {% comment %} <footer class="footer mt-auto">
-      <div class="copyright bg-white">
-        <p>
-          Copyright &copy; <span id="copy-year"></span> a template by <a class="text-primary" href="https://themefisher.com" target="_blank">Themefisher</a>.
-        </p>
-      </div>
-      <script>
-        var d = new Date();
-        var year = d.getFullYear();
-        document.getElementById("copy-year").innerHTML = year;
-      </script>
-    </footer> {% endcomment %}
-    
-    </div> <!-- End Page Wrapper -->
-    </div> <!-- End Wrapper -->
-
 
 
 
 </body>
 
-
-    <!-- <script type="module">
-      import 'https://cdn.jsdelivr.net/npm/@pwabuilder/pwaupdate';
-
-      const el = document.createElement('pwa-update');
-      document.body.appendChild(el);
-    </script> -->
-
-    <!-- Javascript -->
     <script src="{% static "aadmin/plugins/jquery/jquery.min.js" %}"></script>
     <script src="{% static "aadmin/plugins/bootstrap/js/bootstrap.bundle.min.js" %}"></script>
     <script src="{% static "aadmin/plugins/simplebar/simplebar.min.js" %}"></script>
  
     <script src='{% static "aadmin/plugins/charts/Chart.min.js" %}'></script>
-    {% comment %} <script src='{% static "aadmin/js/chart.js" %}'></script> {% endcomment %}
+
 
     
     
