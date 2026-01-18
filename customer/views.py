@@ -304,6 +304,9 @@ def orders(request):
         order.order_items = OrderItem.objects.filter(order=order)
         order.sub_total = 0
 
+    
+        order.has_active_items = order.order_items.exclude(status="cancelled").exists()
+
         for order_item in order.order_items:
             order_item.product.primary_image = order_item.product.product_images.filter(
                 priority=1
@@ -364,7 +367,14 @@ def cancel_order_item(request, order_item_id):
         order_item.inventory.save()
         order_item.save()
 
+        
+        order = order_item.order
+        if not OrderItem.objects.filter(order=order).exclude(status="cancelled").exists():
+            order.status = "cancelled"
+            order.save()
+
     return redirect("customer_orders")
+
 
 
 
@@ -688,11 +698,13 @@ def place_order(request):
         if payment_method == "wallet":
             return handle_wallet_payment(request, request.user.customer, total_amount)
 
+        
         if payment_method == "cod":
             if total_amount > 1000:
                 messages.error(request, "COD not available above ₹1000")
                 return redirect("checkout")
-            request.session["payment_successful"] = True
+
+            request.session["payment_successful"] = False  
             return redirect("finalize_order")
 
         if payment_method == "razorpay":
@@ -729,21 +741,13 @@ def create_order(request):
     )
 
     total_amount = max(total_amount - discount, 0)
-
-    # order = Order.objects.create(
-    #     customer=customer,
-    #     address=address.address_text,
-    #     total_amount=total_amount,
-    #     payment_method=payment_method,
-    #     is_paid=(payment_method in ["wallet", "cod"]),
-    # )
     
     order = Order.objects.create(
         customer=customer,
         address=address.address_text,
         total_amount=total_amount,
         payment_method=payment_method,
-        is_paid=request.session.get("payment_successful", False),
+        is_paid=payment_method in ["razorpay", "wallet"], 
     )
 
     if coupon_code:
@@ -772,9 +776,13 @@ def create_order(request):
 
 @login_required
 def finalize_order(request):
-    if not request.session.get("payment_successful"):
+    
+    payment_method = request.session.get("payment_method")
+
+    if payment_method != "cod" and not request.session.get("payment_successful"):
         messages.error(request, "Payment not completed")
         return redirect("checkout")
+    
 
     order = create_order(request)
 
@@ -817,7 +825,6 @@ def order_confirmation(request, order_id):
 razorpay_client = razorpay.Client(
     auth=(settings.RAZOR_KEY_ID, settings.RAZOR_KEY_SECRET)
 )
-
 
 
 

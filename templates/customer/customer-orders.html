@@ -90,15 +90,21 @@
                                             <td>₹ {{ order.total_amount }}</td>
                                             <td>{{ order.payment_method }}</td>
                                             <td class="text-center">
-                                                {% if order.is_paid %}
+                                                {% if order.status == "cancelled" %}
+                                                    Cancelled
+
+                                                {% elif order.is_paid %}
                                                     Paid
-                                                {% elif order.payment_method == 'cod' %}
+
+                                                {% elif order.payment_method == "cod" and order.has_active_items %}
                                                     <a href="{% url "pay_now" order.id %}" class="btn btn-small btn-round-full">
                                                         Pay Now
                                                     </a>
+
                                                 {% else %}
-                                                    Failed
+                                                    Cancelled
                                                 {% endif %}
+
                                             </td>
                                             <td>
                                                 <center>

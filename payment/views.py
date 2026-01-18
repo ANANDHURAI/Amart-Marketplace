@@ -80,6 +80,22 @@ def razorpay_paymenthandler(request):
 
             messages.success(request, f"₹{amount} added to wallet successfully.")
             return redirect("customer_wallet")
+        
+        if request.session.get("pay_now"):
+            order_id = request.session.get("order_id")
+            order = Order.objects.get(id=order_id)
+
+            # Mark order as paid
+            order.is_paid = True
+            order.payment_method = "razorpay"  # Payment method updated from COD to Razorpay
+            order.save()
+
+            # Cleanup session
+            request.session.pop("pay_now", None)
+            request.session.pop("order_id", None)
+
+            messages.success(request, "Payment completed successfully for your COD order!")
+            return redirect("customer_orders")
 
         
         request.session["payment_successful"] = True
@@ -101,8 +117,10 @@ def razorpay_paymenthandler(request):
 @login_required
 def cash_on_delivery(request):
     request.session["payment_method"] = "cod"
-    request.session["payment_successful"] = True
+    request.session["payment_successful"] = False
     return redirect("finalize_order")
+
+
 
 
 
@@ -111,11 +129,11 @@ def cash_on_delivery(request):
 def handle_cod_payment(request, customer, total_amount):
     if total_amount > 1000:
         messages.error(request, "COD is not available for orders above 1000 Rs.")
-    else:
-        request.session["payment_successful"] = True
-        request.session["payment_method"] = "cod"
-        return redirect("finalize_order")
-    return redirect("payment_failed")
+        return redirect("payment_failed")
+
+    request.session["payment_method"] = "cod"
+    request.session["payment_successful"] = False 
+    return redirect("finalize_order")
 
 
 
