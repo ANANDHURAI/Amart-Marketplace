@@ -327,34 +327,45 @@ def cancel_order(request, order_id):
             order_item.status = "cancelled"
             order_item.inventory.stock += order_item.quantity
             order_item.inventory.save()
-            refund_amount += order_item.quantity * order_item.inventory.price
+            order_item.save()
+
+            # Refund only for non-COD paid orders
+            if order.is_paid and order.payment_method != "COD":
+                refund_amount += order_item.quantity * order_item.inventory.price
 
     order.status = "cancelled"
     order.save()
 
-    if order.is_paid:
+    if refund_amount > 0:
         wallet.balance += refund_amount
         wallet.save()
+        messages.success(request, f"Order cancelled. Refund of ₹{refund_amount} added to your wallet.")
+    else:
+        messages.success(request, "Order cancelled successfully.")
 
-    messages.success(request, f"Order cancelled. Refund of ₹{refund_amount} added to your wallet.")
     return redirect("customer_orders")
+
 
 
 @login_required
 def cancel_order_item(request, order_item_id):
     order_item = OrderItem.objects.get(id=order_item_id)
-    wallet, created = Wallet.objects.get_or_create(customer__id=request.user.id)
+    wallet, created = Wallet.objects.get_or_create(customer=request.user)
 
     if order_item.status != "cancelled":
         order_item.status = "cancelled"
-        if order_item.order.is_paid:
+
+        # Refund only for non-COD paid orders
+        if order_item.order.is_paid and order_item.order.payment_method != "COD":
             wallet.balance += order_item.quantity * order_item.inventory.price
+            wallet.save()
+
         order_item.inventory.stock += order_item.quantity
         order_item.inventory.save()
         order_item.save()
-        wallet.save()
 
     return redirect("customer_orders")
+
 
 
 @login_required
@@ -366,25 +377,32 @@ def return_order(request, order_id):
 
     if order.status == "delivered":
         refund_amount = 0
+
         for order_item in order_items:
             if order_item.status != "returned":
                 order_item.status = "returned"
                 order_item.inventory.stock += order_item.quantity
                 order_item.inventory.save()
-                refund_amount += order_item.quantity * order_item.inventory.price
+                order_item.save()
+
+                # Refund only for non-COD paid orders
+                if order.is_paid and order.payment_method != "COD":
+                    refund_amount += order_item.quantity * order_item.inventory.price
 
         order.status = "returned"
         order.save()
 
-        if order.is_paid:
+        if refund_amount > 0:
             wallet.balance += refund_amount
             wallet.save()
-
-        messages.success(request, f"Order returned. Refund of ₹{refund_amount} added to your wallet.")
+            messages.success(request, f"Order returned. Refund of ₹{refund_amount} added to your wallet.")
+        else:
+            messages.success(request, "Order returned successfully.")
     else:
         messages.error(request, "This order cannot be returned.")
 
     return redirect("customer_orders")
+
 
 
 # Customer Favourite Session
@@ -612,6 +630,7 @@ def checkout(request):
 
 # Customer Order Session
 
+from payment.views import handle_wallet_payment
 
 @login_required
 def place_order(request):
@@ -620,10 +639,10 @@ def place_order(request):
 
     address_id = request.POST.get("address_id")
     payment_method = request.POST.get("payment_method")
+    coupon_code = request.POST.get("coupon_code", "").upper()
+
     request.session["address_id"] = address_id
     request.session["payment_method"] = payment_method
-    coupon_code = request.POST.get("coupon_code", "").upper()
-    # request.session['order_id'] = order.id
 
     try:
         cart = Cart.objects.get(customer=request.user)
@@ -633,90 +652,60 @@ def place_order(request):
             messages.error(request, "Your cart is empty!")
             return redirect("checkout")
 
-        total_amount = (
-            cart_items.aggregate(total=Sum(F("quantity") * F("inventory__price")))[
-                "total"
-            ]
-            or 0
-        )
+        total_amount = cart_items.aggregate(
+            total=Sum(F("quantity") * F("inventory__price"))
+        )["total"] or 0
 
-        total_offer = sum(
-            round(
-                cart_item.quantity
-                * cart_item.inventory.price
-                * (
-                    CategoryOffer.objects.filter(
-                        category=cart_item.product.main_category
-                    )
-                    .first()
-                    .discount
-                    / 100
-                )
-                if CategoryOffer.objects.filter(
-                    category=cart_item.product.main_category
-                ).exists()
-                else 0
-            )
-            for cart_item in cart_items
-        )
+        # Category offers
+        total_offer = 0
+        for item in cart_items:
+            offer = CategoryOffer.objects.filter(
+                category=item.product.main_category
+            ).first()
+            if offer:
+                total_offer += round(item.quantity * item.inventory.price * offer.discount / 100)
 
         total_amount -= total_offer
 
+        # Coupon
         if coupon_code:
             coupon = Coupon.objects.filter(code=coupon_code, is_active=True).first()
-            if coupon:
-                if coupon.discount >= total_amount:
-                    messages.error(request, "Coupon is not valid for this purchase.")
-                elif coupon.quantity < 1:
-                    messages.error(request, "Coupon expired")
-                elif coupon.minimum_purchase > total_amount:
-                    messages.error(
-                        request,
-                        f"You should purchase for {coupon.minimum_purchase} to apply this coupon.",
-                    )
-                else:
-                    total_amount -= coupon.discount
-                    request.session["discount"] = coupon.discount
-                    request.session["coupon_code"] = coupon.code
-            else:
-                messages.error(request, "Invalid Coupon")
+            if not coupon:
+                messages.error(request, "Invalid coupon")
+                return redirect("checkout")
+
+            if coupon.quantity < 1 or coupon.minimum_purchase > total_amount:
+                messages.error(request, "Coupon not applicable")
+                return redirect("checkout")
+
+            total_amount -= coupon.discount
+            request.session["coupon_code"] = coupon.code
+            request.session["discount"] = coupon.discount
 
         request.session["total_amount"] = total_amount
 
+        # ---- PAYMENT DECISION ----
         if payment_method == "wallet":
-            wallet = Wallet.objects.get(customer=request.user)
-            if wallet.balance >= total_amount:
-                with transaction.atomic():
-                    wallet.balance -= total_amount
-                    wallet.save()
-                    request.session["payment_successful"] = True
-                return redirect("finalize_order")
-            else:
-                messages.error(request, "Insufficient wallet balance.")
-                return redirect("checkout")
+            return handle_wallet_payment(request, request.user.customer, total_amount)
 
-        elif payment_method == "cod":
+        if payment_method == "cod":
             if total_amount > 1000:
-                messages.error(
-                    request, "COD is not available for orders above 1000 Rs."
-                )
+                messages.error(request, "COD not available above ₹1000")
                 return redirect("checkout")
             request.session["payment_successful"] = True
             return redirect("finalize_order")
 
-        elif payment_method == "razorpay":
+        if payment_method == "razorpay":
             return redirect("razorpay_order_creation", amount=total_amount)
 
-        else:
-            messages.error(request, "Invalid payment method selected.")
-            return redirect("checkout")
+        messages.error(request, "Invalid payment method")
+        return redirect("checkout")
 
     except Exception as e:
-        logger.error(f"Error in place_order: {str(e)}")
-        messages.error(
-            request, f"An error occurred while processing your order: {str(e)}"
-        )
+        logger.error(f"place_order error: {str(e)}")
+        messages.error(request, "Something went wrong. Try again.")
         return redirect("checkout")
+
 
 
 logger = logging.getLogger(__name__)
@@ -727,58 +716,34 @@ logger = logging.getLogger(__name__)
 def create_order(request):
     address_id = request.session.get("address_id")
     payment_method = request.session.get("payment_method")
-    coupon_code = request.session.get("coupon_code")
     discount = request.session.get("discount", 0)
+    coupon_code = request.session.get("coupon_code")
 
-    if not address_id or not payment_method:
-        messages.error(request, "Invalid order data. Please try again.")
-        return None
-
-    # Modified: Retrieve the customer object using the logged-in user
-    customer = Customer.objects.filter(email=request.user.email).first()
-    if not customer:
-        messages.error(request, "Customer not found.")
-        return None
-
-    address = Address.objects.filter(id=address_id, customer=customer).first()
-    if not address:
-        messages.error(request, "Invalid address selected.")
-        return None
-
-    cart = Cart.objects.filter(customer=customer).first()
-    if not cart:
-        messages.error(request, "Cart not found.")
-        return None
-
+    customer = request.user.customer
+    address = get_object_or_404(Address, id=address_id, customer=customer)
+    cart = get_object_or_404(Cart, customer=customer)
     cart_items = CartItem.objects.filter(cart=cart)
 
-    if not cart_items.exists():
-        messages.error(request, "Your cart is empty!")
-        return None
+    total_amount = sum(
+        item.quantity * item.inventory.price for item in cart_items
+    )
 
-    total_amount = 0
-    total_offer = 0
-
-    for cart_item in cart_items:
-        offer = CategoryOffer.objects.filter(
-            category=cart_item.product.main_category
-        ).first()
-        offer_discount = offer.discount if offer else 0
-
-        amount = cart_item.quantity * cart_item.inventory.price
-        total_amount += amount
-        total_offer += round(amount * offer_discount / 100)
-
-    total_amount -= total_offer
     total_amount = max(total_amount - discount, 0)
 
+    # order = Order.objects.create(
+    #     customer=customer,
+    #     address=address.address_text,
+    #     total_amount=total_amount,
+    #     payment_method=payment_method,
+    #     is_paid=(payment_method in ["wallet", "cod"]),
+    # )
+    
     order = Order.objects.create(
         customer=customer,
         address=address.address_text,
         total_amount=total_amount,
-        offer=total_offer,
         payment_method=payment_method,
-        is_paid=(payment_method == "razorpay"),
+        is_paid=request.session.get("payment_successful", False),
     )
 
     if coupon_code:
@@ -787,48 +752,49 @@ def create_order(request):
             order.discount = discount
             order.coupon = coupon
             order.save()
-            Coupon.objects.filter(id=coupon.id).update(quantity=F("quantity") - 1)
+            coupon.quantity -= 1
+            coupon.save()
 
-    for cart_item in cart_items:
+    for item in cart_items:
         OrderItem.objects.create(
             order=order,
-            product=cart_item.product,
-            inventory=cart_item.inventory,
-            quantity=cart_item.quantity,
-            price=cart_item.inventory.price,
+            product=item.product,
+            inventory=item.inventory,
+            quantity=item.quantity,
+            price=item.inventory.price,
         )
-        cart_item.inventory.stock -= cart_item.quantity
-        cart_item.inventory.save()
+        item.inventory.stock -= item.quantity
+        item.inventory.save()
 
     cart_items.delete()
-
     return order
 
 
 @login_required
 def finalize_order(request):
     if not request.session.get("payment_successful"):
-        messages.error(
-            request, "Invalid order attempt. Please complete the payment process."
-        )
+        messages.error(request, "Payment not completed")
         return redirect("checkout")
 
     order = create_order(request)
-    if order:
-        request.session.pop("payment_successful", None)
-        request.session.pop("total_amount", None)
-        request.session.pop("payment_method", None)
-        request.session.pop("address_id", None)
-        request.session.pop("coupon_code", None)
-        request.session.pop("discount", None)
 
-        messages.success(request, "Order placed successfully!")
-        return redirect("order_confirmation", order_id=order.id)
-    else:
-        messages.error(
-            request, "An error occurred while creating your order. Please try again."
-        )
+    if not order:
+        messages.error(request, "Order creation failed")
         return redirect("checkout")
+
+    for key in [
+        "payment_successful",
+        "total_amount",
+        "payment_method",
+        "address_id",
+        "coupon_code",
+        "discount",
+    ]:
+        request.session.pop(key, None)
+
+    messages.success(request, "Order placed successfully!")
+    return redirect("order_confirmation", order_id=order.id)
+
 
 
 @login_required
@@ -853,37 +819,52 @@ razorpay_client = razorpay.Client(
 )
 
 
+
+
 @login_required
 def customer_wallet(request):
     customer = request.user.customer
     wallet, _ = Wallet.objects.get_or_create(customer=customer)
-    order_items = OrderItem.objects.filter(
-        order__customer=customer, status="cancelled"
-    ).order_by("-id")
 
-    context = {"customer": customer, "wallet": wallet, "order_items": order_items}
+    order_items = OrderItem.objects.filter(
+        order__customer=customer,
+        status="cancelled",
+        order__is_paid=True
+    ).exclude(order__payment_method="COD").order_by("-id")
+
+    context = {
+        "customer": customer,
+        "wallet": wallet,
+        "order_items": order_items,
+    }
 
     if request.method == "POST":
         amount = int(request.POST.get("amount", 0))
+
         if amount > 0:
             currency = "INR"
-            razorpay_order = razorpay_client.order.create(
-                dict(amount=amount * 100, currency=currency, payment_capture="0")
-            )
-            razorpay_order_id = razorpay_order["id"]
-            callback_url = request.build_absolute_uri(reverse("razorpay_callback"))
 
-            context.update(
-                {
-                    "razorpay_order_id": razorpay_order_id,
-                    "razorpay_merchant_key": settings.RAZOR_KEY_ID,
-                    "razorpay_amount": amount * 100,
-                    "currency": currency,
-                    "callback_url": callback_url,
-                }
-            )
+            razorpay_order = razorpay_client.order.create({
+                "amount": amount * 100,
+                "currency": currency,
+                "payment_capture": 1,
+                "receipt": f"wallet_{customer.id}"
+            })
+
+            # store wallet top-up info in session
+            request.session["wallet_topup"] = True
+            request.session["wallet_amount"] = amount
+
+            context.update({
+                "razorpay_order_id": razorpay_order["id"],
+                "razorpay_merchant_key": settings.RAZOR_KEY_ID,
+                "razorpay_amount": amount * 100,
+                "currency": currency,
+                "callback_url": reverse("razorpay_paymenthandler"),
+            })
 
     return render(request, "customer/customer-wallet.html", context)
+
 
 
 

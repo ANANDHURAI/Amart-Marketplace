@@ -121,6 +121,8 @@ class FavouriteItem(models.Model):
         return f"{self.customer.first_name}'s favourite {self.product.name}"
 
 
+
+
 class Wallet(models.Model):
     customer = models.OneToOneField(Customer, on_delete=models.CASCADE)
-    balance = models.PositiveIntegerField(validators=[MinValueValidator(1)], default=0)
+    balance = models.PositiveIntegerField(default=0)

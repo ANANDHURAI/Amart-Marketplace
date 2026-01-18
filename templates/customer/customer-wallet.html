@@ -15,7 +15,7 @@
                     <li><a href="{% url 'customer_profile' %}">Profile Details</a></li>
                     <li><a class="active" href="{% url 'customer_wallet' %}">Wallet</a></li>
                 </ul>
-                
+
                 <div class="dashboard-wrapper dashboard-user-profile">
                     <div class="media">
                         <div class="media-body">
@@ -23,7 +23,7 @@
                                 <li><span>Name:</span> {{ customer.first_name }} {{ customer.last_name }}</li>
                                 <li><span>Wallet ID:</span> {{ wallet.id }}</li>
                                 <li class="pull-right">
-                                    <span><strong>Wallet Balance:</strong></span> 
+                                    <span><strong>Wallet Balance:</strong></span>
                                     <strong class="h1">₹{{ wallet.balance }}</strong>
                                 </li>
                                 <br>
@@ -32,7 +32,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="dashboard-wrapper user-dashboard">
                     {% if order_items %}
                     <div class="table-responsive">
@@ -51,18 +51,24 @@
                                 <tr>
                                     <td>#{{ order_item.id }}</td>
                                     <td>{{ order_item.product.name }}</td>
-                                    <td class="text-center">₹ {{ order_item.inventory.price }}</td>
+                                    <td class="text-center">₹{{ order_item.inventory.price }}</td>
                                     <td class="text-center">{{ order_item.quantity }}</td>
-                                    <td class="text-center">₹ {% widthratio order_item.quantity 1 order_item.inventory.price %}</td>
+                                    <td class="text-center">
+                                        {% if order_item.order.payment_method != "COD" %}
+                                            ₹{% widthratio order_item.quantity 1 order_item.inventory.price %}
+                                        {% else %}
+                                            ₹0
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
                     {% else %}
-                    <p>No Cancelled Orders Yet. Shop Now!</p>
-                    <hr>
-                    <a href="{% url 'shop' %}" class="btn btn-main">Shop Now</a>
+                        <p>No Cancelled Orders Yet. Shop Now!</p>
+                        <hr>
+                        <a href="{% url 'shop' %}" class="btn btn-main">Shop Now</a>
                     {% endif %}
                 </div>
             </div>
@@ -82,8 +88,8 @@
                 <form id="paymentForm" method="POST" action="{% url 'customer_wallet' %}">
                     {% csrf_token %}
                     <div class="form-group">
-                        <label for="amount">Enter Amount (₹):</label>
-                        <input type="number" class="form-control" id="amount" name="amount" required min="1">
+                        <label>Enter Amount (₹)</label>
+                        <input type="number" class="form-control" name="amount" min="1" required>
                     </div>
                     <button type="submit" class="btn btn-main">Proceed to Pay</button>
                 </form>
@@ -97,42 +103,52 @@
 
 {% block extra_scripts %}
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
 <script>
-    function openAddMoneyModal() {
-        $('#addMoneyModal').modal('show');
-    }
-
-    {% if razorpay_order_id %}
-    var options = {
-        "key": "{{ razorpay_merchant_key }}",
-        "amount": "{{ razorpay_amount }}",
-        "currency": "{{ currency }}",
-        "name": "Amart Shop",
-        "description": "Wallet Recharge",
-        "order_id": "{{ razorpay_order_id }}",
-        "handler": function (response){
-            document.location.href = "{% url 'razorpay_callback' %}?razorpay_payment_id=" + response.razorpay_payment_id + "&razorpay_order_id=" + response.razorpay_order_id + "&razorpay_signature=" + response.razorpay_signature;
-        },
-        "prefill": {
-            "name": "{{ customer.first_name }} {{ customer.last_name }}",
-            "email": "{{ customer.email }}",
-        },
-        "theme": {
-            "color": "#F37254"
-        }
-    };
-    var rzp1 = new Razorpay(options);
-    rzp1.open();
-    {% endif %}
-
-    document.getElementById('paymentForm').onsubmit = function(e) {
-        e.preventDefault();
-        var amount = document.getElementById('amount').value;
-        if (amount < 1) {
-            alert('Please enter a valid amount greater than ₹0');
-            return false;
-        }
-        this.submit();
-    };
+function openAddMoneyModal() {
+    $('#addMoneyModal').modal('show');
+}
 </script>
+
+{% if razorpay_order_id %}
+<script>
+var options = {
+    "key": "{{ razorpay_merchant_key }}",
+    "amount": "{{ razorpay_amount }}",
+    "currency": "{{ currency }}",
+    "name": "Amart Shop",
+    "description": "Wallet Recharge",
+    "order_id": "{{ razorpay_order_id }}",
+
+    "handler": function (response) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{% url 'razorpay_paymenthandler' %}";
+
+        form.innerHTML = `
+            {% csrf_token %}
+            <input type="hidden" name="razorpay_payment_id" value="${response.razorpay_payment_id}">
+            <input type="hidden" name="razorpay_order_id" value="${response.razorpay_order_id}">
+            <input type="hidden" name="razorpay_signature" value="${response.razorpay_signature}">
+        `;
+
+        document.body.appendChild(form);
+        form.submit();
+    },
+
+    "prefill": {
+        "name": "{{ customer.first_name }} {{ customer.last_name }}",
+        "email": "{{ customer.email }}"
+    },
+
+    "theme": {
+        "color": "#F37254"
+    }
+};
+
+var rzp1 = new Razorpay(options);
+rzp1.open();
+</script>
+{% endif %}
+
 {% endblock extra_scripts %}
