@@ -12,6 +12,9 @@ from django.db.models.functions import Coalesce
 from django.db import transaction
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
+import base64
+from uuid import uuid4
+
 
 
 def admin_login_required(func):
@@ -417,115 +420,96 @@ def product_list(request):
 
 
 
-
 @admin_login_required
-def add_product(request):
+def product_form(request, product_id=None):
+    product = None
+    is_edit = False
+
+    if product_id:
+        product = get_object_or_404(Product, id=product_id)
+        is_edit = True
+
     if request.method == "POST":
-        name = request.POST.get("name")
-        description = request.POST.get("description")
-        main_category_id = request.POST.get("category")
-        images = request.FILES.getlist("images")
-        is_available = request.POST.get("is_available")
-        approved = request.POST.get("approved")
-        print("aveolsnnj:", is_available)
-        print("apporverd:", approved)
+        name = request.POST.get("name", "").strip()
+        description = request.POST.get("description", "").strip()
+        category_id = request.POST.get("category")
+
+        cropped_images = [
+            request.POST.get("cropped_image_1"),
+            request.POST.get("cropped_image_2"),
+            request.POST.get("cropped_image_3"),
+        ]
+
+      
+        if not name or len(name) < 3:
+            messages.error(request, "Product name must be at least 3 characters")
+            return redirect(
+                "edit_product", product_id=product.id
+            ) if is_edit else redirect("add_product")
+
+        if not category_id or not Category.objects.filter(id=category_id).exists():
+            messages.error(request, "Please select a valid category")
+            return redirect(
+                "edit_product", product_id=product.id
+            ) if is_edit else redirect("add_product")
+
+        if not is_edit and any(not img for img in cropped_images):
+            messages.error(request, "Please upload and crop all 3 product images")
+            return redirect("add_product")
 
        
-        if not name or not main_category_id:
-            messages.error(request, "Name, Main Category is mandatory.")
-            return redirect("add_product")
+        if not is_edit:
+            product = Product.objects.create(
+                name=name,
+                description=description,
+                main_category_id=category_id,
+                slug=slugify(name),
+                is_available=request.POST.get("is_available") == "on",
+                approved=request.POST.get("approved") == "on",
+            )
+        else:
+            product.name = name
+            product.description = description
+            product.main_category_id = category_id
+            product.slug = slugify(name)
+            product.is_available = request.POST.get("is_available") == "on"
+            product.approved = request.POST.get("approved") == "on"
+            product.save()
+
         
-        if description and not description.strip():
-            messages.error(request, "Description cannot contain only spaces.")
-            return redirect("add_product")
+        for img_data in cropped_images:
+            if not img_data:
+                continue
 
-        if not name.strip():
-            messages.error(request, "Product name cannot contain only spaces.")
-            return redirect("add_product")
-    
-        allowed_image_types = ["image/jpeg", "image/png", "image/gif"]
-        for image in images:
-            if image.content_type not in allowed_image_types:
-                messages.error(
-                    request, "Only JPEG, PNG, and GIF formats are supported."
-                )
-                return redirect("add_product")
+            fmt, imgstr = img_data.split(";base64,")
+            ext = fmt.split("/")[-1]
 
-       
-        main_category = Category.objects.get(id=main_category_id)
-        slug = slugify(name)
+            image_file = ContentFile(
+                base64.b64decode(imgstr),
+                name=f"{product.slug}-{uuid4()}.{ext}"
+            )
 
-        product = Product.objects.create(
-            name=name,
-            description=description,
-            main_category=main_category,
-            slug=slug,
-            is_available=is_available == "on",
-            approved=approved == "on",
+            ProductImage.objects.create(product=product, image=image_file)
+
+        messages.success(
+            request,
+            "Product updated successfully" if is_edit else "Product added successfully"
         )
-
-        
-        for i, image in enumerate(images):
-            ProductImage.objects.create(product=product, image=image, priority=i + 1)
-
-        messages.success(request, "Product added successfully.")
         return redirect("product_list")
 
+    
     categories = Category.objects.all()
-    context = {"categories": categories}
-    return render(request, "aadmin/product-form.html", context)
+    existing_images = product.product_images.all() if product else []
+
+    return render(request, "aadmin/product-form.html", {
+        "product": product,
+        "categories": categories,
+        "is_edit": is_edit,
+        "existing_images": existing_images,
+    })
 
 
-@admin_login_required
-def edit_product(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
 
-    if request.method == "POST":
-        name = request.POST.get("name")
-        description = request.POST.get("description")
-        main_category_id = request.POST.get("category")
-        is_available = request.POST.get("is_available")
-        approved = request.POST.get("approved")
-
-        # Validate mandatory fields
-        if not name or not main_category_id:
-            messages.error(request, "Name and Main Category are mandatory.")
-            return redirect("edit_product", product_id=product.id)
-
-        
-        allowed_image_types = ["image/jpeg", "image/png", "image/gif"]
-        images = request.FILES.getlist("images")
-        for image in images:
-            if image.content_type not in allowed_image_types:
-                messages.error(
-                    request,
-                    "Only JPEG, PNG, and GIF formats are supported for new images.",
-                )
-                return redirect("edit_product", product_id=product.id)
-
-        # Update product details
-        product.name = name
-        product.description = description
-        product.main_category = Category.objects.get(id=main_category_id)
-        product.slug = slugify(name)
-        product.is_available = is_available == "on"
-        product.approved = approved == "on"
-        product.save()
-
-        
-        for i, image in enumerate(images):
-            ProductImage.objects.create(product=product, image=image, priority=i + 1)
-
-        messages.success(request, "Product edited successfully.")
-        return redirect("product_list")
-
-    elif request.method == "GET":
-        categories = Category.objects.all()
-        context = {
-            "product": product,
-            "categories": categories,
-        }
-        return render(request, "aadmin/product-edit-form.html", context)
 
 
 def remove_product_image(request, image_id):

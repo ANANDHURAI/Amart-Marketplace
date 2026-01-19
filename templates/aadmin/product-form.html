@@ -1,76 +1,136 @@
 {% extends "aadmin/admin-base.html" %}
+{% load static %}
 
 {% block content %}
 
-
-<style>
-    .image-preview {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .image-preview img {
-            width: 50px;
-            height: 50px;
-            object-fit: cover;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 2px;
-        }
-</style>
-<div class="card card-default col-lg-8 mx-auto">
+<div class="card card-default col-lg-9 mx-auto mt-4">
     <div class="card-header card-header-border-bottom">
-        <h2>Add a New Product</h2>
+        <h2>{% if is_edit %}Edit Product{% else %}Add New Product{% endif %}</h2>
     </div>
+
     <div class="card-body">
-        <form method="post" enctype="multipart/form-data" action="{% url 'add_product' %}">
+
+        {% if messages %}
+        <div id="message-container">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} text-center mb-3 auto-hide">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
+
+            <!-- PRODUCT NAME -->
             <div class="form-group">
-                <label>Product Name:</label>
-                <input name="name" type="text" maxlength="100" class="form-control" placeholder="Product Name" value="" required>
-            </div>
-            <div class="form-group">
-                <label>Product Description:</label>
-                <textarea name="description" class="form-control" maxlength="255" placeholder="Enter Description" rows="4" required></textarea>
+                <label>Product Name</label>
+                <input type="text"
+                       name="name"
+                       class="form-control"
+                       placeholder="Enter product name"
+                       value="{{ product.name|default:'' }}">
+                <small class="text-muted">Minimum 3 characters</small>
             </div>
 
-            <div class="row">
-                <div class="form-group col-md-6">
-                    <label>Category:</label>
-                    <select name="category" class="form-control" required>
-                        {% for cat in categories %}
-                            <option value="{{ cat.id }}">{{ cat.name }}</option>
-                        {% endfor %}
-                    </select>
+            <!-- DESCRIPTION -->
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description"
+                          class="form-control"
+                          rows="4"
+                          placeholder="Optional description">{{ product.description|default:'' }}</textarea>
+            </div>
+
+            <!-- CATEGORY -->
+            <div class="form-group col-md-6 px-0">
+                <label>Category</label>
+                <select name="category" class="form-control">
+                    <option value="">Select category</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}"
+                            {% if product and cat.id == product.main_category.id %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- STATUS -->
+            <div class="row mt-3">
+                <div class="col-md-3">
+                    <label>
+                        <input type="checkbox" name="is_available"
+                               {% if product and product.is_available %}checked{% endif %}>
+                        Available
+                    </label>
+                </div>
+                <div class="col-md-3">
+                    <label>
+                        <input type="checkbox" name="approved"
+                               {% if product and product.approved %}checked{% endif %}>
+                        Approved
+                    </label>
                 </div>
             </div>
 
-            <div class="row">
-                
-                <div class="form-group col-md-3">
-                    <label>Is Available:</label>
-                    <input name="is_available" type="checkbox" class="form-control" checked>
-                </div>
-                <div class="form-group col-md-3">
-                    <label>Approved:</label>
-                    <input name="approved" type="checkbox" class="form-control">
+            <hr class="my-4">
+
+            <!-- EXISTING IMAGES (EDIT MODE) -->
+            {% if is_edit and existing_images %}
+            <div class="mb-4">
+                <label>Existing Images</label>
+                <div class="d-flex flex-wrap gap-3">
+                    {% for img in existing_images %}
+                        <img src="{{ img.image.url }}"
+                             style="width:120px;height:120px;object-fit:cover;border:1px solid #ddd;border-radius:6px;">
+                    {% endfor %}
                 </div>
             </div>
+            {% endif %}
 
-            
-            <!-- Separate fields for each image -->
-            <div class="form-group">
-                <label for="images">Product Images (Select at least 3 images)</label>
-                <input type="file" id="images" name="images" accept="image/*" multiple required>
-                <div class="image-preview" id="imagePreview"></div>
+            <!-- IMAGE UPLOAD SECTION -->
+            <h5 class="mb-3">Product Images</h5>
+
+            {% for i in "123" %}
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <label>Image {{ forloop.counter }}</label>
+                    <input type="file"
+                           class="form-control-file image-input"
+                           data-target="{{ forloop.counter }}"
+                           accept="image/*">
+                    <small class="text-muted d-block">
+                        Select image → crop → save
+                    </small>
+                </div>
+
+                <div class="col-md-4 text-center">
+                    <div class="preview-box">
+                        <img id="preview{{ forloop.counter }}"
+                             src="https://via.placeholder.com/220"
+                             class="preview-img">
+                    </div>
+
+                    <button type="button"
+                            class="btn btn-sm btn-primary mt-2 crop-btn d-none"
+                            data-target="{{ forloop.counter }}">
+                        Crop Image
+                    </button>
+                </div>
             </div>
+            {% endfor %}
 
-            <div class="form-footer pt-3 border-top">
-                {% for message in messages %}
-                    <div class="alert alert-danger text-center" role="alert">{{ message }}</div>
-                {% endfor %}
-                <button type="submit" class="btn btn-primary btn-default">Submit</button>
+            <!-- CROPPED DATA -->
+            <input type="hidden" name="cropped_image_1" id="croppedImage1">
+            <input type="hidden" name="cropped_image_2" id="croppedImage2">
+            <input type="hidden" name="cropped_image_3" id="croppedImage3">
+
+            <div class="form-footer pt-4 border-top text-right">
+                <button type="submit" class="btn btn-primary px-4">
+                    {% if is_edit %}Update Product{% else %}Add Product{% endif %}
+                </button>
             </div>
         </form>
     </div>
@@ -78,76 +138,106 @@
 
 {% endblock content %}
 
+{% block extra_styles %}
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+
+<style>
+.preview-box {
+    width: 220px;
+    height: 220px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.preview-img {
+    max-width: 100%;
+    display: block;
+}
+
+.fade-out {
+    opacity: 0;
+    transition: opacity .8s ease-out;
+}
+</style>
+{% endblock extra_styles %}
+
 {% block extra_scripts %}
-<script>
-    // Function to handle image preview for each input
-    function previewImage(inputId, previewId) {
-        const imageInput = document.getElementById(inputId);
-        const preview = document.getElementById(previewId);
-        
-        imageInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
 
-    // Apply previewImage function to all image inputs
-    previewImage('imageInput1', 'preview1');
-    previewImage('imageInput2', 'preview2');
-    previewImage('imageInput3', 'preview3');
-    previewImage('imageInput4', 'preview4');
-</script>
 <script>
-    document.getElementById('images').addEventListener('change', function() {
-        const previewContainer = document.getElementById('imagePreview');
-        previewContainer.innerHTML = ''; // Clear existing previews
+document.addEventListener("DOMContentLoaded", function () {
 
-        if (this.files.length < 3) {
-            alert('Please select at least 3 images.');
-            return;
+let cropper = null;
+let activeTarget = null;
+
+// IMAGE SELECT
+document.querySelectorAll(".image-input").forEach(input => {
+    input.addEventListener("change", function () {
+        const target = this.dataset.target;
+        const file = this.files[0];
+        const preview = document.getElementById(`preview${target}`);
+        const cropBtn = document.querySelector(`.crop-btn[data-target="${target}"]`);
+
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
         }
 
-        Array.from(this.files).forEach(file => {
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    previewContainer.appendChild(img);
-                };
-                reader.readAsDataURL(file);
-            }
-        });
+        if (!file || !file.type.startsWith("image/")) return;
+
+        const reader = new FileReader();
+        reader.onload = e => {
+            preview.src = e.target.result;
+            preview.onload = () => {
+                cropper = new Cropper(preview, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    autoCropArea: 1,
+                    responsive: true,
+                });
+                activeTarget = target;
+                cropBtn.classList.remove("d-none");
+            };
+        };
+        reader.readAsDataURL(file);
     });
+});
+
+// CROP BUTTON
+document.querySelectorAll(".crop-btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+        if (!cropper) return;
+
+        const target = this.dataset.target;
+        const canvas = cropper.getCroppedCanvas({
+            width: 500,
+            height: 500
+        });
+
+        const dataURL = canvas.toDataURL("image/jpeg", 0.9);
+        document.getElementById(`croppedImage${target}`).value = dataURL;
+        document.getElementById(`preview${target}`).src = dataURL;
+
+        cropper.destroy();
+        cropper = null;
+        this.classList.add("d-none");
+    });
+});
+
+// AUTO HIDE ALERTS
+setTimeout(() => {
+    document.querySelectorAll(".auto-hide").forEach(el => {
+        el.classList.add("fade-out");
+        setTimeout(() => el.remove(), 800);
+    });
+}, 1500);
+
+});
 </script>
-<script>
-    function addInventoryRow() {
-        const inventorySection = document.getElementById('inventory-section');
-        const newRow = `
-            <div class="form-row mt-2">
-                <div class="col">
-                    <select class="form-control" name="size" required>
-                        <option value="">Select Size</option>
-                        {% for value, label in size_choices %}
-                            <option value="{{ value }}">{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col">
-                    <input type="number" class="form-control" name="price" placeholder="Price" min="1" required>
-                </div>
-                <div class="col">
-                    <input type="number" class="form-control" name="stock" placeholder="Stock" min="1" required>
-                </div>
-            </div>`;
-        inventorySection.insertAdjacentHTML('beforeend', newRow);
-    }
-    </script>
 {% endblock extra_scripts %}

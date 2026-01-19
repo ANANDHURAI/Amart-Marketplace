@@ -21,10 +21,13 @@ urlpatterns = [
         name="restore_category",
     ),
     
-    path('product-list/', views.product_list, name="product_list"),
-    path('products/add/', views.add_product, name='add_product'),
-    path('product/edit/<int:product_id>/', views.edit_product, name='edit_product'),
+    
+    # path('products/add/', views.add_product, name='add_product'),
+    # path('product/edit/<int:product_id>/', views.edit_product, name='edit_product'),
     path('remove-product-image/<int:image_id>/', views.remove_product_image, name='remove_product_image'),
+    path('product-list/', views.product_list, name="product_list"),
+    path("products/add/", views.product_form, name="add_product"),
+    path("products/edit/<int:product_id>/", views.product_form, name="edit_product"),
     path('product/delete/<int:product_id>/', views.delete_product, name='delete_product'),
     
     
