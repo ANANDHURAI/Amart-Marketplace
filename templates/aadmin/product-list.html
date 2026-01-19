@@ -62,6 +62,7 @@
     <table id="hoverable-data-table" class="table table-hover nowrap" style="width:100%">
         <thead class="thead-dark">
             <tr>
+                <th class="text-center">Image</th>
                 <th>Product Name</th>
                 
                 <th class="text-center">Total Stock</th>
@@ -71,34 +72,53 @@
             </tr>
         </thead>
         <tbody>
-            {% for product in products %}
-            <tr>
-                <td><a href="">{{ product.name }}</a></td>
-             
-                <td class="text-center">{{ product.total_stock }}</td>
-                <td class="text-center">
-                    {% if product.is_available %}
+        {% for product in products %}
+        <tr>
+           
+            <td class="text-center">
+                {% if product.primary_image %}
+                    <img src="{{ product.primary_image.image.url }}"
+                        alt="{{ product.name }}"
+                        style="width:50px;height:50px;object-fit:cover;border-radius:6px;">
+                {% else %}
+                    <span class="text-muted">No Image</span>
+                {% endif %}
+            </td>
+
+            <td>
+                <a href="">{{ product.name }}</a>
+            </td>
+
+            <td class="text-center">{{ product.total_stock }}</td>
+
+            <td class="text-center">
+                {% if product.is_available %}
                     <span class="mdi mdi-check-circle text-success"></span>
-                    {% else %}
+                {% else %}
                     <span class="mdi mdi-close-circle text-danger"></span>
-                    {% endif %}
-                </td>
-                <td class="text-center">
-                    {% if product.approved %}
-                    <a href="{% url "product_approval" product.id %}" class="btn btn-outline-danger btn-sm">Unlist</a>
-                    {% else %}
-                    <a href="{% url "product_approval" product.id %}" class="btn btn-outline-primary btn-sm">List</a>
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="{% url 'edit_product' product.id %}">Edit</a><br>
-                </td>
-            </tr>
-            {% endfor %}
+                {% endif %}
+            </td>
+
+            <td class="text-center">
+                {% if product.approved %}
+                    <a href="{% url 'product_approval' product.id %}"
+                    class="btn btn-outline-danger btn-sm">Unlist</a>
+                {% else %}
+                    <a href="{% url 'product_approval' product.id %}"
+                    class="btn btn-outline-primary btn-sm">List</a>
+                {% endif %}
+            </td>
+
+            <td>
+                <a href="{% url 'edit_product' product.id %}">Edit</a>
+            </td>
+        </tr>
+        {% endfor %}
         </tbody>
+
     </table>
 
-    <!-- Pagination -->
+   
     <div class="pagination-container text-center mt-4">
         <nav aria-label="Page navigation">
             <ul class="pagination">

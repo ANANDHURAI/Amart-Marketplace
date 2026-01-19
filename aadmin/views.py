@@ -360,29 +360,34 @@ def restore_category(request, slug):
 
 
 
-
 @admin_login_required
 def product_list(request):
     title = "Products"
     current_page = "product_list"
-    products = Product.objects.all().order_by('-created_at')
+
+    products = (
+        Product.objects
+        .all()
+        .prefetch_related("product_images")
+        .order_by("-created_at")
+    )
+
     request.session["selection"] = "all"
 
-    # Handle filtering
     if request.method == "POST":
         filter_option = request.POST.get("filter_option")
         if filter_option == "awaiting_listing":
-            products = Product.objects.filter(approved=False)
+            products = products.filter(approved=False)
             request.session["selection"] = "awaiting_listing"
         elif filter_option == "listed_products":
-            products = Product.objects.filter(approved=True)
+            products = products.filter(approved=True)
             request.session["selection"] = "listed_products"
 
-    # Handle search
     search_query = request.GET.get("search", "")
     if search_query:
         products = products.filter(
-            Q(name__icontains=search_query) | Q(mrp__icontains=search_query)
+            Q(name__icontains=search_query) |
+            Q(mrp__icontains=search_query)
         )
 
     paginator = Paginator(products, 5)
@@ -391,8 +396,13 @@ def product_list(request):
 
     for product in page_obj:
         inventory = Inventory.objects.filter(product=product)
-        total_stock = sum(inv.stock for inv in inventory)
-        product.total_stock = total_stock
+        product.total_stock = sum(inv.stock for inv in inventory)
+
+        product.primary_image = (
+            product.product_images
+            .order_by("priority")
+            .first()
+        )
 
     context = {
         "products": page_obj,
@@ -400,7 +410,12 @@ def product_list(request):
         "title": title,
         "search_query": search_query,
     }
-    return render(request, "aadmin/product-list.html", context=context)
+    return render(request, "aadmin/product-list.html", context)
+
+
+
+
+
 
 
 @admin_login_required
