@@ -1,4 +1,5 @@
 {% extends "aadmin/admin-base.html" %}
+{% load static %}
 
 {% block content %}
 
@@ -9,7 +10,6 @@
 
     <div class="card-body">
 
-        <!-- Messages -->
         {% if messages %}
         <div id="message-container">
             {% for message in messages %}
@@ -20,52 +20,66 @@
         </div>
         {% endif %}
 
-        <form method="post" enctype="multipart/form-data"
-              {% if category %}action="{% url 'edit_category' category.slug %}"{% endif %}>
+        <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
 
+            <!-- Category Name -->
             <div class="form-group">
                 <label>Category Name</label>
-                <input
-                    type="text"
-                    name="category_name"
-                    class="form-control"
-                    maxlength="50"
-                    placeholder="Category name"
-                    value="{% if category %}{{ category.name }}{% endif %}"
-                    required>
+                <input type="text"
+                       name="category_name"
+                       class="form-control"
+                       value="{% if category %}{{ category.name }}{% endif %}"
+                       placeholder="Category name">
+                <small class="text-muted">
+                    Only letters & spaces, minimum 3 characters
+                </small>
             </div>
 
+            <!-- Description -->
             <div class="form-group">
                 <label>Category Description</label>
-                <textarea
-                    name="category_description"
-                    class="form-control"
-                    maxlength="255"
-                    rows="4"
-                    placeholder="Enter description (max 255 characters)"
-                    required>{% if category %}{{ category.description }}{% endif %}</textarea>
+                <textarea name="category_description"
+                          class="form-control"
+                          rows="4"
+                          placeholder="Enter description (optional)">{% if category %}{{ category.description }}{% endif %}</textarea>
             </div>
 
+            <!-- Image -->
             <div class="row mt-3">
-                <div class="form-group col-md-8">
+                <div class="col-md-8">
                     <label>Category Image</label>
-                    <input
-                        id="imageInput"
-                        name="category_image"
-                        type="file"
-                        accept="image/*"
-                        class="form-control-file"
-                        {% if not category %}required{% endif %}>
+                    <input id="imageInput"
+                           type="file"
+                           name="category_image"
+                           accept="image/*"
+                           class="form-control-file">
+
+                    <small class="text-muted d-block mt-1">
+                        Select image, then click "Crop Image" button
+                    </small>
+
+                    <!-- Status messages -->
+                    <small id="imageMsg" class="d-none mt-2 d-block"></small>
                 </div>
 
-                <div class="col-md-4 d-flex justify-content-center align-items-center">
-                    <img
-                        id="preview"
-                        src="{% if category %}{{ category.image.url }}{% endif %}"
-                        alt="Image Preview">
+                <div class="col-md-4 text-center">
+                    <div id="previewContainer">
+                        <img id="preview"
+                             src="{% if category %}{{ category.image.url }}{% else %}https://via.placeholder.com/220{% endif %}"
+                             alt="Preview"
+                             style="max-width: 220px; max-height: 220px;">
+                    </div>
+
+                    <button type="button"
+                            id="cropBtn"
+                            class="btn btn-sm btn-primary mt-2 d-none">
+                        Crop Image
+                    </button>
                 </div>
             </div>
+
+            <input type="hidden" name="cropped_image" id="croppedImage">
 
             <div class="form-footer pt-4 border-top mt-4 text-right">
                 <button type="submit" class="btn btn-primary px-4">
@@ -80,48 +94,209 @@
 {% endblock content %}
 
 {% block extra_styles %}
-<style>
-    #preview {
-        width: 160px;
-        height: 160px;
-        object-fit: cover;
-        border-radius: 8px;
-        border: 1px solid #ddd;
-        background-color: #f8f9fa;
-    }
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
 
-    /* Smooth fade animation */
-    .fade-out {
-        opacity: 0;
-        transition: opacity 0.8s ease-out;
-    }
+<style>
+#previewContainer {
+    width: 220px;
+    height: 220px;
+    margin: 0 auto;
+    overflow: hidden;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#preview {
+    max-width: 100%;
+    display: block;
+}
+
+.fade-out {
+    opacity: 0;
+    transition: opacity 0.8s ease-out;
+}
 </style>
 {% endblock extra_styles %}
 
 {% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+
 <script>
-    // Image preview
-    const imageInput = document.getElementById("imageInput");
-    const preview = document.getElementById("preview");
+// Wait for Cropper.js to load
+document.addEventListener('DOMContentLoaded', function() {
+    
+let cropper = null;
 
-    imageInput.addEventListener("change", function () {
-        const file = this.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                preview.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-    });
+const imageInput = document.getElementById("imageInput");
+const preview = document.getElementById("preview");
+const cropBtn = document.getElementById("cropBtn");
+const croppedImageInput = document.getElementById("croppedImage");
+const imageMsg = document.getElementById("imageMsg");
+const form = document.querySelector("form");
 
+// Check if Cropper is loaded
+if (typeof Cropper === 'undefined') {
+    console.error('Cropper.js failed to load!');
+    return;
+}
 
-    setTimeout(() => {
-        const alerts = document.querySelectorAll(".auto-hide");
-        alerts.forEach(alert => {
-            alert.classList.add("fade-out");
-            setTimeout(() => alert.remove(), 800);
+console.log('Cropper.js loaded successfully');
+
+// Show message helper
+function showMessage(text, isError = false) {
+    imageMsg.textContent = text;
+    imageMsg.className = isError ? 'text-danger d-block mt-2' : 'text-success d-block mt-2';
+}
+
+// Hide message helper
+function hideMessage() {
+    imageMsg.className = 'd-none mt-2';
+}
+
+/* =============================
+   Image Select & Initialize Cropper
+============================= */
+imageInput.addEventListener("change", function () {
+    const file = this.files[0];
+    hideMessage();
+    croppedImageInput.value = "";
+
+    // Destroy old cropper if exists
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
+
+    if (!file) {
+        cropBtn.classList.add("d-none");
+        return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+        showMessage("Please select a valid image file", true);
+        cropBtn.classList.add("d-none");
+        return;
+    }
+
+    // Read and display image
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        preview.src = e.target.result;
+        
+        // Wait for image to load in DOM
+        preview.onload = function() {
+            try {
+                // Initialize Cropper
+                cropper = new Cropper(preview, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    autoCropArea: 1,
+                    responsive: true,
+                    cropBoxResizable: true,
+                    cropBoxMovable: true,
+                    ready: function() {
+                        console.log('Cropper initialized');
+                        cropBtn.classList.remove("d-none");
+                        showMessage("Image loaded! Click 'Crop Image' when ready.", false);
+                    }
+                });
+            } catch (error) {
+                console.error('Error initializing Cropper:', error);
+                showMessage("Failed to initialize cropper. Please refresh the page.", true);
+            }
+        };
+    };
+    
+    reader.readAsDataURL(file);
+});
+
+/* =============================
+   Crop Button Click
+============================= */
+cropBtn.addEventListener("click", function () {
+    hideMessage();
+
+    if (!cropper) {
+        showMessage("Cropper not ready. Please reload the page and try again.", true);
+        return;
+    }
+
+    try {
+        // Get cropped canvas
+        const canvas = cropper.getCroppedCanvas({
+            width: 500,
+            height: 500,
         });
-    }, 1500);
+
+        // Convert to base64
+        const dataURL = canvas.toDataURL("image/jpeg", 0.9);
+        croppedImageInput.value = dataURL;
+
+        // Show cropped image
+        preview.src = dataURL;
+
+        // Destroy cropper
+        cropper.destroy();
+        cropper = null;
+
+        // Hide crop button
+        cropBtn.classList.add("d-none");
+
+        // Show success
+        showMessage("✓ Image cropped successfully!", false);
+
+    } catch (error) {
+        console.error("Crop error:", error);
+        showMessage("Failed to crop image. Please try again.", true);
+    }
+});
+
+/* =============================
+   Form Validation
+============================= */
+form.addEventListener("submit", function (e) {
+    hideMessage();
+
+    const name = document.querySelector("[name='category_name']").value.trim();
+
+    // Validate name
+    if (!name || name.length < 3) {
+        e.preventDefault();
+        showMessage("Category name must be at least 3 characters", true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+    }
+
+    if (!/^[A-Za-z ]+$/.test(name)) {
+        e.preventDefault();
+        showMessage("Category name must contain only letters and spaces", true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+    }
+
+    
+    {% if not category %}
+    if (!croppedImageInput.value) {
+        e.preventDefault();
+        showMessage("Please select and crop an image before submitting", true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+    }
+    {% endif %}
+});
+
+
+setTimeout(() => {
+    document.querySelectorAll(".auto-hide").forEach(alert => {
+        alert.classList.add("fade-out");
+        setTimeout(() => alert.remove(), 800);
+    });
+}, 1500);
+
+}); // End DOMContentLoaded
 </script>
 {% endblock extra_scripts %}

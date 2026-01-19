@@ -226,38 +226,65 @@ def category_list(request):
 
 
 
+import base64
+from django.core.files.base import ContentFile
+
 @admin_login_required
 def add_category(request):
     title = "New Category"
     current_page = "add_category"
 
     if request.method == "POST":
-        category_name = request.POST.get("category_name").title()
-        category_description = request.POST.get("category_description")
-        category_image = request.FILES.get("category_image")
-        slug = slugify(category_name)
+        category_name = request.POST.get("category_name", "").strip()
+        category_description = request.POST.get("category_description", "").strip()
+        cropped_image = request.POST.get("cropped_image")
 
-        if "image" not in category_image.content_type:
-            error_message = "Please select an image file"
-            messages.error(request, error_message)
+
+        if not category_name or len(category_name) < 3:
+            messages.error(request, "Category name must be at least 3 characters")
             return redirect("add_category")
 
-        if Category.objects.filter(name=category_name).exists():
-            error_message = "Category already exists"
-            messages.error(request, error_message)
+        if not category_name.replace(" ", "").isalpha():
+            messages.error(request, "Category name must contain only letters")
             return redirect("add_category")
 
-        # Creating a new category
-        new_category = Category.objects.create(
-            name=category_name,
+        if Category.objects.filter(name__iexact=category_name).exclude(
+                id=getattr(request, "category_id", None)
+            ).exists():
+            messages.error(request, "Category already exists")
+            return redirect("add_category")
+
+        # Image validation
+        if not cropped_image:
+            messages.error(request, "Please upload and crop an image")
+            return redirect("add_category")
+
+        # Decode base64 image
+        try:
+            format, imgstr = cropped_image.split(";base64,")
+            ext = format.split("/")[-1]
+            image_file = ContentFile(
+                base64.b64decode(imgstr),
+                name=f"{slugify(category_name)}.{ext}"
+            )
+        except Exception:
+            messages.error(request, "Invalid image data")
+            return redirect("add_category")
+
+        Category.objects.create(
+            name=category_name.title(),
             description=category_description,
-            image=category_image,
-            slug=slug,
+            image=image_file,
+            slug=slugify(category_name),
         )
+
+        messages.success(request, "Category added successfully")
         return redirect("category_list")
 
     context = {"title": title, "current_page": current_page}
     return render(request, "aadmin/category-form.html", context)
+
+
 
 
 

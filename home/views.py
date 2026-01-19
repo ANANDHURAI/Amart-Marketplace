@@ -23,7 +23,7 @@ def home(request):
     )
 
     for product in products:
-        # Primary image
+       
         product.primary_image = (
             product.product_images.filter(priority=1).first()
         )
