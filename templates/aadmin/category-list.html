@@ -1,144 +1,189 @@
 {% extends "aadmin/admin-base.html" %}
-
 {% load static %}
 
 {% block content %}
 
-<div class="container">
-    <div class="row align-items-center">
-        <h1 class="col-md-7 mb-4">Categories</h1>
-        <div class="col-md-5 text-right">
-            <form class="form-inline justify-content-end" method="get">
-                <div class="form-group mr-3">
-                    <label for="search" class="mr-2 mb-0">Search:</label>
-                    <input type="text" class="form-control form-control-sm" name="search" id="search" value="{{ search_query }}" placeholder="Search categories">
-                </div>
-                <br>
-                <br>
-                <div class="form-group mr-3">
-                    <label for="filter_option" class="mr-2 mb-0">Filter by:</label>
-                    <select class="form-control form-control-sm" name="filter_option" id="filter_option">
-                        <option {% if request.session.selection == "listed_categories" %}selected{% endif %} value="listed_categories">Listed Categories</option>
-                        <option {% if request.session.selection == "deleted_categories" %}selected{% endif %} value="deleted_categories">Deleted Categories</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-sm btn-primary">Apply</button>
-            </form>
-        </div>
+<style>
+/* ===== Category List Styling ===== */
+.category-wrapper {
+    background: #ffffff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.category-header h1 {
+    font-weight: 600;
+}
+
+.category-img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+}
+
+.badge-active {
+    background: #e6fffa;
+    color: #065f46;
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-size: 12px;
+}
+
+.badge-deleted {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-size: 12px;
+}
+
+.action-btns a {
+    margin: 0 4px;
+}
+
+.table thead th {
+    vertical-align: middle;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+}
+</style>
+
+<div class="category-wrapper">
+
+    <!-- Header -->
+    <div class="category-header">
+        <h1>Categories</h1>
+
+        <form method="get" class="form-inline">
+            <input type="text"
+                   name="search"
+                   value="{{ search_query }}"
+                   class="form-control form-control-sm mr-2"
+                   placeholder="Search category">
+
+            <select name="filter_option"
+                    class="form-control form-control-sm"
+                    onchange="this.form.submit()">
+                <option value="listed_categories"
+                    {% if filter_option == "listed_categories" %}selected{% endif %}>
+                    Listed Categories
+                </option>
+                <option value="deleted_categories"
+                    {% if filter_option == "deleted_categories" %}selected{% endif %}>
+                    Deleted Categories
+                </option>
+            </select>
+        </form>
     </div>
-</div>
 
-
-<div class="hoverable-data-table">
-    <table id="hoverable-data-table" class="table table-hover nowrap" style="width:100%">
+    <!-- Table -->
+    <table class="table table-hover">
         <thead class="thead-dark">
             <tr>
+                <th class="text-center">Image</th>
                 <th>Name</th>
-                <th class="text-center">No. of products</th>
-                {% if request.session.selection == "deleted_categories" %}<th class="text-center">Deleted at</th>{% endif %}
-                <th class="text-center">{% if not request.session.selection == "deleted_categories" %}Edit/Delete{% else %}Restore{% endif %}</th>
+                <th class="text-center">Products</th>
+                {% if filter_option == "deleted_categories" %}
+                    <th class="text-center">Deleted At</th>
+                {% endif %}
+                <th class="text-center">Action</th>
             </tr>
         </thead>
-        
+
         <tbody>
-            {% for category in categories %}
+        {% for category in categories %}
             <tr>
-                <td class="text-primary">{{ category.name }}</td>
-                <td class="text-center">{{ category.count }}</td>
-                {% if request.session.selection == "deleted_categories" %}<td class="text-center">{{ category.deleted_at }}</td>{% endif %}
                 <td class="text-center">
-                    {% if not request.session.selection == "deleted_categories" %}
-                        <a href="{% url "edit_category" category.slug %}" class="btn-sm btn-outline-warning"><i class="mdi mdi-pencil-box"></i>Edit</a>
-                        <a type="button" href="" class="btn-sm btn-outline-danger" data-toggle="modal" data-target="#deleteModal{{ category.id }}"><i class="mdi mdi-delete"></i>Delete</a>
+                    {% if category.image %}
+                        <img src="{{ category.image.url }}" class="category-img">
                     {% else %}
-                        <a type="button" href="" class="btn-sm btn-outline-primary" data-toggle="modal" data-target="#restoreModel{{ category.id }}"><i class="mdi mdi-delete"></i>Restore</a>
+                        <span class="text-muted">No Image</span>
+                    {% endif %}
+                </td>
+
+                <td>
+                    <strong>{{ category.name }}</strong><br>
+                    {% if filter_option == "deleted_categories" %}
+                        <span class="badge-deleted">Deleted</span>
+                    {% else %}
+                        <span class="badge-active">Active</span>
+                    {% endif %}
+                </td>
+
+                <td class="text-center">{{ category.count }}</td>
+
+                {% if filter_option == "deleted_categories" %}
+                    <td class="text-center">{{ category.deleted_at|date:"d M Y" }}</td>
+                {% endif %}
+
+                <td class="text-center action-btns">
+                    {% if filter_option == "deleted_categories" %}
+                        <a href="{% url 'restore_category' category.slug %}"
+                        class="btn btn-sm btn-outline-success"
+                        onclick="return confirm('Restore this category?')">
+                        Restore
+                        </a>
+
+                    {% else %}
+                        <a href="{% url 'edit_category' category.slug %}"
+                           class="btn btn-sm btn-outline-warning">
+                            Edit
+                        </a>
+                        <a href="{% url 'delete_category' category.slug %}"
+                            class="btn btn-sm btn-outline-danger"
+                            onclick="return confirm('Are you sure you want to delete this category?')">
+                            Delete
+                        </a>
                     {% endif %}
                 </td>
             </tr>
-    
-            <!-- Modal -->
-            <div class="modal fade" id="deleteModal{{ category.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
-                <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="deleteModalLabel">Delete Category - {{ category.name }}</h5>
-                            <a type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </a>
-                        </div>
-    
-                        <div class="modal-body">
-                            <p>There are {{ category.count }} products in this category. Are you sure you want to delete this category?</p>
-                        </div>
-    
-                        <div class="modal-footer">
-                            <a type="button" class="btn btn-primary btn-pill" data-dismiss="modal">Close</a>
-                            <a href="{% url "delete_category" category.slug %}" type="button" class="btn btn-danger btn-pill">Delete</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal fade" id="restoreModel{{ category.id }}" tabindex="-1" role="dialog" aria-labelledby="restoreModelLabel" aria-hidden="true">
-                <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="restoreModelLabel">Restore Category - {{ category.name }}</h5>
-                            <a type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </a>
-                        </div>
-    
-                        <div class="modal-body">
-                            <p>There are {{ category.count }} products in this category. Are you sure you want to restore this category?</p>
-                        </div>
-    
-                        <div class="modal-footer">
-                            <a type="button" class="btn btn-outline-primary btn-pill" data-dismiss="modal">Close</a>
-                            <a href="{% url "restore_category" category.slug %}" type="button" class="btn btn-primary btn-pill">Restore</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
+        {% empty %}
+            <tr>
+                <td colspan="5" class="empty-state">
+                    No categories found
+                </td>
+            </tr>
+        {% endfor %}
         </tbody>
     </table>
 
     <!-- Pagination -->
-    <nav aria-label="Page navigation">
-        <ul class="pagination">
+    <nav>
+        <ul class="pagination justify-content-center">
             {% if categories.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="First">
-                        <span aria-hidden="true">&laquo;&laquo;</span>
-                    </a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ categories.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Previous">
-                        <span aria-hidden="true">&laquo;</span>
+                    <a class="page-link"
+                       href="?page={{ categories.previous_page_number }}&search={{ search_query }}&filter_option={{ filter_option }}">
+                        &laquo;
                     </a>
                 </li>
             {% endif %}
-            
-            {% for num in categories.paginator.page_range %}
-                {% if categories.number == num %}
-                    <li class="page-item active" aria-current="page">
-                        <span class="page-link">{{ num }} <span class="sr-only">(current)</span></span>
-                    </li>
-                {% else %}
-                    <li class="page-item"><a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a></li>
-                {% endif %}
-            {% endfor %}
-            
+
+            <li class="page-item active">
+                <span class="page-link">
+                    {{ categories.number }} / {{ categories.paginator.num_pages }}
+                </span>
+            </li>
+
             {% if categories.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ categories.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Next">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ categories.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Last">
-                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    <a class="page-link"
+                       href="?page={{ categories.next_page_number }}&search={{ search_query }}&filter_option={{ filter_option }}">
+                        &raquo;
                     </a>
                 </li>
             {% endif %}
@@ -146,12 +191,5 @@
     </nav>
 
 </div>
-
-{% endblock content %}
-
-{% block extra_scripts %}
-
-<script src='{% static "aadmin/plugins/data-tables/jquery.datatables.min.js" %}'></script>
-<script src='{% static "aadmin/plugins/data-tables/datatables.bootstrap4.min.js" %}'></script> 
 
 {% endblock %}

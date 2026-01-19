@@ -193,28 +193,22 @@ def category_list(request):
     current_page = "category_list"
 
     search_query = request.GET.get("search", "")
+    filter_option = request.GET.get("filter_option", "listed_categories")
 
-    if search_query:
-        categories = Category.objects.filter(Q(name__icontains=search_query)).order_by(
-            "name"
-        )
+    if filter_option == "deleted_categories":
+        categories = Category.all_objects.filter(is_deleted=True).order_by("name")
+        request.session["selection"] = "deleted_categories"
     else:
         categories = Category.objects.all().order_by("name")
+        request.session["selection"] = "listed_categories"
 
-    request.session["selection"] = "listed_categories"
+    if search_query:
+        categories = categories.filter(name__icontains=search_query)
 
     for category in categories:
-        category.count = category.main_category_products.count()
-
-    if request.method == "POST":
-        filter_option = request.POST.get("filter_option")
-        if filter_option == "deleted_categories":
-            categories = Category.all_objects.filter(is_deleted=True)
-            request.session["selection"] = "deleted_categories"
-            for category in categories:
-                category.count = Product.all_objects.filter(
-                    main_category=category
-                ).count()
+        category.count = Product.all_objects.filter(
+            main_category=category
+        ).count()
 
     paginator = Paginator(categories, 5)
     page_number = request.GET.get("page")
@@ -225,8 +219,11 @@ def category_list(request):
         "title": title,
         "current_page": current_page,
         "search_query": search_query,
+        "filter_option": filter_option,
     }
     return render(request, "aadmin/category-list.html", context)
+
+
 
 
 @admin_login_required
@@ -312,33 +309,29 @@ def edit_category(request, slug):
 
 
 
-
-
-
-
 @admin_login_required
 def delete_category(request, slug):
     category = get_object_or_404(Category, slug=slug)
-
-    # Soft deleting products related to the category
-    for product in category.main_category_products.all():
-        product.delete()
-    category.delete()
-
+    category.delete()  
     return redirect("category_list")
+
 
 
 @admin_login_required
 def restore_category(request, slug):
     category = Category.all_objects.get(slug=slug)
-    products = Product.all_objects.filter(main_category=category)
-
-    for product in products:
-        product.restore()
 
     category.restore()
 
+    Product.all_objects.filter(main_category=category).update(
+        is_deleted=False,
+        deleted_at=None
+    )
+
     return redirect("category_list")
+
+
+
 
 
 @admin_login_required

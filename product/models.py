@@ -23,15 +23,22 @@ class Category(SoftDeleteModel):
 class Product(SoftDeleteModel):
     name = models.CharField(max_length=100)
     description = models.TextField(max_length=511, null=True, blank=True)
+    
     main_category = models.ForeignKey(
-        Category, on_delete=models.CASCADE, related_name="main_category_products"
+        Category,
+        on_delete=models.PROTECT,
+        related_name="main_category_products"
     )
+    
+
     subcategories = models.ManyToManyField(
         Category, related_name="subcategory_products", blank=True
     )
+    
     mrp = models.PositiveIntegerField(
         validators=[MinValueValidator(1)], null=True, blank=True
     )
+    
     is_available = models.BooleanField(default=True)
     slug = models.SlugField(unique=True, max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -45,11 +52,6 @@ class Product(SoftDeleteModel):
     def __unicode__(self):
         return self.name
 
-    # def total_stock(self):
-    #     return Inventory.objects.filter(product=self).aggregate(Sum('stock'))['stock__sum'] or 0
-
-    # def is_favourite(self, user):
-    #     return FavouriteItem.objects.filter(customer__id=user.id, product=self).exists()
 
 
 class Inventory(models.Model):
