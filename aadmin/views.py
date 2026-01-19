@@ -929,31 +929,47 @@ def add_offer(request):
 
     if request.method == "POST":
         category_id = request.POST.get("category_id")
-        discount = int(request.POST.get("discount"))
+        discount_str = request.POST.get("discount")
         active = request.POST.get("active")
+
+        if not category_id:
+            messages.error(request, "Please select a category")
+            return redirect("add_offer")
+
+        try:
+            discount = int(discount_str)
+        except (ValueError, TypeError):
+            messages.error(request, "Discount must be a number")
+            return redirect("add_offer")
+
+        if discount < 1 or discount > 50:
+            messages.error(request, "Discount must be between 1% and 50%")
+            return redirect("add_offer")
+
         category = Category.objects.get(id=category_id)
 
-        if discount > 100 or discount < 1:
-            error_message = "Invalid Discount Percentage"
-            messages.error(request, error_message)
-            return redirect("add_offer")
-
         if CategoryOffer.objects.filter(category=category).exists():
-            error_message = "An offer already exists for this category"
-            messages.error(request, error_message)
+            messages.error(request, "An offer already exists for this category")
             return redirect("add_offer")
 
-        # Creating a new offer
-        new_offer = CategoryOffer.objects.create(
+        # Create new offer
+        CategoryOffer.objects.create(
             category=category,
             discount=discount,
             is_active=active,
         )
 
+        messages.success(request, "Offer added successfully!")
         return redirect("offer_list")
 
-    context = {"title": title, "current_page": current_page, "categories": categories}
+    context = {
+        "title": title,
+        "current_page": current_page,
+        "categories": categories,
+    }
     return render(request, "aadmin/offer-form.html", context)
+
+
 
 
 @admin_login_required
@@ -1000,25 +1016,36 @@ def edit_offer(request, id):
     return render(request, "aadmin/offer-form.html", context)
 
 
+
+
+
 @admin_login_required
 def delete_offer(request, id):
-    offer = CategoryOffer.objects.get(id=id)
-    offer.delete()
-    return HttpResponse("Delete Offer")
+    try:
+        offer = CategoryOffer.objects.get(id=id)
+        offer.delete()
+        messages.success(request, "Offer deleted successfully!")
+    except CategoryOffer.DoesNotExist:
+        messages.error(request, "Offer not found.")
+    
+    return redirect('offer_list')
+
+
+
 
 
 @admin_login_required
 def inventory_list(request):
-    # Search functionality
+   
     search_query = request.GET.get("search", "")
 
-    # Filter based on search query
+    
     inventory = Inventory.objects.select_related("product").filter(
         Q(product__name__icontains=search_query) | Q(size__icontains=search_query)
     ).order_by('-id')
 
-    # Pagination
-    paginator = Paginator(inventory, 5)  # Show 10 items per page
+
+    paginator = Paginator(inventory, 5)  
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
@@ -1037,7 +1064,7 @@ def add_edit_inventory(request, inventory_id=None):
     else:
         inventory = None
 
-    # Handle form submission
+    
     if request.method == "POST":
         product_id = request.POST.get("product_id")
         price = request.POST.get("price")
@@ -1054,7 +1081,6 @@ def add_edit_inventory(request, inventory_id=None):
         else:
             product = get_object_or_404(Product, pk=product_id)
 
-            # Check if an inventory with the same product and size already exists (for adding or editing)
             existing_inventory = (
                 Inventory.objects.filter(product=product, size=size)
                 .exclude(pk=inventory_id)
@@ -1062,14 +1088,14 @@ def add_edit_inventory(request, inventory_id=None):
             )
 
             if existing_inventory:
-                # Error if a duplicate product-size combination exists
+               
                 messages.error(
                     request,
                     f"An inventory item with size '{size}' already exists for the selected product.",
                 )
             else:
                 if inventory:
-                    # Update existing inventory item
+                   
                     inventory.product = product
                     inventory.price = price
                     inventory.size = size
@@ -1087,9 +1113,9 @@ def add_edit_inventory(request, inventory_id=None):
 
                 return redirect(
                     "inventory_list"
-                )  # Ensure a redirect or HttpResponse is returned
+                ) 
 
-    # Handle GET request or if form submission fails
+
     products = Product.objects.all()
     sizes = Inventory.SIZE_CHOICES
 

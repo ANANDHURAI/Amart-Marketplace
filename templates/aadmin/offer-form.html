@@ -7,21 +7,28 @@
         <h2>{% if offer %}Edit {% else %}Add a new {% endif %}category offer</h2>
     </div>
     <div class="card-body">
-        <form method="post" enctype="multipart/form-data" {% if offer %}action="{% url "edit_offer" offer.id %}"{% endif %}>
+        <form method="post" enctype="multipart/form-data" {% if offer %}action="{% url 'edit_offer' offer.id %}"{% endif %}>
             {% csrf_token %}
+
             <div class="form-group col-md-12">
                 <label>Category:</label>
                 <select name="category_id" class="form-control">
                     <option disabled selected>Select Category</option>
                     {% for category in categories %}
-                        <option value="{{ category.id }}" {% if offer and offer.category.id == category.id %}selected{% endif %}>{{ category.name }}</option>
+                        <option value="{{ category.id }}" {% if offer and offer.category.id == category.id %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
                     {% endfor %}
                 </select>
+                
             </div>
+
             <div class="form-group col-md-12">
                 <label>Discount in Percentage:</label>
-                <input name="discount" type="number" min="1" max="90" step="1" class="form-control" placeholder="Discount in percentage" value="{% if offer %}{{ offer.discount }}{% endif %}" required>
+                <input name="discount" type="number" min="1" max="50" step="1" class="form-control"
+                       placeholder="Discount in percentage" value="{% if offer %}{{ offer.discount }}{% endif %}">
             </div>
+
             <div class="form-group col-md-12">
                 <label>Active:</label>
                 <select name="active" class="form-control">
@@ -29,22 +36,27 @@
                     <option value="0" {% if offer and not offer.is_active %}selected{% endif %}>Inactive</option>
                 </select>
             </div>
+
             <br>
             <div class="form-footer pt-3 border-top">
                 {% for message in messages %}
-                    <div class="alert alert-danger text-center" role="alert">{{message}}</div>
+                    <div class="alert alert-{{ message.tags }} text-center message-alert" role="alert">
+                        {{ message }}
+                    </div>
                 {% endfor %}
                 <button type="submit" class="btn btn-primary btn-default">Submit</button>
             </div>
         </form>
     </div>
 </div>
+
 {% endblock content %}
 
-{% block extra_styles %}
-
-{% endblock extra_styles %}
-
 {% block extra_scripts %}
-
+<script>
+   
+    setTimeout(() => {
+        document.querySelectorAll('.message-alert').forEach(el => el.style.display = 'none');
+    }, 2000);
+</script>
 {% endblock extra_scripts %}
