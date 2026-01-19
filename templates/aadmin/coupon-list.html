@@ -161,5 +161,81 @@
 
 <link href="{% static 'plugins/data-tables/datatables.bootstrap4.min.css' %}" rel="stylesheet">
 <link href="https://unpkg.com/sleek-dashboard/dist/assets/css/sleek.min.css">
+<style>
+/* Table Enhancements */
+.hoverable-data-table table {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+}
+.hoverable-data-table thead {
+    background: linear-gradient(90deg, #4b6cb7, #182848);
+    color: white;
+}
+.hoverable-data-table tbody tr:hover {
+    background-color: rgba(75,108,183,0.1);
+    transition: 0.3s;
+}
 
+/* Buttons */
+.btn-pill {
+    border-radius: 50px !important;
+    transition: 0.3s;
+}
+.btn-outline-danger:hover {
+    background: #f44336;
+    color: white;
+    transform: scale(1.05);
+}
+.btn-outline-warning:hover {
+    background: #ffc107;
+    color: white;
+    transform: scale(1.05);
+}
+.btn-primary:hover {
+    background: linear-gradient(90deg, #4b6cb7, #182848);
+    border-color: #182848;
+}
+
+/* Filter form card */
+.form-inline {
+    background: #f9f9f9;
+    padding: 15px 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+/* Pagination */
+.pagination .page-item .page-link {
+    border-radius: 50%;
+    margin: 0 3px;
+    transition: 0.3s;
+}
+.pagination .page-item .page-link:hover {
+    background: #4b6cb7;
+    color: white;
+    transform: scale(1.1);
+}
+.pagination .page-item.active .page-link {
+    background: linear-gradient(90deg, #4b6cb7, #182848);
+    color: white;
+    border: none;
+}
+
+/* Modal */
+.modal-content {
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+.modal-footer .btn {
+    min-width: 90px;
+    transition: 0.3s;
+}
+.modal-footer .btn:hover {
+    transform: scale(1.05);
+}
+</style>
 {% endblock extra_styles %}
+
+
