@@ -638,7 +638,6 @@ def checkout(request):
     return render(request, "customer/checkout.html", context)
 
 
-# Customer Order Session
 
 from payment.views import handle_wallet_payment
 
@@ -680,21 +679,36 @@ def place_order(request):
         # Coupon
         if coupon_code:
             coupon = Coupon.objects.filter(code=coupon_code, is_active=True).first()
+
             if not coupon:
-                messages.error(request, "Invalid coupon")
+                messages.error(request, "Invalid coupon code.")
                 return redirect("checkout")
 
-            if coupon.quantity < 1 or coupon.minimum_purchase > total_amount:
-                messages.error(request, "Coupon not applicable")
+            
+            if request.session.get("coupon_code") == coupon.code:
+                messages.error(request, "You have already used this coupon.")
+                return redirect("checkout")
+
+            if coupon.quantity < 1:
+                messages.error(request, "This coupon is no longer available.")
+                return redirect("checkout")
+
+            if coupon.minimum_purchase > total_amount:
+                messages.error(
+                    request,
+                    f"Minimum purchase of ₹{coupon.minimum_purchase} required to use this coupon."
+                )
                 return redirect("checkout")
 
             total_amount -= coupon.discount
+
             request.session["coupon_code"] = coupon.code
             request.session["discount"] = coupon.discount
 
         request.session["total_amount"] = total_amount
 
-        # ---- PAYMENT DECISION ----
+        
+        # PAYMENT DECISION 
         if payment_method == "wallet":
             return handle_wallet_payment(request, request.user.customer, total_amount)
 

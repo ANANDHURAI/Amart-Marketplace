@@ -757,82 +757,125 @@ def coupon_list(request):
     return render(request, "aadmin/coupon-list.html", context)
 
 
+
+def validate_coupon_fields(code, discount, quantity, minimum_purchase):
+    errors = []
+
+    if not code:
+        errors.append("Coupon code is required.")
+    elif len(code) < 4:
+        errors.append("Coupon code must be at least 4 characters.")
+
+    try:
+        discount = int(discount)
+        if discount <= 0:
+            errors.append("Discount must be greater than zero.")
+    except:
+        errors.append("Enter a valid discount amount.")
+
+    try:
+        quantity = int(quantity)
+        if quantity < 1:
+            errors.append("Quantity must be at least 1.")
+    except:
+        errors.append("Enter a valid quantity.")
+
+    try:
+        minimum_purchase = int(minimum_purchase)
+        if minimum_purchase <= 0:
+            errors.append("Minimum purchase must be greater than zero.")
+    except:
+        errors.append("Enter a valid minimum purchase amount.")
+
+    if isinstance(discount, int) and isinstance(minimum_purchase, int):
+        if discount >= minimum_purchase:
+            errors.append(
+                "Discount amount must be less than minimum purchase amount."
+            )
+
+    return errors
+
+
+
 @admin_login_required
 def add_coupon(request):
     title = "New Coupon"
     current_page = "add_coupon"
 
     if request.method == "POST":
-        coupon_code = request.POST.get("code").upper()
+        code = request.POST.get("code", "").upper().strip()
         discount = request.POST.get("discount")
         quantity = request.POST.get("quantity")
         minimum_purchase = request.POST.get("minimum_purchase")
-        active = request.POST.get("active")
+        active = request.POST.get("active") == "1"
 
-        if minimum_purchase < discount:
-            error_message = (
-                "The discount should be less than the minimum purchase limit"
-            )
-            messages.error(request, error_message)
+        errors = validate_coupon_fields(
+            code, discount, quantity, minimum_purchase
+        )
+
+        if Coupon.objects.filter(code=code).exists():
+            errors.append("This coupon code already exists.")
+
+        if errors:
+            for error in errors:
+                messages.error(request, error)
             return redirect("add_coupon")
 
-        if Coupon.objects.filter(code=coupon_code).exists():
-            error_message = "Coupon already exists"
-            messages.error(request, error_message)
-            return redirect("add_coupon")
-
-        # Creating a new coupon
-        new_coupon = Coupon.objects.create(
-            code=coupon_code,
-            discount=discount,
-            quantity=quantity,
-            minimum_purchase=minimum_purchase,
+        Coupon.objects.create(
+            code=code,
+            discount=int(discount),
+            quantity=int(quantity),
+            minimum_purchase=int(minimum_purchase),
             is_active=active,
         )
 
+        messages.success(request, "Coupon added successfully.")
         return redirect("coupon_list")
 
-    context = {"title": title, "current_page": current_page}
-    return render(request, "aadmin/coupon-form.html", context)
+    return render(request, "aadmin/coupon-form.html", {
+        "title": title,
+        "current_page": current_page
+    })
+
+
 
 
 @admin_login_required
 def edit_coupon(request, id):
-    title = "Edit Coupon"
-    current_page = "edit_coupon"
     coupon = Coupon.objects.get(id=id)
 
     if request.method == "POST":
-        coupon_code = request.POST.get("code").upper()
+        code = request.POST.get("code", "").upper().strip()
         discount = request.POST.get("discount")
         quantity = request.POST.get("quantity")
         minimum_purchase = request.POST.get("minimum_purchase")
-        active = request.POST.get("active")
+        active = request.POST.get("active") == "1"
 
-        if minimum_purchase < discount:
-            error_message = (
-                "The discount should be less than the minimum purchase limit"
-            )
-            messages.error(request, error_message)
+        errors = validate_coupon_fields(
+            code, discount, quantity, minimum_purchase
+        )
+
+        if Coupon.objects.filter(code=code).exclude(id=coupon.id).exists():
+            errors.append("This coupon code already exists.")
+
+        if errors:
+            for error in errors:
+                messages.error(request, error)
             return redirect("edit_coupon", id=coupon.id)
 
-        if Coupon.objects.filter(code=coupon_code).exclude(id=coupon.id).exists():
-            error_message = "Coupon already exists"
-            messages.error(request, error_message)
-            return redirect("edit_coupon", id=coupon.id)
-
-        # Updating Coupon
-        coupon.code = coupon_code
-        coupon.discount = discount
-        coupon.quantity = quantity
-        coupon.minimum_purchase = minimum_purchase
+        coupon.code = code
+        coupon.discount = int(discount)
+        coupon.quantity = int(quantity)
+        coupon.minimum_purchase = int(minimum_purchase)
         coupon.is_active = active
         coupon.save()
 
+        messages.success(request, "Coupon updated successfully.")
         return redirect("coupon_list")
 
-    context = {"title": title, "current_page": current_page, "coupon": coupon}
-    return render(request, "aadmin/coupon-form.html", context)
+    return render(request, "aadmin/coupon-form.html", {
+        "coupon": coupon
+    })
 
 
 @admin_login_required

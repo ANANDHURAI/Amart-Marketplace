@@ -36,48 +36,74 @@
         </thead>
         
         <tbody>
-            {% for coupon in coupons %}
-            <tr>
-                <td class="text-primary">{{ coupon.code }}</td>
-                <td class="text-center">₹ {{ coupon.discount }}</td>
-                <td class="text-center">{{ coupon.quantity }}</td>
-                <td class="text-center">
-                    {% if coupon.is_active %}
-                        <span class="mdi mdi-check-circle text-success"></span>
-                    {% else %}
-                        <span class="mdi mdi-close-circle text-danger"></span>
-                    {% endif %}
-                </td>
-                <td class="text-center">
-                    <a href="{% url "edit_coupon" coupon.id %}" class="btn-sm btn-outline-warning"><i class="mdi mdi-pencil-box"></i>Edit</a>
-                    <a type="button" href="" class="btn-sm btn-outline-danger" data-toggle="modal" data-target="#deleteModal{{ coupon.id }}"><i class="mdi mdi-delete"></i>Delete</a>
-                </td>
-            </tr>
-    
-            <!-- Modal -->
-            <div class="modal fade" id="deleteModal{{ coupon.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
-                <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="deleteModalLabel">Delete Coupon - {{ coupon.code }}</h5>
-                            <a type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </a>
-                        </div>
-    
-                        <div class="modal-body">
-                            <p>There are {{ coupon.quantity }} coupons left. Are you sure you want to delete this coupon?</p>
-                        </div>
-    
-                        <div class="modal-footer">
-                            <a type="button" class="btn btn-primary btn-pill" data-dismiss="modal">Close</a>
-                            <a href="{% url "delete_coupon" coupon.id %}" type="button" class="btn btn-danger btn-pill">Delete</a>
+            {% if coupons %}
+                {% for coupon in coupons %}
+                <tr>
+                    <td class="text-primary">{{ coupon.code }}</td>
+                    <td class="text-center">₹ {{ coupon.discount }}</td>
+                    <td class="text-center">{{ coupon.quantity }}</td>
+                    <td class="text-center">
+                        {% if coupon.is_active %}
+                            <span class="mdi mdi-check-circle text-success"></span>
+                        {% else %}
+                            <span class="mdi mdi-close-circle text-danger"></span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <a href="{% url "edit_coupon" coupon.id %}" class="btn-sm btn-outline-warning">
+                            <i class="mdi mdi-pencil-box"></i>Edit
+                        </a>
+                        <a type="button"
+                        href=""
+                        class="btn-sm btn-outline-danger"
+                        data-toggle="modal"
+                        data-target="#deleteModal{{ coupon.id }}">
+                            <i class="mdi mdi-delete"></i>Delete
+                        </a>
+                    </td>
+                </tr>
+
+                <!-- Modal -->
+                <div class="modal fade" id="deleteModal{{ coupon.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="deleteModalLabel">
+                                    Delete Coupon - {{ coupon.code }}
+                                </h5>
+                                <a type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </a>
+                            </div>
+
+                            <div class="modal-body">
+                                <p>
+                                    There are {{ coupon.quantity }} coupons left.
+                                    Are you sure you want to delete this coupon?
+                                </p>
+                            </div>
+
+                            <div class="modal-footer">
+                                <a type="button" class="btn btn-primary btn-pill" data-dismiss="modal">
+                                    Close
+                                </a>
+                                <a href="{% url "delete_coupon" coupon.id %}" type="button" class="btn btn-danger btn-pill">
+                                    Delete
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            {% endfor %}
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                        Coupon not yet to created
+                    </td>
+                </tr>
+            {% endif %}
         </tbody>
+
     </table>
 
     <!-- Pagination -->
