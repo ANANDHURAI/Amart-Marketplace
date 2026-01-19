@@ -71,8 +71,8 @@ def customer_signup(request):
             password=password,
         )
         customer.is_customer = True
-        customer.is_active = False
-        customer.approved = True
+        customer.is_active = True
+
         customer.save()
 
         #  OTP session setup
@@ -111,10 +111,6 @@ def customer_login(request):
             messages.error(request, "Your account is currently blocked. Please contact support.")
             return redirect("customer_login")
 
-        # Not approved by admin
-        if not customer.approved:
-            messages.error(request, "Your account is pending approval.")
-            return redirect("customer_login")
 
         # Admin trying customer login
         if customer.is_superadmin or customer.is_staff:

@@ -149,25 +149,40 @@ def admin_dashboard(request):
 def customer_list(request):
     title = "Customers"
     current_page = "customer_list"
+
     customers = Customer.objects.all()
     request.session["selection"] = "all"
 
-    
     if request.method == "POST":
         filter_option = request.POST.get("filter_option")
+
         if filter_option == "banned":
-            customers = Customer.objects.filter(approved=False)
+            customers = Customer.objects.filter(is_active=False)
             request.session["selection"] = "ban"
 
-    context = {"customers": customers, "current_page": current_page, "title": title}
-    return render(request, "aadmin/customer-list.html", context=context)
+        elif filter_option == "active":
+            customers = Customer.objects.filter(is_active=True)
+            request.session["selection"] = "active"
+
+    context = {
+        "customers": customers,
+        "current_page": current_page,
+        "title": title,
+    }
+    return render(request, "aadmin/customer-list.html", context)
+
 
 
 @admin_login_required
 def customer_approval(request, pk):
     customer = Customer.objects.get(pk=pk)
-    customer.approved = not customer.approved
+    customer.is_active = not customer.is_active
     customer.save()
+
+    if customer.is_active:
+        messages.success(request, f"{customer.email} has been unblocked.")
+    else:
+        messages.success(request, f"{customer.email} has been blocked.")
 
     return redirect("customer_list")
 

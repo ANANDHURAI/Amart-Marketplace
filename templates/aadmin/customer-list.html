@@ -49,12 +49,10 @@
                     {% endif %}
                 </td>
                 <td class="text-center">
-                    {% if customer.approved %}
-                    <a href="{% url "customer_approval" customer.id %}" class="btn-block btn-outline-danger">Ban</a>
+                    {% if customer.is_active %}
+                        <a href="{% url 'customer_approval' customer.id %}" class="text-danger">Ban</a>
                     {% else %}
-                    <a href="{% url "customer_approval" customer.id %}" class="btn-block btn-outline-primary">Remove Ban
-                        
-                    </a>
+                        <a href="{% url 'customer_approval' customer.id %}" class="text-primary">Remove Ban</a>
                     {% endif %}
                 </td>
             </tr>

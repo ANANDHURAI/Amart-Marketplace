@@ -64,8 +64,7 @@ class Account(AbstractBaseUser):
         return True
 
 
-class Customer(Account):
-    approved = models.BooleanField(default=False)
 
+class Customer(Account):
     def __str__(self):
         return self.email
