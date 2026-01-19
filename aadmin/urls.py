@@ -7,6 +7,8 @@ urlpatterns = [
     path('customer-approval/<pk>/', views.customer_approval, name="customer_approval"),    
     path('categories/', views.category_list, name="category_list"),
     
+    path("profile/", views.admin_profile, name="admin_profile"),
+    path("profile/edit/", views.edit_admin_profile, name="edit_admin_profile"),
     
     path('add-category/', views.add_category, name="add_category"),
     path('edit-category/<slug>', views.edit_category, name="edit_category"),
@@ -31,7 +33,6 @@ urlpatterns = [
     
     path('product-approval/<pk>/', views.product_approval, name="product_approval"),
     
-    path('add-account/', views.add_account, name="add_account"),
     path('order-list/', views.order_list, name="order_list"),
     path(
         "orders/<int:order_id>/details/",

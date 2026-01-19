@@ -1,0 +1,79 @@
+{% extends "aadmin/admin-base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="me-4">
+                            {% if admin.profile_image %}
+                                <img src="{{ admin.profile_image.url }}" class="rounded-circle" width="120" height="120">
+                            {% else %}
+                                <img src="{% static 'admin/assets/img/default-user.png' %}" class="rounded-circle" width="120">
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h4 class="mb-1">{{ admin.first_name }} {{ admin.last_name }}</h4>
+                            <p class="text-muted mb-1">{{ admin.email }}</p>
+                            <span class="badge bg-success">Administrator</span>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted">First Name</label>
+                            <p class="fw-semibold">{{ admin.first_name }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted">Last Name</label>
+                            <p class="fw-semibold">{{ admin.last_name }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted">Email</label>
+                            <p class="fw-semibold">{{ admin.email }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted">Mobile</label>
+                            <p class="fw-semibold">{{ admin.mobile|default:"—" }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted">Joined Date</label>
+                            <p class="fw-semibold">{{ admin.date_joined|date:"d M Y" }}</p>
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <a href="{% url 'edit_admin_profile' %}" class="btn btn-dark px-4">
+                            Edit Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_styles %}
+<style>
+/* Navbar profile image */
+.navbar-profile-img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Dropdown profile image */
+.dropdown-profile-img {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+</style>
+{% endblock %}

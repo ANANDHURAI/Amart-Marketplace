@@ -29,6 +29,58 @@ def admin_login_required(func):
     return wrapper
 
 
+
+
+
+@admin_login_required
+def admin_profile(request):
+    title = "Admin Profile"
+    current_page = "admin_profile"
+
+    admin = request.user
+
+    context = {
+        "title": title,
+        "current_page": current_page,
+        "admin": admin,
+    }
+    return render(request, "aadmin/admin-profile.html", context)
+
+
+
+
+
+@admin_login_required
+def edit_admin_profile(request):
+    title = "Edit Admin Profile"
+    current_page = "admin_profile"
+
+    admin = request.user
+
+    if request.method == "POST":
+        admin.first_name = request.POST.get("first_name")
+        admin.last_name = request.POST.get("last_name")
+        admin.mobile = request.POST.get("mobile")
+
+        if request.FILES.get("profile_image"):
+            admin.profile_image = request.FILES.get("profile_image")
+
+        admin.save()
+        messages.success(request, "Profile updated successfully")
+        return redirect("admin_profile")
+
+    context = {
+        "title": title,
+        "current_page": current_page,
+        "admin": admin,
+    }
+    return render(request, "aadmin/edit-admin-profile.html", context)
+
+
+
+
+
+
 @admin_login_required
 def admin_dashboard(request):
     title = "Dashboard"
@@ -535,43 +587,8 @@ def product_approval(request, pk):
     return redirect("product_list")
 
 
-@admin_login_required
-def add_account(request):
-    title = "Add account"
-    current_page = "add_account"
-    context = {"title": title, "current_page": current_page}
 
-    if request.method == "POST":
-        first_name = request.POST.get("first_name").title()
-        last_name = request.POST.get("last_name").title()
-        email = request.POST.get("email").lower()
-        password = request.POST.get("password")
-        account_type = request.POST.get("account_type")
 
-        if Account.objects.filter(email=email).exists():
-            error_message = (
-                "Email already registered. Please log in or use a different email."
-            )
-            messages.error(request, error_message)
-
-        elif account_type == "customer":
-            try:
-                # Creating customer
-                customer = Customer.objects.create_user(
-                    first_name=first_name,
-                    last_name=last_name,
-                    email=email,
-                    password=password,
-                )
-                customer.is_customer = True
-                customer.is_active = True
-                customer.approved = True
-                customer.save()
-            except Exception as e:
-                error_message = "Something went wrong, please try again"
-                messages.error(request, error_message)
-
-    return render(request, "aadmin/add-account.html", context)
 
 
 @admin_login_required
