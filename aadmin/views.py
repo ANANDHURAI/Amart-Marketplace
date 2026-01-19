@@ -661,6 +661,8 @@ def update_order_status(request, order_item_id):
     return redirect("order_list")
 
 
+
+
 @admin_login_required
 def sales_report(request):
     title = "Sales Report"
@@ -747,6 +749,8 @@ def sales_report(request):
     }
 
     return render(request, "aadmin/sales-report.html", context=context)
+
+
 
 
 @admin_login_required
