@@ -614,6 +614,40 @@ def order_list(request):
     return render(request, "aadmin/order-list.html", context=context)
 
 
+
+
+
+
+@admin_login_required
+def admin_order_detail(request, order_id):
+    title = "Order Details"
+    current_page = "order_list"
+
+    order = get_object_or_404(
+        Order.objects.select_related("customer", "coupon"),
+        id=order_id
+    )
+
+    order_items = (
+        OrderItem.objects
+        .filter(order=order)
+        .select_related("product", "inventory")
+    )
+
+    context = {
+        "order": order,
+        "order_items": order_items,
+        "title": title,
+        "current_page": current_page,
+    }
+    return render(request, "aadmin/order-detail.html", context)
+
+
+
+
+
+
+
 @admin_login_required
 def update_order_status(request, order_item_id):
     if request.method == "POST":

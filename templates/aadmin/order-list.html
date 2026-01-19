@@ -1,156 +1,198 @@
 {% extends "aadmin/admin-base.html" %}
-
 {% load static %}
 
 {% block content %}
 
-<div class="container">
-    <div class="row">
-        <h1 class="col-md-7">Orders</h1>
-        <!-- Search and Filter Form -->
-        <form method="get" class="col-md-5">
-            <div class="input-group mb-3">
-                <input type="text" class="form-control" placeholder="Search..." name="search" value="{{ search_query }}">
-                <div class="input-group-append">
-                    <button class="btn btn-outline-secondary" type="submit">Search</button>
-                </div>
-            </div>
-            <div class="form-group mb-3">
-                <label for="filter_option">Filter by status:</label>
-                <select class="form-control" name="filter_option" id="filter_option">
-                    <option {% if filter_option == "all" %}selected{% endif %} value="all">All Statuses</option>
-                    <option {% if filter_option == "pending" %}selected{% endif %} value="pending">Pending</option>
-                    <option {% if filter_option == "confirmed" %}selected{% endif %} value="confirmed">Confirmed</option>
-                    <option {% if filter_option == "shipped" %}selected{% endif %} value="shipped">Shipped</option>
-                    <option {% if filter_option == "delivered" %}selected{% endif %} value="delivered">Delivered</option>
-                    <option {% if filter_option == "cancelled" %}selected{% endif %} value="cancelled">Cancelled</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-sm btn-primary">Apply Filter</button>
-        </form>
+<div class="container-fluid mt-4">
+
+    <!-- PAGE HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Orders</h2>
     </div>
-</div>
 
-<div class="hoverable-data-table">
-    <table id="hoverable-data-table" class="table table-hover nowrap" style="width:100%">
-        <thead class="thead-dark">
-            <tr>
-                <th>Product</th>
-                <th>Customer</th>
-                <th class="text-center">Quantity</th>
-                <th class="text-center">Price</th>
-                <th class="text-center">Current Status</th>
-                <th class="text-center">Update Status</th>
-            </tr>
-        </thead>
-        
-        <tbody>
-            {% for order_item in order_items %}
-            <tr>
-                <td>{{ order_item.product.name }}</td>
-                <td><a href="">{{ order_item.order.customer }}</a></td>
-                <td class="text-center">{{ order_item.quantity }}</td>
-                <td class="text-center">₹ {{ order_item.price }}</td>
-                <td class="text-center">
-                    <span class="badge badge-{% if order_item.status == 'pending' %}warning
-                                 {% elif order_item.status == 'confirmed' %}info
-                                 {% elif order_item.status == 'shipped' %}primary
-                                 {% elif order_item.status == 'delivered' %}success
-                                 {% elif order_item.status == 'cancelled' %}danger
-                                 {% else %}secondary{% endif %}">
-                        {{ order_item.get_status_display }}
-                    </span>
-                </td>
-                <td class="text-center">
-                    <form method="post" action="{% url 'update_order_status' order_item.id %}">
-                        {% csrf_token %}
-                        <select name="new_status" onchange="this.form.submit()" class="form-control form-control-sm">
-                            {% for status, label in order_item.STATUS_CHOICES %}
-                                <option value="{{ status }}" {% if status == order_item.status %}selected{% endif %}
-                                        class="{% if status == 'pending' %}text-warning
-                                               {% elif status == 'confirmed' %}text-info
-                                               {% elif status == 'shipped' %}text-primary
-                                               {% elif status == 'delivered' %}text-success
-                                               {% elif status == 'cancelled' %}text-danger
-                                               {% else %}text-secondary{% endif %}">
-                                    {{ label }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </form>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" class="text-center">No orders found.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <!-- SEARCH & FILTER -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label">Search Product</label>
+                    <input type="text"
+                           class="form-control"
+                           name="search"
+                           placeholder="Search by product name..."
+                           value="{{ search_query }}">
+                </div>
 
-    <!-- Pagination controls -->
-    <nav aria-label="Page navigation">
+                <div class="col-md-4">
+                    <label class="form-label">Filter by Status</label>
+                    <select class="form-control" name="filter_option">
+                        <option value="all" {% if filter_option == "all" %}selected{% endif %}>All</option>
+                        <option value="pending" {% if filter_option == "pending" %}selected{% endif %}>Pending</option>
+                        <option value="confirmed" {% if filter_option == "confirmed" %}selected{% endif %}>Confirmed</option>
+                        <option value="shipped" {% if filter_option == "shipped" %}selected{% endif %}>Shipped</option>
+                        <option value="delivered" {% if filter_option == "delivered" %}selected{% endif %}>Delivered</option>
+                        <option value="cancelled" {% if filter_option == "cancelled" %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        Apply
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ORDER TABLE -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="order-table-head">
+                        <tr>
+                            <th>Product</th>
+                            <th>Customer</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-center">Price</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Update</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for order_item in order_items %}
+                        <tr>
+                            <!-- PRODUCT (CLICKABLE) -->
+                            <td>
+                                <a href="{% url 'admin_order_detail' order_item.order.id %}"
+                                   class="fw-bold text-decoration-none text-primary">
+                                    {{ order_item.product.name }}
+                                </a>
+                                <br>
+                                <small class="text-muted">
+                                    Order #{{ order_item.order.id }}
+                                </small>
+                            </td>
+
+                            <!-- CUSTOMER -->
+                            <td>
+                                {{ order_item.order.customer }}
+                            </td>
+
+                            <!-- QUANTITY -->
+                            <td class="text-center">
+                                {{ order_item.quantity }}
+                            </td>
+
+                            <!-- PRICE -->
+                            <td class="text-center fw-semibold">
+                                ₹ {{ order_item.price }}
+                            </td>
+
+                            <!-- STATUS BADGE -->
+                            <td class="text-center">
+                                <span class="badge px-3 py-2
+                                    {% if order_item.status == 'pending' %}bg-warning
+                                    {% elif order_item.status == 'confirmed' %}bg-info
+                                    {% elif order_item.status == 'shipped' %}bg-primary
+                                    {% elif order_item.status == 'delivered' %}bg-success
+                                    {% elif order_item.status == 'cancelled' %}bg-danger
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ order_item.get_status_display }}
+                                </span>
+                            </td>
+
+                            <!-- UPDATE STATUS -->
+                            <td class="text-center">
+                                <form method="post"
+                                      action="{% url 'update_order_status' order_item.id %}">
+                                    {% csrf_token %}
+                                    <select name="new_status"
+                                            class="form-select form-select-sm"
+                                            onchange="this.form.submit()">
+                                        {% for status, label in order_item.STATUS_CHOICES %}
+                                        <option value="{{ status }}"
+                                            {% if status == order_item.status %}selected{% endif %}>
+                                            {{ label }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                No orders found
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGINATION -->
+    {% if order_items.paginator.num_pages > 1 %}
+    <nav class="mt-4">
         <ul class="pagination justify-content-center">
+
             {% if order_items.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_option != 'all' %}&filter_option={{ filter_option }}{% endif %}" aria-label="First">
-                        <span aria-hidden="true">&laquo;&laquo;</span>
-                    </a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ order_items.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_option != 'all' %}&filter_option={{ filter_option }}{% endif %}" aria-label="Previous">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
-                </li>
+            <li class="page-item">
+                <a class="page-link"
+                   href="?page={{ order_items.previous_page_number }}&search={{ search_query }}&filter_option={{ filter_option }}">
+                    Previous
+                </a>
+            </li>
             {% endif %}
 
             {% for num in order_items.paginator.page_range %}
-                {% if num == order_items.number %}
-                    <li class="page-item active" aria-current="page">
-                        <span class="page-link">{{ num }}<span class="sr-only">(current)</span></span>
-                    </li>
-                {% else %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_option != 'all' %}&filter_option={{ filter_option }}{% endif %}">{{ num }}</a>
-                    </li>
-                {% endif %}
+            <li class="page-item {% if num == order_items.number %}active{% endif %}">
+                <a class="page-link"
+                   href="?page={{ num }}&search={{ search_query }}&filter_option={{ filter_option }}">
+                    {{ num }}
+                </a>
+            </li>
             {% endfor %}
 
             {% if order_items.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ order_items.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_option != 'all' %}&filter_option={{ filter_option }}{% endif %}" aria-label="Next">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ order_items.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_option != 'all' %}&filter_option={{ filter_option }}{% endif %}" aria-label="Last">
-                        <span aria-hidden="true">&raquo;&raquo;</span>
-                    </a>
-                </li>
+            <li class="page-item">
+                <a class="page-link"
+                   href="?page={{ order_items.next_page_number }}&search={{ search_query }}&filter_option={{ filter_option }}">
+                    Next
+                </a>
+            </li>
             {% endif %}
+
         </ul>
     </nav>
+    {% endif %}
 
 </div>
 
-{% endblock content %}
-
-{% block extra_scripts %}
-<script src='{% static "plugins/data-tables/jquery.datatables.min.js" %}'></script>
-<script src='{% static "plugins/data-tables/datatables.bootstrap4.min.js" %}'></script> 
-
-<script>
-    $(document).ready(function() {
-        $('#hoverable-data-table').DataTable({
-            paging: false,  // Disable DataTables paging if using Django pagination
-            searching: false // Disable DataTables searching if using Django search
-        });
-    });
-</script>
-
-{% endblock extra_scripts %}
+{% endblock %}
 
 {% block extra_styles %}
-<link href="{% static 'plugins/data-tables/datatables.bootstrap4.min.css' %}" rel="stylesheet">
-<link href="https://unpkg.com/sleek-dashboard/dist/assets/css/sleek.min.css">
-{% endblock extra_styles %}
+<style>
+/* Force black header with white text */
+.order-table-head th {
+    background-color: #000 !important;
+    color: #fff !important;
+    border-color: #000 !important;
+}
+
+/* Hover row */
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Badge text size */
+.badge {
+    font-size: 0.85rem;
+}
+</style>
+
+{% endblock %}

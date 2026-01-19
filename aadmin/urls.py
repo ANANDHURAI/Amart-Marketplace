@@ -21,9 +21,7 @@ urlpatterns = [
         name="restore_category",
     ),
     
-    
-    # path('products/add/', views.add_product, name='add_product'),
-    # path('product/edit/<int:product_id>/', views.edit_product, name='edit_product'),
+
     path('remove-product-image/<int:image_id>/', views.remove_product_image, name='remove_product_image'),
     path('product-list/', views.product_list, name="product_list"),
     path("products/add/", views.product_form, name="add_product"),
@@ -35,6 +33,11 @@ urlpatterns = [
     
     path('add-account/', views.add_account, name="add_account"),
     path('order-list/', views.order_list, name="order_list"),
+    path(
+        "orders/<int:order_id>/details/",
+        views.admin_order_detail,
+        name="admin_order_detail",
+    ),
     path('update-order-status/<int:order_item_id>/', views.update_order_status, name='update_order_status'),
     path('sales-report/', views.sales_report, name="sales_report"),
     

@@ -1,0 +1,104 @@
+{% extends "aadmin/admin-base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Order #{{ order.id }}</h2>
+    </div>
+
+    <!-- Order & Customer Info -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    Customer Details
+                </div>
+                <div class="card-body">
+                    <p><strong>Name:</strong> {{ order.customer }}</p>
+                    <p><strong>Payment Method:</strong> {{ order.payment_method }}</p>
+                    <p><strong>Payment Status:</strong>
+                        {% if order.is_paid %}
+                            <span class="text-success">Paid</span>
+                        {% else %}
+                            <span class="text-danger">Not Paid</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Order Date:</strong> {{ order.created_at }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    Shipping Address
+                </div>
+                <div class="card-body">
+                    <p>{{ order.address }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Items -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            Ordered Items
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-striped mb-0">
+                <thead class="thead-light">
+                    <tr>
+                        <th>Product</th>
+                        <th>Size</th>
+                        <th class="text-center">Qty</th>
+                        <th class="text-center">Price</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in order_items %}
+                    <tr>
+                        <td>{{ item.product.name }}</td>
+                        <td>{{ item.size }}</td>
+                        <td class="text-center">{{ item.quantity }}</td>
+                        <td class="text-center">₹ {{ item.price }}</td>
+                        <td class="text-center">
+                            <span class="badge badge-{% if item.status == 'pending' %}warning
+                                {% elif item.status == 'confirmed' %}info
+                                {% elif item.status == 'shipped' %}primary
+                                {% elif item.status == 'delivered' %}success
+                                {% elif item.status == 'cancelled' %}danger
+                                {% else %}secondary{% endif %}">
+                                {{ item.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Price Summary -->
+    <div class="row justify-content-end mt-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <p><strong>Total:</strong> ₹ {{ order.total_amount }}</p>
+                    <p><strong>Discount:</strong> ₹ {{ order.discount|default:"0" }}</p>
+                    <p><strong>Offer:</strong> ₹ {{ order.offer|default:"0" }}</p>
+                    <hr>
+                    <h5 class="text-success">
+                        Grand Total: ₹ {{ order.total_amount }}
+                    </h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
