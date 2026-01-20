@@ -1,157 +1,208 @@
 {% extends "aadmin/admin-base.html" %}
-
 {% load static %}
 
 {% block content %}
+<div class="content-wrapper bg-light">
+    <div class="content">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h2 class="font-weight-bold text-dark mb-1">Inventory Management</h2>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb bg-transparent p-0" style="font-size: 0.85rem;">
+                        <li class="breadcrumb-item"><a href="#" class="text-muted">Dashboard</a></li>
+                        <li class="breadcrumb-item active text-primary font-weight-bold">Inventory</li>
+                    </ol>
+                </nav>
+            </div>
 
-<div class="container">
-    <div class="row">
-        <h1 class="col-md-7">Inventory</h1>
-        <!-- Search Form -->
-        <form method="get" class="col-md-5">
-            <div class="input-group mb-3">
-                <input type="text" class="form-control" placeholder="Search..." name="search" value="{{ search_query }}">
-                <div class="input-group-append">
-                    <button class="btn btn-outline-secondary" type="submit">Search</button>
+            <div class="d-flex align-items-center">
+                <div class="bg-white border rounded shadow-sm d-flex p-1 mr-3">
+                    <form method="get" class="form-inline">
+                        <input type="text" class="form-control form-control-sm border-0 bg-transparent" placeholder="Search products..." name="search" value="{{ search_query }}">
+                        <button class="btn btn-sm btn-light border-0" type="submit">
+                            <i class="mdi mdi-magnify"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <a href="{% url 'add_inventory' %}" class="btn btn-primary shadow-sm px-4 py-2" style="border-radius: 8px; font-weight: 600;">
+                    <i class="mdi mdi-plus-box mr-1"></i> Add Inventory
+                </a>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm" style="border-radius: 15px; overflow: hidden;">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="hoverable-data-table" class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th class="py-4 text-dark font-weight-bold border-0 pl-4">PRODUCT NAME</th>
+                                <th class="py-4 text-dark font-weight-bold border-0 text-center">SIZE</th>
+                                <th class="py-4 text-dark font-weight-bold border-0 text-center">PRICE</th>
+                                <th class="py-4 text-dark font-weight-bold border-0 text-center">STOCK</th>
+                                <th class="py-4 text-dark font-weight-bold border-0 text-center">STATUS</th>
+                                <th class="py-4 text-dark font-weight-bold border-0 text-center pr-4">ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white">
+                            {% for item in page_obj %}
+                            <tr>
+                                <td class="align-middle pl-4 font-weight-bold text-dark">
+                                    {{ item.product.name }}
+                                </td>
+                                <td class="align-middle text-center">
+                                    <span class="size-badge size-{{ item.get_size_display|slugify }}">
+                                        {{ item.get_size_display }}
+                                    </span>
+                                </td>
+                                <td class="align-middle text-center text-dark font-weight-bold">
+                                    ₹ {{ item.price }}
+                                </td>
+                                <td class="align-middle text-center">
+                                    <span class="stock-badge-uniform">{{ item.stock }}</span>
+                                </td>
+                                <td class="align-middle text-center">
+                                    {% if item.is_active %}
+                                        <span class="badge-success-soft"><i class="mdi mdi-check-circle mr-1"></i>Active</span>
+                                    {% else %}
+                                        <span class="badge-danger-soft"><i class="mdi mdi-close-circle mr-1"></i>Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td class="align-middle text-center pr-4">
+                                    <div class="btn-group shadow-sm" style="border-radius: 8px; overflow: hidden;">
+                                        <a href="{% url 'edit_inventory' item.id %}" class="btn btn-sm btn-white border-right" title="Edit">
+                                            <i class="mdi mdi-pencil text-warning"></i>
+                                        </a>
+                                        <a href="{% url 'inventory_status' item.id %}" class="btn btn-sm btn-white border-right" title="Toggle Status">
+                                            {% if item.is_active %}
+                                                <i class="mdi mdi-eye-off text-info"></i>
+                                            {% else %}
+                                                <i class="mdi mdi-eye text-primary"></i>
+                                            {% endif %}
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-white" onclick="confirmDelete('{{ item.id }}', '{{ item.product.name }}')" title="Delete">
+                                            <i class="mdi mdi-delete text-danger"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="mdi mdi-archive-outline d-block mb-2" style="font-size: 3rem; opacity: 0.3;"></i>
+                                    No inventory items found.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </form>
+        </div>
+
+        <div class="mt-4">
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-rounded justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}"><i class="mdi mdi-chevron-double-left"></i></a></li>
+                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}"><i class="mdi mdi-chevron-left"></i></a></li>
+                    {% endif %}
+                    
+                    <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}"><i class="mdi mdi-chevron-right"></i></a></li>
+                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}"><i class="mdi mdi-chevron-double-right"></i></a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
     </div>
 </div>
-
-<div class="hoverable-data-table">
-    <table id="hoverable-data-table" class="table table-hover nowrap" style="width:100%">
-        <thead class="thead-dark">
-            <tr>
-                <th>Product Name</th>
-                <th class="text-center">Size</th>
-                <th class="text-center">Price</th>
-                <th class="text-center">Stock</th>
-                <th class="text-center">Is Active</th>
-                <th class="text-center">Edit / List-Unlist / Delete</th>
-            </tr>
-        </thead>
-        
-        <tbody>
-            {% for item in page_obj %}
-            <tr>
-                <td>{{ item.product.name }}</td>
-                <td class="text-center">{{ item.get_size_display }}</td>
-                <td class="text-center">₹ {{ item.price }}</td>
-                <td class="text-center">{{ item.stock }}</td>
-                <td class="text-center">
-                    {% if item.is_active %}
-                        <span class="mdi mdi-check-circle text-success"></span>
-                    {% else %}
-                        <span class="mdi mdi-close-circle text-danger"></span>
-                    {% endif %}
-                </td>
-                <td class="text-center">
-                    <!-- Edit button -->
-                    <a href="{% url 'edit_inventory' item.id %}" class="btn-sm btn-outline-warning"><i class="mdi mdi-pencil-box"></i>Edit</a>
-                    
-                    <!-- List/Unlist button -->
-                    <a href="{% url 'inventory_status' item.id %}" class="btn-sm btn-outline-info">
-                        {% if item.is_active %}
-                            <i class="mdi mdi-eye-off"></i> Unlist
-                        {% else %}
-                            <i class="mdi mdi-eye"></i> List
-                        {% endif %}
-                    </a>
-                    
-                    <!-- Delete button with SweetAlert -->
-                    <button type="button" class="btn-sm btn-outline-danger" onclick="confirmDelete('{{ item.id }}', '{{ item.product.name }} - {{ item.get_size_display }}')"><i class="mdi mdi-delete"></i>Delete</button>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" class="text-center">No inventory items found.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    
-    <!-- Pagination controls -->
-    <nav aria-label="Page navigation">
-        <ul class="pagination justify-content-center">
-            {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="First">
-                        <span aria-hidden="true">&laquo;&laquo;</span>
-                    </a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Previous">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
-                </li>
-            {% endif %}
-
-            {% for num in page_obj.paginator.page_range %}
-                {% if num == page_obj.number %}
-                    <li class="page-item active" aria-current="page">
-                        <span class="page-link">{{ num }}<span class="sr-only">(current)</span></span>
-                    </li>
-                {% else %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
-                    </li>
-                {% endif %}
-            {% endfor %}
-
-            {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Next">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Last">
-                        <span aria-hidden="true">&raquo;&raquo;</span>
-                    </a>
-                </li>
-            {% endif %}
-        </ul>
-    </nav>
-</div>
-
 {% endblock content %}
 
-{% block extra_scripts %}
-<script src='{% static "plugins/data-tables/jquery.datatables.min.js" %}'></script>
-<script src='{% static "plugins/data-tables/datatables.bootstrap4.min.js" %}'></script> 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+{% block extra_styles %}
+<style>
+    body { background-color: #f8f9fa !important; }
+    
+    /* Table Header Visibility */
+    #hoverable-data-table thead th {
+        background-color: #ffffff !important;
+        color: #333333 !important;
+        font-size: 0.7rem;
+        letter-spacing: 0.05rem;
+        border-bottom: 2px solid #f1f1f1 !important;
+        text-transform: uppercase;
+    }
 
+    /* Uniform Stock Badge */
+    .stock-badge-uniform {
+        background-color: #f1f3f9 !important;
+        color: #495057 !important;
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-weight: 700;
+        display: inline-block;
+        border: 1px solid #e5e9f2;
+    }
+
+    /* Status Badges */
+    .badge-success-soft { background: #e6f4ea; color: #1e7e34; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-danger-soft { background: #fce8e6; color: #d93025; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+
+    /* Button Group UI */
+    .btn-white { background: white; border: none; padding: 8px 12px; }
+    .btn-white:hover { background: #f8f9fa; }
+    
+    .pagination-rounded .page-link { border-radius: 50% !important; margin: 0 3px; border: none; background: white; color: #4c84ff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .pagination-rounded .page-item.active .page-link { background: #4c84ff; color: white; }
+
+    /* Base style for all size badges */
+    .size-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        min-width: 60px;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    /* Color Coding for Sizes */
+    .size-small { background-color: #e3f2fd; color: #1976d2; }       /* Blue */
+    .size-medium { background-color: #f3e5f5; color: #7b1fa2; }      /* Purple */
+    .size-large { background-color: #e8f5e9; color: #388e3c; }       /* Green */
+    .size-extra-large { background-color: #fff3e0; color: #f57c00; } /* Orange */
+    .size-double-extra-large { background-color: #ffebee; color: #d32f2f; } /* Red */
+
+    /* Default for any other size */
+    .size-badge:not([class*="size-"]) {
+        background-color: #f8f9fa;
+        color: #6c757d;
+    }
+</style>
+{% endblock extra_styles %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
 <script>
-    // SweetAlert confirmation for deleting inventory
     function confirmDelete(id, itemName) {
         Swal.fire({
-            title: 'Are you sure?',
-            text: "You are about to delete " + itemName + ". This action cannot be undone!",
+            title: 'Delete Item?',
+            text: "Are you sure you want to remove " + itemName + " from inventory?",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!'
+            confirmButtonColor: '#fe5455',
+            cancelButtonColor: '#333',
+            confirmButtonText: 'Yes, delete'
         }).then((result) => {
             if (result.isConfirmed) {
-                // Use template literal to correctly append the item id
                 window.location.href = `/aadmin/inventory/delete/${id}/`;
             }
         });
     }
-    
-    $(document).ready(function() {
-        $('#hoverable-data-table').DataTable({
-            paging: false,  // Disable DataTables paging if using Django pagination
-            searching: false // Disable DataTables searching if using Django search
-        });
-    });
 </script>
-
 {% endblock extra_scripts %}
-
-{% block extra_styles %}
-<link href="{% static 'plugins/data-tables/datatables.bootstrap4.min.css' %}" rel="stylesheet">
-<link href="https://unpkg.com/sleek-dashboard/dist/assets/css/sleek.min.css">
-{% endblock extra_styles %}

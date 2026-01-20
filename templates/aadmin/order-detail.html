@@ -2,103 +2,115 @@
 {% load static %}
 
 {% block content %}
-<div class="container mt-4">
-
-    <!-- Header -->
+<div class="container py-4" style="background-color: #f8f9fa; min-height: 100vh;">
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Order #{{ order.id }}</h2>
+        <div>
+            <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary mb-2">
+                ← Back to List
+            </a>
+            <h2 class="fw-bold text-dark">Order <span class="text-muted">#{{ order.id }}</span></h2>
+        </div>
+        
     </div>
 
-    <!-- Order & Customer Info -->
     <div class="row">
-        <div class="col-md-6">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-dark text-white">
-                    Customer Details
+        <div class="col-md-7">
+            <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="mb-0 fw-bold text-dark">Order Overview</h5>
                 </div>
                 <div class="card-body">
-                    <p><strong>Name:</strong> {{ order.customer }}</p>
-                    <p><strong>Payment Method:</strong> {{ order.payment_method }}</p>
-                    <p><strong>Payment Status:</strong>
-                        {% if order.is_paid %}
-                            <span class="text-success">Paid</span>
-                        {% else %}
-                            <span class="text-danger">Not Paid</span>
-                        {% endif %}
+                    <div class="row g-4">
+                        <div class="col-sm-6">
+                            <label class="small text-uppercase text-muted fw-bold d-block mb-1">Customer Name</label>
+                            <span class="fw-medium text-dark fs-5">{{ order.customer }}</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="small text-uppercase text-muted fw-bold d-block mb-1">Order Date</label>
+                            <span class="text-dark">{{ order.created_at|date:"D, d M Y, H:i" }}</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="small text-uppercase text-muted fw-bold d-block mb-1">Payment Method</label>
+                            <span class="badge bg-light text-dark border px-2 py-1">{{ order.payment_method }}</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="small text-uppercase text-muted fw-bold d-block mb-1">Payment Status</label>
+                            {% if order.is_paid %}
+                                <span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> Paid</span>
+                            {% else %}
+                                <span class="text-danger fw-bold"><i class="bi bi-clock-history me-1"></i> Pending Payment</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm" style="border-radius: 12px; overflow: hidden;">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="mb-0 fw-bold text-dark">Ordered Items</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4 border-0 small text-uppercase fw-bold text-muted">Product</th>
+                                <th class="border-0 small text-uppercase fw-bold text-muted text-center">Size</th>
+                                <th class="border-0 small text-uppercase fw-bold text-muted text-center">Qty</th>
+                                <th class="border-0 small text-uppercase fw-bold text-muted text-end pe-4">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order_items %}
+                            <tr>
+                                <td class="ps-4 py-3">
+                                    <div class="fw-bold text-dark">{{ item.product.name }}</div>
+                                    <span class="badge bg-light text-muted border fw-normal">{{ item.get_status_display }}</span>
+                                </td>
+                                <td class="text-center"><span class="badge bg-secondary rounded-pill px-3">{{ item.size }}</span></td>
+                                <td class="text-center fw-medium">{{ item.quantity }}</td>
+                                <td class="text-end pe-4 fw-bold">₹ {{ item.price }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px; background-color: #212529; color: #fff;">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-geo-alt me-2"></i> Shipping Address</h5>
+                    <p class="mb-0 lh-lg" style="opacity: 0.9; font-size: 1.1rem;">
+                        {{ order.address }}
                     </p>
-                    <p><strong>Order Date:</strong> {{ order.created_at }}</p>
                 </div>
             </div>
-        </div>
 
-        <div class="col-md-6">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-dark text-white">
-                    Shipping Address
-                </div>
-                <div class="card-body">
-                    <p>{{ order.address }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Items -->
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-            Ordered Items
-        </div>
-        <div class="card-body p-0">
-            <table class="table table-striped mb-0">
-                <thead class="thead-light">
-                    <tr>
-                        <th>Product</th>
-                        <th>Size</th>
-                        <th class="text-center">Qty</th>
-                        <th class="text-center">Price</th>
-                        <th class="text-center">Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in order_items %}
-                    <tr>
-                        <td>{{ item.product.name }}</td>
-                        <td>{{ item.size }}</td>
-                        <td class="text-center">{{ item.quantity }}</td>
-                        <td class="text-center">₹ {{ item.price }}</td>
-                        <td class="text-center">
-                            <span class="badge badge-{% if item.status == 'pending' %}warning
-                                {% elif item.status == 'confirmed' %}info
-                                {% elif item.status == 'shipped' %}primary
-                                {% elif item.status == 'delivered' %}success
-                                {% elif item.status == 'cancelled' %}danger
-                                {% else %}secondary{% endif %}">
-                                {{ item.get_status_display }}
-                            </span>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Price Summary -->
-    <div class="row justify-content-end mt-4">
-        <div class="col-md-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <p><strong>Total:</strong> ₹ {{ order.total_amount }}</p>
-                    <p><strong>Discount:</strong> ₹ {{ order.discount|default:"0" }}</p>
-                    <p><strong>Offer:</strong> ₹ {{ order.offer|default:"0" }}</p>
-                    <hr>
-                    <h5 class="text-success">
-                        Grand Total: ₹ {{ order.total_amount }}
-                    </h5>
+            <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4 text-dark">Price Summary</h5>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Order Total</span>
+                        <span class="fw-medium text-dark">₹ {{ order.total_amount }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Discount</span>
+                        <span class="text-danger">- ₹ {{ order.discount|default:"0" }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted">Offer Applied</span>
+                        <span class="text-success">- ₹ {{ order.offer|default:"0" }}</span>
+                    </div>
+                    <hr class="my-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="h5 fw-bold mb-0">Grand Total</span>
+                        <span class="h4 fw-bold text-dark mb-0">₹ {{ order.total_amount }}</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
 </div>
 {% endblock %}

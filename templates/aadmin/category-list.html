@@ -16,11 +16,33 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 25px; /* Increased margin for breathing room */
 }
 
 .category-header h1 {
     font-weight: 600;
+    margin-bottom: 0;
+}
+
+/* Added Styling for Add Button */
+.btn-add-category {
+    background-color: #4c84ff;
+    color: white;
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 8px 16px;
+    transition: all 0.3s ease;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-add-category:hover {
+    background-color: #3367d6;
+    color: white;
+    box-shadow: 0 4px 12px rgba(76, 132, 255, 0.3);
+    transform: translateY(-1px);
 }
 
 .category-img {
@@ -60,37 +82,48 @@
     padding: 40px;
     color: #888;
 }
+
+/* Align form and button */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
 </style>
 
 <div class="category-wrapper">
 
-    <!-- Header -->
     <div class="category-header">
         <h1>Categories</h1>
 
-        <form method="get" class="form-inline">
-            <input type="text"
-                   name="search"
-                   value="{{ search_query }}"
-                   class="form-control form-control-sm mr-2"
-                   placeholder="Search category">
+        <div class="header-actions">
+            <form method="get" class="form-inline">
+                <input type="text"
+                       name="search"
+                       value="{{ search_query }}"
+                       class="form-control form-control-sm mr-2"
+                       placeholder="Search category">
 
-            <select name="filter_option"
-                    class="form-control form-control-sm"
-                    onchange="this.form.submit()">
-                <option value="listed_categories"
-                    {% if filter_option == "listed_categories" %}selected{% endif %}>
-                    Listed Categories
-                </option>
-                <option value="deleted_categories"
-                    {% if filter_option == "deleted_categories" %}selected{% endif %}>
-                    Deleted Categories
-                </option>
-            </select>
-        </form>
+                <select name="filter_option"
+                        class="form-control form-control-sm mr-2"
+                        onchange="this.form.submit()">
+                    <option value="listed_categories"
+                        {% if filter_option == "listed_categories" %}selected{% endif %}>
+                        Listed Categories
+                    </option>
+                    <option value="deleted_categories"
+                        {% if filter_option == "deleted_categories" %}selected{% endif %}>
+                        Deleted Categories
+                    </option>
+                </select>
+            </form>
+
+            <a href="{% url 'add_category' %}" class="btn-add-category">
+                <i class="mdi mdi-plus-circle"></i> Add Category
+            </a>
+        </div>
     </div>
 
-    <!-- Table -->
     <table class="table table-hover">
         <thead class="thead-dark">
             <tr>
@@ -161,7 +194,6 @@
         </tbody>
     </table>
 
-    <!-- Pagination -->
     <nav>
         <ul class="pagination justify-content-center">
             {% if categories.has_previous %}

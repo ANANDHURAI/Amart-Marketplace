@@ -1,192 +1,166 @@
 {% extends "aadmin/admin-base.html" %}
-
 {% load static %}
 
 {% block content %}
-
-<style>
-    /* Center pagination controls */
-.pagination-container {
-    margin: 0 auto;
-    display: flex;
-    justify-content: center;
-}
-
-.pagination .page-item {
-    margin: 0 2px;
-}
-
-.pagination .page-link {
-    border-radius: 0.25rem;
-    color: #007bff;
-    border: 1px solid #dee2e6;
-}
-
-.pagination .page-item.active .page-link {
-    background-color: #007bff;
-    border-color: #007bff;
-    color: #fff;
-}
-
-.pagination .page-link:hover {
-    color: #0056b3;
-    text-decoration: none;
-}
-
-</style>
-<div class="container">
-    <div class="row">
-        <h1 class="col-md-7">Products</h1>
-        <form class="form-inline" method="post">
-            {% csrf_token %}
-            <div class="form-group mr-2">
-                <label for="filter_option" class="mr-2">Filter by:</label>
-                <select class="form-control input-sm" name="filter_option" id="filter_option">
-                    <option {% if request.session.selection == "all" %}selected{% endif %} value="all">All Products</option>
-                    <option {% if request.session.selection == "awaiting_listing" %}selected{% endif %} value="awaiting_listing">Products Awaiting Listing</option>
-                    <option {% if request.session.selection == "listed_products" %}selected{% endif %} value="listed_products">Listed Products</option>
-                </select>
+<div class="content-wrapper bg-light">
+    <div class="content">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h2 class="font-weight-bold text-dark mb-1">Product Management</h2>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb bg-transparent p-0" style="font-size: 0.85rem;">
+                        <li class="breadcrumb-item"><a href="#" class="text-muted">Inventory</a></li>
+                        <li class="breadcrumb-item active text-primary font-weight-bold">Products</li>
+                    </ol>
+                </nav>
             </div>
-            <button type="submit" class="btn btn-sm btn-primary">Apply Filter</button>
-        </form>
-        <form class="form-inline" method="get" action="" style="margin-top: 10px;">
-            <div class="form-group mr-2">
-                <input type="text" class="form-control input-sm" name="search" placeholder="Search..." value="{{ search_query }}">
+
+            <div class="d-flex align-items-center">
+                <div class="bg-white border rounded shadow-sm d-flex p-1 mr-3">
+                    <form class="form-inline border-right pr-2 mr-2" method="post">
+                        {% csrf_token %}
+                        <select class="form-control form-control-sm border-0 bg-transparent" name="filter_option">
+                            <option {% if request.session.selection == "all" %}selected{% endif %} value="all">All Products</option>
+                            <option {% if request.session.selection == "awaiting_listing" %}selected{% endif %} value="awaiting_listing">Awaiting</option>
+                            <option {% if request.session.selection == "listed_products" %}selected{% endif %} value="listed_products">Listed</option>
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-light border-0"><i class="mdi mdi-filter-variant"></i></button>
+                    </form>
+
+                    <form class="form-inline" method="get">
+                        <input type="text" class="form-control form-control-sm border-0 bg-transparent" name="search" placeholder="Search products..." value="{{ search_query }}">
+                        <button type="submit" class="btn btn-sm btn-light border-0"><i class="mdi mdi-magnify"></i></button>
+                    </form>
+                </div>
+
+                <a href="{% url 'add_product' %}" class="btn btn-primary shadow-sm px-4 py-2" style="border-radius: 8px; font-weight: 600;">
+                    <i class="mdi mdi-plus-box mr-1"></i> Add Product
+                </a>
             </div>
-            <button type="submit" class="btn btn-sm btn-secondary">Search</button>
-        </form>
+        </div>
+
+        <div class="card border-0 shadow-sm" style="border-radius: 15px; overflow: hidden;">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="hoverable-data-table">
+                        <thead>
+                            <tr>
+                                <th class="py-4 text-dark font-weight-bold border-0 pl-4">IMAGE</th>
+                                <th class="py-4 text-dark font-weight-bold border-0">PRODUCT NAME</th>
+                                <th class="py-4 text-dark font-weight-bold border-0 text-center">STOCK</th>
+                                <th class="py-4 text-dark font-weight-bold border-0 text-center">AVAILABILITY</th>
+                                <th class="py-4 text-dark font-weight-bold border-0 text-center">STATUS</th>
+                                <th class="py-4 text-dark font-weight-bold border-0 text-center pr-4">ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white">
+                            {% for product in products %}
+                            <tr>
+                                <td class="align-middle pl-4">
+                                    {% if product.primary_image %}
+                                        <img src="{{ product.primary_image.image.url }}" alt="{{ product.name }}" class="product-img-thumb">
+                                    {% else %}
+                                        <div class="product-img-placeholder"><i class="mdi mdi-image-off"></i></div>
+                                    {% endif %}
+                                </td>
+                                <td class="align-middle">
+                                    <span class="text-dark font-weight-bold d-block">{{ product.name }}</span>
+                                    <small class="text-muted">ID: #{{ product.id }}</small>
+                                </td>
+                                <td class="align-middle text-center">
+                                    <span class="stock-badge-uniform">
+                                        {{ product.total_stock }}
+                                    </span>
+                                </td>
+                                <td class="align-middle text-center">
+                                    {% if product.is_available %}
+                                        <span class="badge-success-soft"><i class="mdi mdi-check-circle mr-1"></i>Yes</span>
+                                    {% else %}
+                                        <span class="badge-danger-soft"><i class="mdi mdi-close-circle mr-1"></i>No</span>
+                                    {% endif %}
+                                </td>
+                                <td class="align-middle text-center">
+                                    {% if product.approved %}
+                                        <a href="{% url 'product_approval' product.id %}" class="btn btn-sm btn-soft-danger px-3">Unlist</a>
+                                    {% else %}
+                                        <a href="{% url 'product_approval' product.id %}" class="btn btn-sm btn-soft-primary px-3">List Now</a>
+                                    {% endif %}
+                                </td>
+                                <td class="align-middle text-center pr-4">
+                                    <a href="{% url 'edit_product' product.id %}" class="btn btn-sm btn-white border shadow-sm mr-1" title="Edit">
+                                        <i class="mdi mdi-pencil text-primary"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-white border shadow-sm delete-btn" data-url="#" title="Delete">
+                                        <i class="mdi mdi-delete text-danger"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="pagination-container mt-4">
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-rounded">
+                    {% if products.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}"><i class="mdi mdi-chevron-double-left"></i></a></li>
+                    {% endif %}
+                    <li class="page-item disabled"><span class="page-link">Page {{ products.number }} of {{ products.paginator.num_pages }}</span></li>
+                    {% if products.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ products.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}"><i class="mdi mdi-chevron-right"></i></a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
     </div>
 </div>
-
-<div class="hoverable-data-table">
-    <table id="hoverable-data-table" class="table table-hover nowrap" style="width:100%">
-        <thead class="thead-dark">
-            <tr>
-                <th class="text-center">Image</th>
-                <th>Product Name</th>
-                
-                <th class="text-center">Total Stock</th>
-                <th class="text-center">Is Available</th>
-                <th class="text-center">List</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for product in products %}
-        <tr>
-           
-            <td class="text-center">
-                {% if product.primary_image %}
-                    <img src="{{ product.primary_image.image.url }}"
-                        alt="{{ product.name }}"
-                        style="width:50px;height:50px;object-fit:cover;border-radius:6px;">
-                {% else %}
-                    <span class="text-muted">No Image</span>
-                {% endif %}
-            </td>
-
-            <td>
-                <a href="">{{ product.name }}</a>
-            </td>
-
-            <td class="text-center">{{ product.total_stock }}</td>
-
-            <td class="text-center">
-                {% if product.is_available %}
-                    <span class="mdi mdi-check-circle text-success"></span>
-                {% else %}
-                    <span class="mdi mdi-close-circle text-danger"></span>
-                {% endif %}
-            </td>
-
-            <td class="text-center">
-                {% if product.approved %}
-                    <a href="{% url 'product_approval' product.id %}"
-                    class="btn btn-outline-danger btn-sm">Unlist</a>
-                {% else %}
-                    <a href="{% url 'product_approval' product.id %}"
-                    class="btn btn-outline-primary btn-sm">List</a>
-                {% endif %}
-            </td>
-
-            <td>
-                <a href="{% url 'edit_product' product.id %}">Edit</a>
-            </td>
-        </tr>
-        {% endfor %}
-        </tbody>
-
-    </table>
-
-   
-    <div class="pagination-container text-center mt-4">
-        <nav aria-label="Page navigation">
-            <ul class="pagination">
-                {% if products.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="First">
-                        <span aria-hidden="true">««</span>
-                    </a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ products.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Previous">
-                        <span aria-hidden="true">«</span>
-                    </a>
-                </li>
-                {% endif %}
-
-                <li class="page-item disabled">
-                    <span class="page-link">Page {{ products.number }} of {{ products.paginator.num_pages }}</span>
-                </li>
-
-                {% if products.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ products.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Next">
-                        <span aria-hidden="true">»</span>
-                    </a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ products.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Last">
-                        <span aria-hidden="true">»»</span>
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-    </div>
-</div>
-
 {% endblock content %}
 
-{% block extra_scripts %}
-<script src='{% static "plugins/data-tables/jquery.datatables.min.js" %}'></script>
-<script src='{% static "plugins/data-tables/datatables.bootstrap4.min.js" %}'></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-    document.querySelectorAll('.delete-btn').forEach(function(btn) {
-        btn.addEventListener('click', function(event) {
-            event.preventDefault();
-            const deleteUrl = this.getAttribute('data-url');
-    
-            Swal.fire({
-                title: 'Are you sure?',
-                text: "You won't be able to revert this!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, delete it!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = deleteUrl;
-                }
-            });
-        });
-    });
-</script>
-{% endblock extra_scripts %}
-
 {% block extra_styles %}
-<link href="{% static 'plugins/data-tables/datatables.bootstrap4.min.css' %}" rel="stylesheet">
-<link href="https://unpkg.com/sleek-dashboard/dist/assets/css/sleek.min.css">
+<style>
+    body { background-color: #f8f9fa !important; }
+    
+    /* Table Header Visibility Fix */
+    #hoverable-data-table thead th {
+        background-color: #ffffff !important;
+        color: #333333 !important;
+        font-size: 0.7rem;
+        letter-spacing: 0.05rem;
+        border-bottom: 2px solid #f1f1f1 !important;
+    }
+
+    /* Product UI Elements */
+    .product-img-thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #eee; }
+    .product-img-placeholder { width: 50px; height: 50px; background: #f0f0f0; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #ccc; }
+
+    /* Soft Badges */
+    .badge-success-soft { background: #e6f4ea; color: #1e7e34; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-danger-soft { background: #fce8e6; color: #d93025; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+
+    /* Soft Buttons */
+    .btn-soft-primary { background: rgba(76, 132, 255, 0.1); color: #4c84ff; border: none; font-weight: 600; }
+    .btn-soft-primary:hover { background: #4c84ff; color: white; }
+    .btn-soft-danger { background: rgba(254, 84, 85, 0.1); color: #fe5455; border: none; font-weight: 600; }
+    .btn-soft-danger:hover { background: #fe5455; color: white; }
+
+    /* Row Hover */
+    .table-hover tbody tr:hover { background-color: #fcfdfe !important; transition: 0.2s; }
+    
+    .btn-white { background: white; transition: 0.2s; }
+    .btn-white:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important; }
+    
+    .stock-badge-uniform {
+        background-color: #f1f3f9 !important; /* Consistent light grey/white */
+        color: #495057 !important;            /* Dark text for readability */
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-weight: 600;
+        display: inline-block;
+        min-width: 40px;
+        border: 1px solid #e5e9f2;
+    }
+</style>
 {% endblock extra_styles %}
