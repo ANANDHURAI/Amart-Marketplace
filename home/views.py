@@ -34,14 +34,14 @@ def home(request):
             stock__gt=0
         )
 
-        # Lowest available price
+       
         product.shop_price = (
             product.available_inventories.aggregate(
                 Min("price")
             )["price__min"]
         )
 
-        # Favourite check
+      
         if request.user.is_authenticated:
             product.is_favourite = FavouriteItem.objects.filter(
                 customer__id=request.user.id,

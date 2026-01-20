@@ -122,7 +122,7 @@ def admin_dashboard(request):
             category.total_quantity = category_info["total_quantity"]
             top_categories.append(category)
         except:
-            # Log the error or handle it as needed
+          
             continue
 
     # Line chart for revenue for last year
@@ -309,12 +309,12 @@ def add_category(request):
             messages.error(request, "Category already exists")
             return redirect("add_category")
 
-        # Image validation
+        
         if not cropped_image:
             messages.error(request, "Please upload and crop an image")
             return redirect("add_category")
 
-        # Decode base64 image
+     
         try:
             format, imgstr = cropped_image.split(";base64,")
             ext = format.split("/")[-1]
@@ -355,7 +355,7 @@ def edit_category(request, slug):
         category_image = request.FILES.get("category_image")
         new_slug = slugify(category_name)
 
-        #Check if NO changes were made
+      
         if (
             category.name == category_name and
             category.description == category_description and
@@ -364,12 +364,12 @@ def edit_category(request, slug):
             messages.info(request, "No changes were made")
             return redirect("edit_category", slug=slug)
 
-        #Check duplicate category name (exclude current category)
+       
         if Category.objects.filter(name=category_name).exclude(id=category.id).exists():
             messages.error(request, "Category already exists")
             return redirect("edit_category", slug=slug)
 
-        #Update only if changes exist
+        
         category.name = category_name
         category.description = category_description
         category.slug = new_slug
@@ -790,7 +790,7 @@ def coupon_list(request):
             request.session["selection"] = "expired_coupons"
 
     # Pagination
-    paginator = Paginator(coupons, 2)  # Show 10 coupons per page
+    paginator = Paginator(coupons, 2) 
     page = request.GET.get("page")
 
     try:
@@ -799,7 +799,7 @@ def coupon_list(request):
         # If page is not an integer, deliver first page.
         coupons_page = paginator.page(1)
     except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
+        # If page is out of range deliver last page of results.
         coupons_page = paginator.page(paginator.num_pages)
 
     context = {
@@ -1006,7 +1006,7 @@ def add_offer(request):
             messages.error(request, "An offer already exists for this category")
             return redirect("add_offer")
 
-        # Create new offer
+       
         CategoryOffer.objects.create(
             category=category,
             discount=discount,
@@ -1053,7 +1053,6 @@ def edit_offer(request, id):
             messages.error(request, error_message)
             return redirect("edit_offer", id=offer.id)
 
-        # Updating Offer
         offer.category = category
         offer.discount = discount
         offer.is_active = active
@@ -1125,7 +1124,7 @@ def add_edit_inventory(request, inventory_id=None):
         size = request.POST.get("size")
         stock = request.POST.get("stock")
 
-        # Validate data
+
         if not product_id or not price or not size or not stock:
             messages.error(request, "All fields are required.")
         elif int(price) < 1:
@@ -1157,7 +1156,7 @@ def add_edit_inventory(request, inventory_id=None):
                     inventory.save()
                     messages.success(request, "Inventory item updated successfully.")
                 else:
-                    # Create a new inventory item
+              
                     Inventory.objects.create(
                         product=product, price=price, size=size, stock=stock
                     )

@@ -19,7 +19,6 @@ def customer_signup(request):
         password = request.POST.get("password")
         password2 = request.POST.get("password2")
 
-        # Basic empty validation
         if not all([first_name, last_name, email, password, password2]):
             messages.error(request, "All fields are required")
             return redirect("customer_signup")
@@ -31,7 +30,6 @@ def customer_signup(request):
             messages.error(request, "Enter a valid email address")
             return redirect("customer_signup")
 
-        #  Password match
         
         name_regex = r'^[A-Za-z ]+$'
 
@@ -47,7 +45,7 @@ def customer_signup(request):
             messages.error(request, "Passwords do not match")
             return redirect("customer_signup")
 
-        #  Strong password (min 8 chars, 1 number)
+       
         if not re.match(r"^(?=.*\d).{8,}$", password):
             messages.error(
                 request,
@@ -55,7 +53,6 @@ def customer_signup(request):
             )
             return redirect("customer_signup")
 
-        #  Email existence
         if Account.objects.filter(email=email).exists():
             messages.error(
                 request,
@@ -63,7 +60,7 @@ def customer_signup(request):
             )
             return redirect("customer_signup")
 
-        #  Create customer
+       
         customer = Customer.objects.create_user(
             first_name=first_name,
             last_name=last_name,
@@ -75,7 +72,7 @@ def customer_signup(request):
 
         customer.save()
 
-        #  OTP session setup
+      
         request.session.update({
             "email": email,
             "target_page": "customer_login",
@@ -106,13 +103,12 @@ def customer_login(request):
             messages.error(request, "Account not found. Please check your email.")
             return redirect("customer_login")
 
-        # Blocked / inactive
         if not customer.is_active:
             messages.error(request, "Your account is currently blocked. Please contact support.")
             return redirect("customer_login")
 
 
-        # Admin trying customer login
+       
         if customer.is_superadmin or customer.is_staff:
             messages.error(request, "Admin accounts cannot login here.")
             return redirect("customer_login")
@@ -135,7 +131,6 @@ def customer_logout(request):
     return redirect("home")
 
 
-# Custom admin Login and logout views
 
 
 from django.contrib.auth import authenticate, login
@@ -188,7 +183,7 @@ def admin_logout(request):
     return redirect("admin_login")
 
 
-# Account activation views
+
 def otp_view(request):
     if not request.session.get("email"):
         messages.error(request, "Session expired. Please signup again")
@@ -232,12 +227,11 @@ def customer_activation(request):
             messages.error(request, "Invalid OTP")
             return redirect("customer_activation")
 
-        # Activate account
         account = Account.objects.get(email=email)
         account.is_active = True
         account.save()
 
-        # Clear OTP session
+        
         for key in ["otp_secret_key", "otp_counter", "otp_valid_till"]:
             request.session.pop(key, None)
 

@@ -66,7 +66,7 @@ def razorpay_paymenthandler(request):
             "razorpay_signature": razorpay_signature,
         })
 
-        # WALLET TOP-UP FLOW
+        # WALLET TOP-UP
         if request.session.get("wallet_topup"):
             amount = request.session.get("wallet_amount", 0)
             wallet = Wallet.objects.get(customer=request.user.customer)
@@ -74,7 +74,7 @@ def razorpay_paymenthandler(request):
             wallet.balance += amount
             wallet.save()
 
-            # cleanup
+         
             request.session.pop("wallet_topup", None)
             request.session.pop("wallet_amount", None)
 
@@ -90,7 +90,7 @@ def razorpay_paymenthandler(request):
             order.payment_method = "razorpay"  # Payment method updated from COD to Razorpay
             order.save()
 
-            # Cleanup session
+           
             request.session.pop("pay_now", None)
             request.session.pop("order_id", None)
 

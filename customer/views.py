@@ -21,22 +21,6 @@ from django.conf import settings
 import razorpay 
 
 
-# def@login_required(func):
-#     """
-#     Custom login required decorator to check if the user is authenticated and a customer.
-#     """
-
-#     def wrapper(request, *args, **kwargs):
-#         if not request.user.is_authenticated or not request.user.is_customer:
-#             target_url = request.build_absolute_uri()
-#             request.session["customer_target_url"] = target_url
-#             return redirect("customer_login")
-#         return func(request, *args, **kwargs)
-
-#     return wrapper
-
-
-# Customer Profile Session
 
 
 def dashboard(request):
@@ -86,7 +70,6 @@ def edit_profile(request):
         customer.last_name = request.POST.get("last_name").title()
         customer.mobile = request.POST.get("mobile")
 
-        # Handle profile image if uploaded
         profile_image = request.FILES.get("profile_image")
         if profile_image:
             customer.profile_image = profile_image
@@ -415,7 +398,7 @@ def return_order(request, order_id):
 
 
 
-# Customer Favourite Session
+
 
 
 @login_required
@@ -471,7 +454,6 @@ def remove_favourite_item(request, favourite_item_id):
     return redirect(next_url)
 
 
-# Customer Cart
 
 @login_required
 def cart(request):
@@ -523,13 +505,11 @@ def add_to_cart(request, product_id):
         quantity = int(request.POST.get("product-quantity"))
         size = request.POST.get("product-size")
 
-        # Use filter to handle multiple inventory entries
         inventory_items = Inventory.objects.filter(product=product, size=size)
         if not inventory_items.exists():
             messages.error(request, "Selected size is not available for this product.")
             return redirect("product_page", slug=product.slug)
 
-        # Assuming you want to use the first inventory item
         inventory = inventory_items.first()
 
         if quantity > inventory.stock:
@@ -544,7 +524,7 @@ def add_to_cart(request, product_id):
                 cart=cart, product=product, inventory=inventory
             )
 
-            # Removing from the Favourites
+            
             FavouriteItem.objects.filter(customer=customer, product=product).delete()
 
             # Managing the maximum number of products per customer
@@ -827,7 +807,7 @@ def order_confirmation(request, order_id):
         messages.error(request, "Customer not found.")
         return redirect("home")
 
-    # Retrieve the order for this customer
+    
     order = Order.objects.filter(id=order_id, customer=customer).first()
     if not order:
         messages.error(request, "Order not found.")
