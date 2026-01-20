@@ -12,6 +12,9 @@ from django.db.models.functions import Coalesce
 from django.db import transaction
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
+import base64
+from uuid import uuid4
+
 
 
 def admin_login_required(func):
@@ -24,6 +27,58 @@ def admin_login_required(func):
         return func(request, *args, **kwargs)
 
     return wrapper
+
+
+
+
+
+@admin_login_required
+def admin_profile(request):
+    title = "Admin Profile"
+    current_page = "admin_profile"
+
+    admin = request.user
+
+    context = {
+        "title": title,
+        "current_page": current_page,
+        "admin": admin,
+    }
+    return render(request, "aadmin/admin-profile.html", context)
+
+
+
+
+
+@admin_login_required
+def edit_admin_profile(request):
+    title = "Edit Admin Profile"
+    current_page = "admin_profile"
+
+    admin = request.user
+
+    if request.method == "POST":
+        admin.first_name = request.POST.get("first_name")
+        admin.last_name = request.POST.get("last_name")
+        admin.mobile = request.POST.get("mobile")
+
+        if request.FILES.get("profile_image"):
+            admin.profile_image = request.FILES.get("profile_image")
+
+        admin.save()
+        messages.success(request, "Profile updated successfully")
+        return redirect("admin_profile")
+
+    context = {
+        "title": title,
+        "current_page": current_page,
+        "admin": admin,
+    }
+    return render(request, "aadmin/edit-admin-profile.html", context)
+
+
+
+
 
 
 @admin_login_required
@@ -67,7 +122,7 @@ def admin_dashboard(request):
             category.total_quantity = category_info["total_quantity"]
             top_categories.append(category)
         except:
-            # Log the error or handle it as needed
+          
             continue
 
     # Line chart for revenue for last year
@@ -193,28 +248,22 @@ def category_list(request):
     current_page = "category_list"
 
     search_query = request.GET.get("search", "")
+    filter_option = request.GET.get("filter_option", "listed_categories")
 
-    if search_query:
-        categories = Category.objects.filter(Q(name__icontains=search_query)).order_by(
-            "name"
-        )
+    if filter_option == "deleted_categories":
+        categories = Category.all_objects.filter(is_deleted=True).order_by("name")
+        request.session["selection"] = "deleted_categories"
     else:
         categories = Category.objects.all().order_by("name")
+        request.session["selection"] = "listed_categories"
 
-    request.session["selection"] = "listed_categories"
+    if search_query:
+        categories = categories.filter(name__icontains=search_query)
 
     for category in categories:
-        category.count = category.main_category_products.count()
-
-    if request.method == "POST":
-        filter_option = request.POST.get("filter_option")
-        if filter_option == "deleted_categories":
-            categories = Category.all_objects.filter(is_deleted=True)
-            request.session["selection"] = "deleted_categories"
-            for category in categories:
-                category.count = Product.all_objects.filter(
-                    main_category=category
-                ).count()
+        category.count = Product.all_objects.filter(
+            main_category=category
+        ).count()
 
     paginator = Paginator(categories, 5)
     page_number = request.GET.get("page")
@@ -225,9 +274,15 @@ def category_list(request):
         "title": title,
         "current_page": current_page,
         "search_query": search_query,
+        "filter_option": filter_option,
     }
     return render(request, "aadmin/category-list.html", context)
 
+
+
+
+import base64
+from django.core.files.base import ContentFile
 
 @admin_login_required
 def add_category(request):
@@ -235,32 +290,56 @@ def add_category(request):
     current_page = "add_category"
 
     if request.method == "POST":
-        category_name = request.POST.get("category_name").title()
-        category_description = request.POST.get("category_description")
-        category_image = request.FILES.get("category_image")
-        slug = slugify(category_name)
+        category_name = request.POST.get("category_name", "").strip()
+        category_description = request.POST.get("category_description", "").strip()
+        cropped_image = request.POST.get("cropped_image")
 
-        if "image" not in category_image.content_type:
-            error_message = "Please select an image file"
-            messages.error(request, error_message)
+
+        if not category_name or len(category_name) < 3:
+            messages.error(request, "Category name must be at least 3 characters")
             return redirect("add_category")
 
-        if Category.objects.filter(name=category_name).exists():
-            error_message = "Category already exists"
-            messages.error(request, error_message)
+        if not category_name.replace(" ", "").isalpha():
+            messages.error(request, "Category name must contain only letters")
             return redirect("add_category")
 
-        # Creating a new category
-        new_category = Category.objects.create(
-            name=category_name,
+        if Category.objects.filter(name__iexact=category_name).exclude(
+                id=getattr(request, "category_id", None)
+            ).exists():
+            messages.error(request, "Category already exists")
+            return redirect("add_category")
+
+        
+        if not cropped_image:
+            messages.error(request, "Please upload and crop an image")
+            return redirect("add_category")
+
+     
+        try:
+            format, imgstr = cropped_image.split(";base64,")
+            ext = format.split("/")[-1]
+            image_file = ContentFile(
+                base64.b64decode(imgstr),
+                name=f"{slugify(category_name)}.{ext}"
+            )
+        except Exception:
+            messages.error(request, "Invalid image data")
+            return redirect("add_category")
+
+        Category.objects.create(
+            name=category_name.title(),
             description=category_description,
-            image=category_image,
-            slug=slug,
+            image=image_file,
+            slug=slugify(category_name),
         )
+
+        messages.success(request, "Category added successfully")
         return redirect("category_list")
 
     context = {"title": title, "current_page": current_page}
     return render(request, "aadmin/category-form.html", context)
+
+
 
 
 
@@ -276,7 +355,7 @@ def edit_category(request, slug):
         category_image = request.FILES.get("category_image")
         new_slug = slugify(category_name)
 
-        #Check if NO changes were made
+      
         if (
             category.name == category_name and
             category.description == category_description and
@@ -285,12 +364,12 @@ def edit_category(request, slug):
             messages.info(request, "No changes were made")
             return redirect("edit_category", slug=slug)
 
-        #Check duplicate category name (exclude current category)
+       
         if Category.objects.filter(name=category_name).exclude(id=category.id).exists():
             messages.error(request, "Category already exists")
             return redirect("edit_category", slug=slug)
 
-        #Update only if changes exist
+        
         category.name = category_name
         category.description = category_description
         category.slug = new_slug
@@ -312,57 +391,58 @@ def edit_category(request, slug):
 
 
 
-
-
-
-
 @admin_login_required
 def delete_category(request, slug):
     category = get_object_or_404(Category, slug=slug)
-
-    # Soft deleting products related to the category
-    for product in category.main_category_products.all():
-        product.delete()
-    category.delete()
-
+    category.delete()  
     return redirect("category_list")
+
 
 
 @admin_login_required
 def restore_category(request, slug):
     category = Category.all_objects.get(slug=slug)
-    products = Product.all_objects.filter(main_category=category)
-
-    for product in products:
-        product.restore()
 
     category.restore()
 
+    Product.all_objects.filter(main_category=category).update(
+        is_deleted=False,
+        deleted_at=None
+    )
+
     return redirect("category_list")
+
+
 
 
 @admin_login_required
 def product_list(request):
     title = "Products"
     current_page = "product_list"
-    products = Product.objects.all().order_by('-created_at')
+
+    products = (
+        Product.objects
+        .all()
+        .prefetch_related("product_images")
+        .order_by("-created_at")
+    )
+
     request.session["selection"] = "all"
 
-    # Handle filtering
     if request.method == "POST":
         filter_option = request.POST.get("filter_option")
         if filter_option == "awaiting_listing":
-            products = Product.objects.filter(approved=False)
+            products = products.filter(approved=False)
             request.session["selection"] = "awaiting_listing"
         elif filter_option == "listed_products":
-            products = Product.objects.filter(approved=True)
+            products = products.filter(approved=True)
             request.session["selection"] = "listed_products"
 
-    # Handle search
     search_query = request.GET.get("search", "")
     if search_query:
         products = products.filter(
-            Q(name__icontains=search_query) | Q(mrp__icontains=search_query)
+            Q(name__icontains=search_query) |
+            Q(mrp__icontains=search_query)
         )
 
     paginator = Paginator(products, 5)
@@ -371,8 +451,13 @@ def product_list(request):
 
     for product in page_obj:
         inventory = Inventory.objects.filter(product=product)
-        total_stock = sum(inv.stock for inv in inventory)
-        product.total_stock = total_stock
+        product.total_stock = sum(inv.stock for inv in inventory)
+
+        product.primary_image = (
+            product.product_images
+            .order_by("priority")
+            .first()
+        )
 
     context = {
         "products": page_obj,
@@ -380,117 +465,103 @@ def product_list(request):
         "title": title,
         "search_query": search_query,
     }
-    return render(request, "aadmin/product-list.html", context=context)
+    return render(request, "aadmin/product-list.html", context)
+
+
+
+
 
 
 @admin_login_required
-def add_product(request):
+def product_form(request, product_id=None):
+    product = None
+    is_edit = False
+
+    if product_id:
+        product = get_object_or_404(Product, id=product_id)
+        is_edit = True
+
     if request.method == "POST":
-        name = request.POST.get("name")
-        description = request.POST.get("description")
-        main_category_id = request.POST.get("category")
-        images = request.FILES.getlist("images")
-        is_available = request.POST.get("is_available")
-        approved = request.POST.get("approved")
-        print("aveolsnnj:", is_available)
-        print("apporverd:", approved)
+        name = request.POST.get("name", "").strip()
+        description = request.POST.get("description", "").strip()
+        category_id = request.POST.get("category")
+
+        cropped_images = [
+            request.POST.get("cropped_image_1"),
+            request.POST.get("cropped_image_2"),
+            request.POST.get("cropped_image_3"),
+        ]
+
+      
+        if not name or len(name) < 3:
+            messages.error(request, "Product name must be at least 3 characters")
+            return redirect(
+                "edit_product", product_id=product.id
+            ) if is_edit else redirect("add_product")
+
+        if not category_id or not Category.objects.filter(id=category_id).exists():
+            messages.error(request, "Please select a valid category")
+            return redirect(
+                "edit_product", product_id=product.id
+            ) if is_edit else redirect("add_product")
+
+        if not is_edit and any(not img for img in cropped_images):
+            messages.error(request, "Please upload and crop all 3 product images")
+            return redirect("add_product")
 
        
-        if not name or not main_category_id:
-            messages.error(request, "Name, Main Category is mandatory.")
-            return redirect("add_product")
+        if not is_edit:
+            product = Product.objects.create(
+                name=name,
+                description=description,
+                main_category_id=category_id,
+                slug=slugify(name),
+                is_available=request.POST.get("is_available") == "on",
+                approved=request.POST.get("approved") == "on",
+            )
+        else:
+            product.name = name
+            product.description = description
+            product.main_category_id = category_id
+            product.slug = slugify(name)
+            product.is_available = request.POST.get("is_available") == "on"
+            product.approved = request.POST.get("approved") == "on"
+            product.save()
+
         
-        if description and not description.strip():
-            messages.error(request, "Description cannot contain only spaces.")
-            return redirect("add_product")
+        for img_data in cropped_images:
+            if not img_data:
+                continue
 
-        if not name.strip():
-            messages.error(request, "Product name cannot contain only spaces.")
-            return redirect("add_product")
-    
-        allowed_image_types = ["image/jpeg", "image/png", "image/gif"]
-        for image in images:
-            if image.content_type not in allowed_image_types:
-                messages.error(
-                    request, "Only JPEG, PNG, and GIF formats are supported."
-                )
-                return redirect("add_product")
+            fmt, imgstr = img_data.split(";base64,")
+            ext = fmt.split("/")[-1]
 
-       
-        main_category = Category.objects.get(id=main_category_id)
-        slug = slugify(name)
+            image_file = ContentFile(
+                base64.b64decode(imgstr),
+                name=f"{product.slug}-{uuid4()}.{ext}"
+            )
 
-        product = Product.objects.create(
-            name=name,
-            description=description,
-            main_category=main_category,
-            slug=slug,
-            is_available=is_available == "on",
-            approved=approved == "on",
+            ProductImage.objects.create(product=product, image=image_file)
+
+        messages.success(
+            request,
+            "Product updated successfully" if is_edit else "Product added successfully"
         )
-
-        
-        for i, image in enumerate(images):
-            ProductImage.objects.create(product=product, image=image, priority=i + 1)
-
-        messages.success(request, "Product added successfully.")
         return redirect("product_list")
 
+    
     categories = Category.objects.all()
-    context = {"categories": categories}
-    return render(request, "aadmin/product-form.html", context)
+    existing_images = product.product_images.all() if product else []
+
+    return render(request, "aadmin/product-form.html", {
+        "product": product,
+        "categories": categories,
+        "is_edit": is_edit,
+        "existing_images": existing_images,
+    })
 
 
-@admin_login_required
-def edit_product(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
 
-    if request.method == "POST":
-        name = request.POST.get("name")
-        description = request.POST.get("description")
-        main_category_id = request.POST.get("category")
-        is_available = request.POST.get("is_available")
-        approved = request.POST.get("approved")
-
-        # Validate mandatory fields
-        if not name or not main_category_id:
-            messages.error(request, "Name and Main Category are mandatory.")
-            return redirect("edit_product", product_id=product.id)
-
-        
-        allowed_image_types = ["image/jpeg", "image/png", "image/gif"]
-        images = request.FILES.getlist("images")
-        for image in images:
-            if image.content_type not in allowed_image_types:
-                messages.error(
-                    request,
-                    "Only JPEG, PNG, and GIF formats are supported for new images.",
-                )
-                return redirect("edit_product", product_id=product.id)
-
-        # Update product details
-        product.name = name
-        product.description = description
-        product.main_category = Category.objects.get(id=main_category_id)
-        product.slug = slugify(name)
-        product.is_available = is_available == "on"
-        product.approved = approved == "on"
-        product.save()
-
-        
-        for i, image in enumerate(images):
-            ProductImage.objects.create(product=product, image=image, priority=i + 1)
-
-        messages.success(request, "Product edited successfully.")
-        return redirect("product_list")
-
-    elif request.method == "GET":
-        categories = Category.objects.all()
-        context = {
-            "product": product,
-            "categories": categories,
-        }
-        return render(request, "aadmin/product-edit-form.html", context)
 
 
 def remove_product_image(request, image_id):
@@ -516,43 +587,8 @@ def product_approval(request, pk):
     return redirect("product_list")
 
 
-@admin_login_required
-def add_account(request):
-    title = "Add account"
-    current_page = "add_account"
-    context = {"title": title, "current_page": current_page}
 
-    if request.method == "POST":
-        first_name = request.POST.get("first_name").title()
-        last_name = request.POST.get("last_name").title()
-        email = request.POST.get("email").lower()
-        password = request.POST.get("password")
-        account_type = request.POST.get("account_type")
 
-        if Account.objects.filter(email=email).exists():
-            error_message = (
-                "Email already registered. Please log in or use a different email."
-            )
-            messages.error(request, error_message)
-
-        elif account_type == "customer":
-            try:
-                # Creating customer
-                customer = Customer.objects.create_user(
-                    first_name=first_name,
-                    last_name=last_name,
-                    email=email,
-                    password=password,
-                )
-                customer.is_customer = True
-                customer.is_active = True
-                customer.approved = True
-                customer.save()
-            except Exception as e:
-                error_message = "Something went wrong, please try again"
-                messages.error(request, error_message)
-
-    return render(request, "aadmin/add-account.html", context)
 
 
 @admin_login_required
@@ -595,6 +631,40 @@ def order_list(request):
     return render(request, "aadmin/order-list.html", context=context)
 
 
+
+
+
+
+@admin_login_required
+def admin_order_detail(request, order_id):
+    title = "Order Details"
+    current_page = "order_list"
+
+    order = get_object_or_404(
+        Order.objects.select_related("customer", "coupon"),
+        id=order_id
+    )
+
+    order_items = (
+        OrderItem.objects
+        .filter(order=order)
+        .select_related("product", "inventory")
+    )
+
+    context = {
+        "order": order,
+        "order_items": order_items,
+        "title": title,
+        "current_page": current_page,
+    }
+    return render(request, "aadmin/order-detail.html", context)
+
+
+
+
+
+
+
 @admin_login_required
 def update_order_status(request, order_item_id):
     if request.method == "POST":
@@ -606,6 +676,8 @@ def update_order_status(request, order_item_id):
             request, f"Status for order item {order_item_id} updated to {new_status}"
         )
     return redirect("order_list")
+
+
 
 
 @admin_login_required
@@ -696,6 +768,8 @@ def sales_report(request):
     return render(request, "aadmin/sales-report.html", context=context)
 
 
+
+
 @admin_login_required
 def coupon_list(request):
     title = "Coupons"
@@ -716,7 +790,7 @@ def coupon_list(request):
             request.session["selection"] = "expired_coupons"
 
     # Pagination
-    paginator = Paginator(coupons, 2)  # Show 10 coupons per page
+    paginator = Paginator(coupons, 2) 
     page = request.GET.get("page")
 
     try:
@@ -725,7 +799,7 @@ def coupon_list(request):
         # If page is not an integer, deliver first page.
         coupons_page = paginator.page(1)
     except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
+        # If page is out of range deliver last page of results.
         coupons_page = paginator.page(paginator.num_pages)
 
     context = {
@@ -737,82 +811,125 @@ def coupon_list(request):
     return render(request, "aadmin/coupon-list.html", context)
 
 
+
+def validate_coupon_fields(code, discount, quantity, minimum_purchase):
+    errors = []
+
+    if not code:
+        errors.append("Coupon code is required.")
+    elif len(code) < 4:
+        errors.append("Coupon code must be at least 4 characters.")
+
+    try:
+        discount = int(discount)
+        if discount <= 0:
+            errors.append("Discount must be greater than zero.")
+    except:
+        errors.append("Enter a valid discount amount.")
+
+    try:
+        quantity = int(quantity)
+        if quantity < 1:
+            errors.append("Quantity must be at least 1.")
+    except:
+        errors.append("Enter a valid quantity.")
+
+    try:
+        minimum_purchase = int(minimum_purchase)
+        if minimum_purchase <= 0:
+            errors.append("Minimum purchase must be greater than zero.")
+    except:
+        errors.append("Enter a valid minimum purchase amount.")
+
+    if isinstance(discount, int) and isinstance(minimum_purchase, int):
+        if discount >= minimum_purchase:
+            errors.append(
+                "Discount amount must be less than minimum purchase amount."
+            )
+
+    return errors
+
+
+
 @admin_login_required
 def add_coupon(request):
     title = "New Coupon"
     current_page = "add_coupon"
 
     if request.method == "POST":
-        coupon_code = request.POST.get("code").upper()
+        code = request.POST.get("code", "").upper().strip()
         discount = request.POST.get("discount")
         quantity = request.POST.get("quantity")
         minimum_purchase = request.POST.get("minimum_purchase")
-        active = request.POST.get("active")
+        active = request.POST.get("active") == "1"
 
-        if minimum_purchase < discount:
-            error_message = (
-                "The discount should be less than the minimum purchase limit"
-            )
-            messages.error(request, error_message)
+        errors = validate_coupon_fields(
+            code, discount, quantity, minimum_purchase
+        )
+
+        if Coupon.objects.filter(code=code).exists():
+            errors.append("This coupon code already exists.")
+
+        if errors:
+            for error in errors:
+                messages.error(request, error)
             return redirect("add_coupon")
 
-        if Coupon.objects.filter(code=coupon_code).exists():
-            error_message = "Coupon already exists"
-            messages.error(request, error_message)
-            return redirect("add_coupon")
-
-        # Creating a new coupon
-        new_coupon = Coupon.objects.create(
-            code=coupon_code,
-            discount=discount,
-            quantity=quantity,
-            minimum_purchase=minimum_purchase,
+        Coupon.objects.create(
+            code=code,
+            discount=int(discount),
+            quantity=int(quantity),
+            minimum_purchase=int(minimum_purchase),
             is_active=active,
         )
 
+        messages.success(request, "Coupon added successfully.")
         return redirect("coupon_list")
 
-    context = {"title": title, "current_page": current_page}
-    return render(request, "aadmin/coupon-form.html", context)
+    return render(request, "aadmin/coupon-form.html", {
+        "title": title,
+        "current_page": current_page
+    })
+
+
 
 
 @admin_login_required
 def edit_coupon(request, id):
-    title = "Edit Coupon"
-    current_page = "edit_coupon"
     coupon = Coupon.objects.get(id=id)
 
     if request.method == "POST":
-        coupon_code = request.POST.get("code").upper()
+        code = request.POST.get("code", "").upper().strip()
         discount = request.POST.get("discount")
         quantity = request.POST.get("quantity")
         minimum_purchase = request.POST.get("minimum_purchase")
-        active = request.POST.get("active")
+        active = request.POST.get("active") == "1"
 
-        if minimum_purchase < discount:
-            error_message = (
-                "The discount should be less than the minimum purchase limit"
-            )
-            messages.error(request, error_message)
+        errors = validate_coupon_fields(
+            code, discount, quantity, minimum_purchase
+        )
+
+        if Coupon.objects.filter(code=code).exclude(id=coupon.id).exists():
+            errors.append("This coupon code already exists.")
+
+        if errors:
+            for error in errors:
+                messages.error(request, error)
             return redirect("edit_coupon", id=coupon.id)
 
-        if Coupon.objects.filter(code=coupon_code).exclude(id=coupon.id).exists():
-            error_message = "Coupon already exists"
-            messages.error(request, error_message)
-            return redirect("edit_coupon", id=coupon.id)
-
-        # Updating Coupon
-        coupon.code = coupon_code
-        coupon.discount = discount
-        coupon.quantity = quantity
-        coupon.minimum_purchase = minimum_purchase
+        coupon.code = code
+        coupon.discount = int(discount)
+        coupon.quantity = int(quantity)
+        coupon.minimum_purchase = int(minimum_purchase)
         coupon.is_active = active
         coupon.save()
 
+        messages.success(request, "Coupon updated successfully.")
         return redirect("coupon_list")
 
-    context = {"title": title, "current_page": current_page, "coupon": coupon}
-    return render(request, "aadmin/coupon-form.html", context)
+    return render(request, "aadmin/coupon-form.html", {
+        "coupon": coupon
+    })
 
 
 @admin_login_required
@@ -866,31 +983,47 @@ def add_offer(request):
 
     if request.method == "POST":
         category_id = request.POST.get("category_id")
-        discount = int(request.POST.get("discount"))
+        discount_str = request.POST.get("discount")
         active = request.POST.get("active")
+
+        if not category_id:
+            messages.error(request, "Please select a category")
+            return redirect("add_offer")
+
+        try:
+            discount = int(discount_str)
+        except (ValueError, TypeError):
+            messages.error(request, "Discount must be a number")
+            return redirect("add_offer")
+
+        if discount < 1 or discount > 50:
+            messages.error(request, "Discount must be between 1% and 50%")
+            return redirect("add_offer")
+
         category = Category.objects.get(id=category_id)
 
-        if discount > 100 or discount < 1:
-            error_message = "Invalid Discount Percentage"
-            messages.error(request, error_message)
-            return redirect("add_offer")
-
         if CategoryOffer.objects.filter(category=category).exists():
-            error_message = "An offer already exists for this category"
-            messages.error(request, error_message)
+            messages.error(request, "An offer already exists for this category")
             return redirect("add_offer")
 
-        # Creating a new offer
-        new_offer = CategoryOffer.objects.create(
+       
+        CategoryOffer.objects.create(
             category=category,
             discount=discount,
             is_active=active,
         )
 
+        messages.success(request, "Offer added successfully!")
         return redirect("offer_list")
 
-    context = {"title": title, "current_page": current_page, "categories": categories}
+    context = {
+        "title": title,
+        "current_page": current_page,
+        "categories": categories,
+    }
     return render(request, "aadmin/offer-form.html", context)
+
+
 
 
 @admin_login_required
@@ -920,7 +1053,6 @@ def edit_offer(request, id):
             messages.error(request, error_message)
             return redirect("edit_offer", id=offer.id)
 
-        # Updating Offer
         offer.category = category
         offer.discount = discount
         offer.is_active = active
@@ -937,25 +1069,36 @@ def edit_offer(request, id):
     return render(request, "aadmin/offer-form.html", context)
 
 
+
+
+
 @admin_login_required
 def delete_offer(request, id):
-    offer = CategoryOffer.objects.get(id=id)
-    offer.delete()
-    return HttpResponse("Delete Offer")
+    try:
+        offer = CategoryOffer.objects.get(id=id)
+        offer.delete()
+        messages.success(request, "Offer deleted successfully!")
+    except CategoryOffer.DoesNotExist:
+        messages.error(request, "Offer not found.")
+    
+    return redirect('offer_list')
+
+
+
 
 
 @admin_login_required
 def inventory_list(request):
-    # Search functionality
+   
     search_query = request.GET.get("search", "")
 
-    # Filter based on search query
+    
     inventory = Inventory.objects.select_related("product").filter(
         Q(product__name__icontains=search_query) | Q(size__icontains=search_query)
     ).order_by('-id')
 
-    # Pagination
-    paginator = Paginator(inventory, 5)  # Show 10 items per page
+
+    paginator = Paginator(inventory, 5)  
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
@@ -974,14 +1117,14 @@ def add_edit_inventory(request, inventory_id=None):
     else:
         inventory = None
 
-    # Handle form submission
+    
     if request.method == "POST":
         product_id = request.POST.get("product_id")
         price = request.POST.get("price")
         size = request.POST.get("size")
         stock = request.POST.get("stock")
 
-        # Validate data
+
         if not product_id or not price or not size or not stock:
             messages.error(request, "All fields are required.")
         elif int(price) < 1:
@@ -991,7 +1134,6 @@ def add_edit_inventory(request, inventory_id=None):
         else:
             product = get_object_or_404(Product, pk=product_id)
 
-            # Check if an inventory with the same product and size already exists (for adding or editing)
             existing_inventory = (
                 Inventory.objects.filter(product=product, size=size)
                 .exclude(pk=inventory_id)
@@ -999,14 +1141,14 @@ def add_edit_inventory(request, inventory_id=None):
             )
 
             if existing_inventory:
-                # Error if a duplicate product-size combination exists
+               
                 messages.error(
                     request,
                     f"An inventory item with size '{size}' already exists for the selected product.",
                 )
             else:
                 if inventory:
-                    # Update existing inventory item
+                   
                     inventory.product = product
                     inventory.price = price
                     inventory.size = size
@@ -1014,7 +1156,7 @@ def add_edit_inventory(request, inventory_id=None):
                     inventory.save()
                     messages.success(request, "Inventory item updated successfully.")
                 else:
-                    # Create a new inventory item
+              
                     Inventory.objects.create(
                         product=product, price=price, size=size, stock=stock
                     )
@@ -1024,9 +1166,9 @@ def add_edit_inventory(request, inventory_id=None):
 
                 return redirect(
                     "inventory_list"
-                )  # Ensure a redirect or HttpResponse is returned
+                ) 
 
-    # Handle GET request or if form submission fails
+
     products = Product.objects.all()
     sizes = Inventory.SIZE_CHOICES
 

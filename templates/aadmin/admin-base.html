@@ -43,26 +43,86 @@
     <script src="{% static "aadmin/plugins/nprogress/nprogress.js" %}"></script>
 
     <style>
-  
-      /* width */
-      ::-webkit-scrollbar {
-        width: 0.75rem;
-      }
-      
-      /* Track */
-      ::-webkit-scrollbar-track {
-        box-shadow: inset 0 0 5px white;
-        border-radius: 0.5rem;
-      }
-      
-      /* Handle */
-      ::-webkit-scrollbar-thumb {
-        height: 50px;
-        background: #888888;
-        border-radius: 0.5rem;
-      }
+        /* Premium Navbar Styling */
+        .main-header .navbar {
+            background: #ffffff !important;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05) !important;
+            border-bottom: 1px solid #eee !important;
+            height: 70px !important;
+        }
 
-      </style>
+        #sidebar-toggler {
+            color: #555;
+            font-size: 24px;
+            transition: all 0.3s;
+        }
+
+        #sidebar-toggler:hover {
+            color: #4c84ff;
+            transform: scale(1.1);
+        }
+
+        .user-menu .nav-link {
+            padding: 0 15px !important;
+            border-radius: 50px;
+            transition: background 0.3s;
+        }
+
+        .user-menu .nav-link:hover {
+            background: #f8f9fa;
+        }
+
+        .navbar-avatar {
+            width: 40px !important;
+            height: 40px !important;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-name-text {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-left: 8px;
+        }
+
+        /* Dropdown Styling */
+        .dropdown-menu-right {
+            border: none !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+            border-radius: 12px !important;
+            padding: 10px !important;
+            margin-top: 15px !important;
+        }
+
+        .dropdown-header {
+            padding: 20px !important;
+            background: #fcfcfc;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .dropdown-item-custom {
+            padding: 10px 15px !important;
+            border-radius: 8px !important;
+            color: #4a5568 !important;
+            display: flex;
+            align-items: center;
+            transition: 0.2s;
+        }
+
+        .dropdown-item-custom:hover {
+            background: #f0f4ff !important;
+            color: #4c84ff !important;
+        }
+
+        .dropdown-item-custom i {
+            font-size: 1.2rem;
+            margin-right: 12px;
+        }
+    </style>
     
       {% block extra_styles %}{% endblock extra_styles %}
 
@@ -76,21 +136,10 @@
       NProgress.start();
     </script>
     
-    
-    <!-- ====================================
-    ——— WRAPPER
-    ===================================== -->
+
     {% if user.is_authenticated and user.is_superadmin %}
 
-    <div class="wrapper">
-    
-    
-    
-    
-    
-        <!-- ====================================
-          ——— LEFT SIDEBAR WITH OUT FOOTER
-        ===================================== -->        
+    <div class="wrapper"> 
         <aside class="left-sidebar bg-sidebar">
           <div id="sidebar" class="sidebar">
             <!-- Aplication Brand -->
@@ -101,9 +150,8 @@
               </a>
             </div>
     
-            <!-- begin sidebar scrollbar -->
+           
             <div class="sidebar-inside" data-simplebar >
-              <!-- sidebar menu -->
               <ul class="nav sidebar-inner" id="sidebar-menu">
                 <li class="{% if current_page == "admin_dashboard" %}active{% endif %}">
                   <a href="{% url 'admin_dashboard' %}">
@@ -112,98 +160,33 @@
                   </a>
                 </li>
 
-                <li class="has-sub {% if current_page == 'customer_list' or current_page == 'vendor_list' %}active expand{% endif %}">
-                  <a class="sidenav-item-link" href="javascript:void(0)" data-toggle="collapse" data-target="#users"
-                    aria-expanded="false" aria-controls="users">
+                <li class="{% if current_page == 'customer_list' %}active{% endif %}">
+                  <a class="sidenav-item-link" href="{% url 'customer_list' %}">
                     <i class="mdi mdi-account-group-outline"></i>
-                    <span class="nav-text">Users</span> <b class="caret"></b>
+                    <span class="nav-text">Customers</span>
                   </a>
-    
-                  <ul class="collapse {% if current_page == 'customer_list' or current_page == 'vendor_list' %}show{% endif %}" id="users" data-parent="#sidebar-menu">
-                    <div class="sub-menu">
-                      <li class="{% if current_page == 'customer_list' %}active{% endif %}">
-                        <a class="sidenav-item-link" href="{% url "customer_list" %}">
-                          <span class="nav-text">Customers</span>
-                        </a>
-                      </li>
-    
-                      
-                    </div>
-                  </ul>
                 </li>
 
-                <li class="has-sub {% if current_page == 'category_list' or current_page == 'add_category' %}active expand{% endif %}">
-                  <a class="sidenav-item-link" href="javascript:void(0)" data-toggle="collapse" data-target="#categories"
-                    aria-expanded="false" aria-controls="categories">
+                <li class="{% if current_page == 'category_list' %}active{% endif %}">
+                  <a class="sidenav-item-link" href="{% url 'category_list' %}">
                     <i class="mdi mdi-shape-outline"></i>
-                    <span class="nav-text">Categories</span> <b class="caret"></b>
+                    <span class="nav-text">Categories</span>
                   </a>
-    
-                  <ul class="collapse {% if current_page == 'category_list' or current_page == 'add_category' %}show{% endif %}" id="categories" data-parent="#sidebar-menu">
-                    <div class="sub-menu">
-                      <li class="{% if current_page == 'category_list' %}active{% endif %}">
-                        <a class="sidenav-item-link" href="{% url "category_list" %}">
-                          <span class="nav-text">Categories</span>
-                        </a>
-                      </li>
-    
-                      <li class="{% if current_page == 'add_category' %}active{% endif %}">
-                        <a class="sidenav-item-link" href="{% url "add_category" %}">
-                          <span class="nav-text">Add Category</span>
-                        </a>
-                      </li>
-                    </div>
-                  </ul>
                 </li>
 
 
-                <li class="has-sub {% if current_page == 'coupon_list' or current_page == 'add_coupon' %}active expand{% endif %}">
-                  <a class="sidenav-item-link" href="javascript:void(0)" data-toggle="collapse" data-target="#coupons"
-                    aria-expanded="false" aria-controls="coupons">
+                <li class="{% if current_page == 'coupon_list' %}active{% endif %}">
+                  <a class="sidenav-item-link" href="{% url 'coupon_list' %}">
                     <i class="mdi mdi-ticket-percent"></i>
-                    <span class="nav-text">Coupons</span> <b class="caret"></b>
+                    <span class="nav-text">Coupons</span>
                   </a>
-    
-                  <ul class="collapse {% if current_page == 'coupon_list' or current_page == 'add_coupon' %}show{% endif %}" id="coupons" data-parent="#sidebar-menu">
-                    <div class="sub-menu">
-                      <li class="{% if current_page == 'coupon_list' %}active{% endif %}">
-                        <a class="sidenav-item-link" href="{% url "coupon_list" %}">
-                          <span class="nav-text">Coupons</span>
-                        </a>
-                      </li>
-    
-                      <li class="{% if current_page == 'add_coupon' %}active{% endif %}">
-                        <a class="sidenav-item-link" href="{% url "add_coupon" %}">
-                          <span class="nav-text">Add Coupon</span>
-                        </a>
-                      </li>
-                    </div>
-                  </ul>
                 </li>
-
                 
-                <li class="has-sub {% if current_page == 'offer_list' or current_page == 'add_offer' %}active expand{% endif %}">
-                  <a class="sidenav-item-link" href="javascript:void(0)" data-toggle="collapse" data-target="#offers"
-                    aria-expanded="false" aria-controls="offers">
+                <li class="{% if current_page == 'offer_list' %}active{% endif %}">
+                  <a class="sidenav-item-link" href="{% url 'offer_list' %}">
                     <i class="mdi mdi-ticket-percent"></i>
-                    <span class="nav-text">Offers</span> <b class="caret"></b>
+                    <span class="nav-text">Offers</span>
                   </a>
-    
-                  <ul class="collapse {% if current_page == 'offer_list' or current_page == 'add_offer' %}show{% endif %}" id="offers" data-parent="#sidebar-menu">
-                    <div class="sub-menu">
-                      <li class="{% if current_page == 'offer_list' %}active{% endif %}">
-                        <a class="sidenav-item-link" href="{% url "offer_list" %}">
-                          <span class="nav-text">Category Offers</span>
-                        </a>
-                      </li>
-    
-                      <li class="{% if current_page == 'add_offer' %}active{% endif %}">
-                        <a class="sidenav-item-link" href="{% url "add_offer" %}">
-                          <span class="nav-text">Add Category Offer</span>
-                        </a>
-                      </li>
-                    </div>
-                  </ul>
                 </li>
 
                 <li class="{% if current_page == 'product_list' %}active{% endif %}">
@@ -212,39 +195,14 @@
                     <span class="nav-text">Products</span> 
                   </a>
                 </li>
-                <li class="{% if current_page == 'add_product' %}active{% endif %}">
-                  <a href="{% url 'add_product' %}">
-                    <i class="mdi mdi-plus-box-outline"></i>
-                    <span class="nav-text">Add Product</span>
-                  </a>
-                </li>
-
                 
-                <li class="has-sub {% if current_page == 'inventory_list' or current_page == 'add_inventory' %}active expand{% endif %}">
-                  <a class="sidenav-item-link" href="javascript:void(0)" data-toggle="collapse" data-target="#inventory"
-                    aria-expanded="false" aria-controls="inventory">
+                <li class="{% if current_page == 'inventory_list' %}active{% endif %}">
+                  <a class="sidenav-item-link" href="{% url 'inventory_list' %}">
                     <i class="mdi mdi-package-variant-closed"></i>
-                    <span class="nav-text">Inventory</span> <b class="caret"></b>
+                    <span class="nav-text">Inventory</span>
                   </a>
-                
-                  <ul class="collapse {% if current_page == 'inventory_list' or current_page == 'add_inventory' %}show{% endif %}" id="inventory" data-parent="#sidebar-menu">
-                    <div class="sub-menu">
-                      <li class="{% if current_page == 'inventory_list' %}active{% endif %}">
-                        <a class="sidenav-item-link" href="{% url "inventory_list" %}">
-                          <span class="nav-text">Inventory List</span>
-                        </a>
-                      </li>
-                
-                      <li class="{% if current_page == 'add_inventory' %}active{% endif %}">
-                        <a class="sidenav-item-link" href="{% url "add_inventory" %}">
-                          <span class="nav-text">Add Inventory</span>
-                        </a>
-                      </li>
-                    </div>
-                  </ul>
                 </li>
                 
-
                 <li class="{% if current_page == "order_list" %}active{% endif %}">
                   <a href="{% url 'order_list' %}">
                     <i class="mdi mdi mdi-truck"></i>
@@ -259,10 +217,10 @@
                   </a>
                 </li>
                 
-                <li class="{% if current_page == "add_account" %}active{% endif %}">
-                  <a href="{% url 'add_account' %}">
+                <li class="{% if current_page == "admin_profile" %}active{% endif %}">
+                  <a href="{% url 'admin_profile' %}">
                     <i class="mdi mdi-account-multiple-plus-outline"></i>
-                    <span class="nav-text">Add Accounts</span> 
+                    <span class="nav-text">Admin Profile</span> 
                   </a>
                 </li>
                 
@@ -272,49 +230,58 @@
         </aside>
             
         <div class="page-wrapper">
-          
-          <!-- Header -->
-          <header class="main-header " id="header">
-            <nav class="navbar navbar-static-top navbar-expand-lg">
-              <!-- Sidebar toggle button -->
-              <button id="sidebar-toggler" class="sidebar-toggle">
-                <span class="sr-only">Toggle navigation</span>
-              </button>
-              <!-- search form -->
-              <div class="search-form d-none d-lg-inline-block">
-                <div class="input-group">
-                  
-                </div>
-                <div id="search-results-container">
-                  <ul id="search-results"></ul>
-                </div>
-              </div>
-    
-              <div class="navbar-right ">
-                <ul class="nav navbar-nav">
-                  <li class="dropdown user-menu">
-                    <button href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
-                      <img src="{% if user.profile_pic %}{{ user.image.url }}{% else %}{% static "vendor/images/user/default_profile_picture.png" %}{% endif %}" class="user-image" alt="User Image" />
-                      <span class="d-none d-lg-inline-block">{{user.first_name}} {{user.last_name}}</span>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-right">
-                      <!-- User image -->
-                      <li style="overflow:hidden" class="dropdown-header">
-                        <img src="{% if user.profile_pic %}{{ user.image.url }}{% else %}{% static "vendor/images/user/default_profile_picture.png" %}{% endif %}" class="img-circle" alt="User Image" />
-                        <div class="d-inline-block"> {{user.first_name}} {{user.last_name}} <small class="pt-1">{{ user.email }}</small>
-                        </div>
-                      </li>
-    
-    
-                      <li class="dropdown-footer">
-                        <a href="{% url "admin_logout" %}"> <i class="mdi mdi-logout"></i> Log Out</a>
-                      </li>
-                    </ul>
-                  </li>
-                </ul>
-              </div>
-            </nav>
+          <header class="main-header" id="header">
+              <nav class="navbar navbar-static-top navbar-expand-lg">
+                  <button id="sidebar-toggler" class="sidebar-toggle border-0 bg-transparent">
+                      <i class="mdi mdi-menu"></i>
+                  </button>
+
+                  <div class="search-form d-none d-lg-inline-block">
+                      </div>
+
+                  <div class="navbar-right">
+                      <ul class="nav navbar-nav">
+                          <li class="dropdown user-menu">
+                              <button class="dropdown-toggle nav-link border-0 bg-transparent d-flex align-items-center" data-toggle="dropdown">
+                                  <img src="{% if request.user.profile_image %}{{ request.user.profile_image.url }}{% else %}{% static 'vendor/images/user/default_profile_picture.png' %}{% endif %}" 
+                                      class="navbar-avatar" alt="User Image" />
+                                  <span class="d-none d-lg-inline-block user-name-text">
+                                      {{ request.user.first_name }} {{ request.user.last_name }}
+                                      <i class="mdi mdi-chevron-down ml-1"></i>
+                                  </span>
+                              </button>
+
+                              <ul class="dropdown-menu dropdown-menu-right">
+                                  <li class="dropdown-header">
+                                      <div class="d-flex align-items-center">
+                                          <img src="{% if request.user.profile_image %}{{ request.user.profile_image.url }}{% else %}{% static 'vendor/images/user/default_profile_picture.png' %}{% endif %}" 
+                                              class="navbar-avatar mr-3" style="width: 50px !important; height: 50px !important;" alt="User Image" />
+                                          <div class="text-left">
+                                              <h6 class="mb-0 font-weight-bold">{{ request.user.first_name }}</h6>
+                                              <p class="mb-0 small text-muted">{{ request.user.email }}</p>
+                                          </div>
+                                      </div>
+                                  </li>
+
+                                  <li>
+                                      <a class="dropdown-item-custom" href="{% url 'admin_profile' %}">
+                                          <i class="mdi mdi-account-outline text-primary"></i> My Profile
+                                      </a>
+                                  </li>
+                 
+                                  <hr class="my-2">
+                                  <li>
+                                      <a class="dropdown-item-custom text-danger" href="{% url 'admin_logout' %}">
+                                          <i class="mdi mdi-logout"></i> Log Out
+                                      </a>
+                                  </li>
+                              </ul>
+                          </li>
+                      </ul>
+                  </div>
+              </nav>
           </header>
+
 
           {% endif %}
 
@@ -326,9 +293,8 @@
               
               {% endblock content %}
     
-      </div> <!-- End Content -->
-    </div> <!-- End Content Wrapper -->
-
+      </div>
+    </div>
 
 
 </body>
@@ -361,4 +327,3 @@
 {% endblock extra_scripts %}
 
 </html>
-

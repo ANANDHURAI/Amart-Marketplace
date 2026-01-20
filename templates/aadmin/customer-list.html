@@ -1,82 +1,131 @@
 {% extends "aadmin/admin-base.html" %}
-
 {% load static %}
 
 {% block content %}
-
-<div class="container">
-    <div class="row">
-        <h1 class="col-md-7">Customers</h1>
-        <form class="form-inline" method="post">
-            {% csrf_token %}
-            <div class="form-group mr-2">
-                <label for="filter_option" class="mr-2">Filter by:</label>
-                <select class="form-control input-sm" name="filter_option" id="filter_option">
-                    <option {% if request.session.selection == "all" %}selected{% endif %} value="all">All Customers</option>
-                    <option {% if request.session.selection == "ban" %}selected{% endif %} value="banned">Banned Customers</option>
-                </select>
+<div class="content-wrapper">
+    <div class="content">
+        <div class="breadcrumb-wrapper d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h1>Customers</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb p-0">
+                        <li class="breadcrumb-item">
+                            <a href="#"><span class="mdi mdi-home"></span></a>
+                        </li>
+                        <li class="breadcrumb-item">User Management</li>
+                        <li class="breadcrumb-item text-primary" aria-current="page">Customer List</li>
+                    </ol>
+                </nav>
             </div>
-            <button type="submit" class="btn btn-sm btn-primary">Apply Filter</button>
-        </form>
+
+            <div class="filter-section bg-white p-3 rounded shadow-sm border">
+                <form class="form-inline" method="post">
+                    {% csrf_token %}
+                    <div class="form-group mb-0 mr-3">
+                        <label for="filter_option" class="mr-2 font-weight-bold">Filter Status:</label>
+                        <select class="form-control form-control-sm border-primary" name="filter_option" id="filter_option" style="min-width: 150px;">
+                            <option {% if request.session.selection == "all" %}selected{% endif %} value="all">All Customers</option>
+                            <option {% if request.session.selection == "ban" %}selected{% endif %} value="banned">Banned Customers</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary px-4 shadow-sm">
+                        <span class="mdi mdi-filter-variant mr-1"></span> Apply
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card card-default">
+            <div class="card-body">
+                <div class="hoverable-data-table">
+                    <table id="hoverable-data-table" class="table table-hover nowrap" style="width:100%">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Email</th>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Last Login</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for customer in customers %}
+                            <tr>
+                                <td class="py-3">
+                                    <a href="#" class="font-weight-bold text-dark">{{ customer.email }}</a>
+                                </td>
+                                <td>{{ customer.first_name }}</td>
+                                <td>{{ customer.last_name }}</td>
+                                <td>
+                                    <small class="text-muted">
+                                        <span class="mdi mdi-clock-outline mr-1"></span>{{ customer.last_login|date:"M d, Y H:i" }}
+                                    </small>
+                                </td>
+                                <td class="text-center">
+                                    {% if customer.is_active %}
+                                        <span class="badge badge-success px-3 py-2">
+                                            <span class="mdi mdi-check-circle mr-1"></span> Active
+                                        </span>
+                                    {% else %}
+                                        <span class="badge badge-danger px-3 py-2">
+                                            <span class="mdi mdi-close-circle mr-1"></span> Banned
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if customer.is_active %}
+                                        <a href="{% url 'customer_approval' customer.id %}" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to ban this user?')">
+                                            <span class="mdi mdi-account-off mr-1"></span> Ban User
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'customer_approval' customer.id %}" class="btn btn-outline-primary btn-sm">
+                                            <span class="mdi mdi-account-check mr-1"></span> Lift Ban
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-
-<div class="hoverable-data-table">
-    <table id="hoverable-data-table" class="table table-hover nowrap" style="width:100%">
-        <thead class="thead-dark">
-        <tr>
-        <th>Email</th>
-        <th>First name</th>
-        <th>Last name</th>
-        <th>Last login</th>
-        <th class="text-center">Active status</th>
-        <th class="text-center">Ban</th>
-        </tr>
-        </thead>
-    
-        <tbody>
-            {% for customer in customers %}
-            <tr>
-                <td><a href="">{{ customer.email }}</a></td>
-                <td>{{ customer.first_name }}</td>
-                <td>{{ customer.last_name }}</td>
-                <td>{{ customer.last_login }}</td>
-                <td class="text-center">
-                    {% if customer.is_active %}
-                        <span class="mdi mdi-check-circle text-success"></span>
-                    {% else %}
-                        <span class="mdi mdi-close-circle text-danger"></span>
-                    {% endif %}
-                </td>
-                <td class="text-center">
-                    {% if customer.is_active %}
-                        <a href="{% url 'customer_approval' customer.id %}" class="text-danger">Ban</a>
-                    {% else %}
-                        <a href="{% url 'customer_approval' customer.id %}" class="text-primary">Remove Ban</a>
-                    {% endif %}
-                </td>
-            </tr>
-
-            {% endfor %}
-        </tbody>
-   </table>
-</div>
-
-
 {% endblock content %}
 
-
 {% block extra_scripts %}
-
 <script src='{% static "aadmin/plugins/data-tables/jquery.datatables.min.js" %}'></script>
 <script src='{% static "aadmin/plugins/data-tables/datatables.bootstrap4.min.js" %}'></script> 
 
+<script>
+  $(document).ready(function() {
+    // Check if the table is already initialized
+    if ($.fn.DataTable.isDataTable('#hoverable-data-table')) {
+      // If it is, destroy the old one so we can apply our custom settings
+      $('#hoverable-data-table').DataTable().destroy();
+    }
+
+    // Initialize the table with our custom settings
+    $('#hoverable-data-table').DataTable({
+      "responsive": true,
+      "dom": '<"row justify-content-between top-information"lf>rt<"row justify-content-between bottom-information"ip>',
+      "retrieve": true // This acts as a secondary safety measure
+    });
+  });
+</script>
 {% endblock extra_scripts %}
 
 {% block extra_styles %}
-
-
 <link href="{% static "aadmin/plugins/data-tables/datatables.bootstrap4.min.css" %}" rel="stylesheet">
-<link href="https://unpkg.com/sleek-dashboard/dist/assets/css/sleek.min.css">
-
+<link href="https://cdn.jsdelivr.net/npm/@mdi/font@latest/css/materialdesignicons.min.css" rel="stylesheet">
+<style>
+    .breadcrumb-wrapper h1 { font-size: 1.75rem; font-weight: 700; color: #333; }
+    .table thead th { border-top: none; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05rem; }
+    .card { border-radius: 0.75rem; border: none; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); }
+    .btn-sm { border-radius: 0.5rem; }
+    .badge { border-radius: 20px; font-weight: 500; }
+</style>
 {% endblock extra_styles %}

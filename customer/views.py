@@ -21,22 +21,6 @@ from django.conf import settings
 import razorpay 
 
 
-# def@login_required(func):
-#     """
-#     Custom login required decorator to check if the user is authenticated and a customer.
-#     """
-
-#     def wrapper(request, *args, **kwargs):
-#         if not request.user.is_authenticated or not request.user.is_customer:
-#             target_url = request.build_absolute_uri()
-#             request.session["customer_target_url"] = target_url
-#             return redirect("customer_login")
-#         return func(request, *args, **kwargs)
-
-#     return wrapper
-
-
-# Customer Profile Session
 
 
 def dashboard(request):
@@ -86,7 +70,6 @@ def edit_profile(request):
         customer.last_name = request.POST.get("last_name").title()
         customer.mobile = request.POST.get("mobile")
 
-        # Handle profile image if uploaded
         profile_image = request.FILES.get("profile_image")
         if profile_image:
             customer.profile_image = profile_image
@@ -415,7 +398,7 @@ def return_order(request, order_id):
 
 
 
-# Customer Favourite Session
+
 
 
 @login_required
@@ -471,7 +454,6 @@ def remove_favourite_item(request, favourite_item_id):
     return redirect(next_url)
 
 
-# Customer Cart
 
 @login_required
 def cart(request):
@@ -523,13 +505,11 @@ def add_to_cart(request, product_id):
         quantity = int(request.POST.get("product-quantity"))
         size = request.POST.get("product-size")
 
-        # Use filter to handle multiple inventory entries
         inventory_items = Inventory.objects.filter(product=product, size=size)
         if not inventory_items.exists():
             messages.error(request, "Selected size is not available for this product.")
             return redirect("product_page", slug=product.slug)
 
-        # Assuming you want to use the first inventory item
         inventory = inventory_items.first()
 
         if quantity > inventory.stock:
@@ -544,7 +524,7 @@ def add_to_cart(request, product_id):
                 cart=cart, product=product, inventory=inventory
             )
 
-            # Removing from the Favourites
+            
             FavouriteItem.objects.filter(customer=customer, product=product).delete()
 
             # Managing the maximum number of products per customer
@@ -638,7 +618,6 @@ def checkout(request):
     return render(request, "customer/checkout.html", context)
 
 
-# Customer Order Session
 
 from payment.views import handle_wallet_payment
 
@@ -680,21 +659,36 @@ def place_order(request):
         # Coupon
         if coupon_code:
             coupon = Coupon.objects.filter(code=coupon_code, is_active=True).first()
+
             if not coupon:
-                messages.error(request, "Invalid coupon")
+                messages.error(request, "Invalid coupon code.")
                 return redirect("checkout")
 
-            if coupon.quantity < 1 or coupon.minimum_purchase > total_amount:
-                messages.error(request, "Coupon not applicable")
+            
+            if request.session.get("coupon_code") == coupon.code:
+                messages.error(request, "You have already used this coupon.")
+                return redirect("checkout")
+
+            if coupon.quantity < 1:
+                messages.error(request, "This coupon is no longer available.")
+                return redirect("checkout")
+
+            if coupon.minimum_purchase > total_amount:
+                messages.error(
+                    request,
+                    f"Minimum purchase of ₹{coupon.minimum_purchase} required to use this coupon."
+                )
                 return redirect("checkout")
 
             total_amount -= coupon.discount
+
             request.session["coupon_code"] = coupon.code
             request.session["discount"] = coupon.discount
 
         request.session["total_amount"] = total_amount
 
-        # ---- PAYMENT DECISION ----
+        
+        # PAYMENT DECISION 
         if payment_method == "wallet":
             return handle_wallet_payment(request, request.user.customer, total_amount)
 
@@ -813,7 +807,7 @@ def order_confirmation(request, order_id):
         messages.error(request, "Customer not found.")
         return redirect("home")
 
-    # Retrieve the order for this customer
+    
     order = Order.objects.filter(id=order_id, customer=customer).first()
     if not order:
         messages.error(request, "Order not found.")

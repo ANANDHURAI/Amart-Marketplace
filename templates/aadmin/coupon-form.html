@@ -6,55 +6,116 @@
     <div class="card-header card-header-border-bottom">
         <h2>{% if coupon %}Edit {% else %}Add a new {% endif %}coupon</h2>
     </div>
+
     <div class="card-body">
-        <form method="post" enctype="multipart/form-data" {% if coupon %}action="{% url "edit_coupon" coupon.id %}"{% endif %}>
+        <form method="post"
+              enctype="multipart/form-data"
+              {% if coupon %}action="{% url 'edit_coupon' coupon.id %}"{% endif %}>
+
             {% csrf_token %}
+
             <div class="form-group">
                 <label>Coupon Code:</label>
-                <input name="code" type="text" maxlength="20" pattern='[a-zA-Z][a-zA-Z0-9]+' title="First character should be a letter. Only letters and numbers allowed" class="form-control" placeholder="Coupon Code" value="{% if coupon %}{{ coupon.code }}{% endif %}" required>
+                <input name="code"
+                       type="text"
+                       maxlength="20"
+                       pattern='[a-zA-Z][a-zA-Z0-9]+'
+                       title="First character should be a letter. Only letters and numbers allowed"
+                       class="form-control"
+                       placeholder="Coupon Code"
+                       value="{% if coupon %}{{ coupon.code }}{% endif %}">
             </div>
+
             <div class="row">
                 <div class="form-group col-md-6">
                     <label>Discount Amount:</label>
-                    <input name="discount" type="number" min="1" step="1" class="form-control" placeholder="Discount in rupees" value="{% if coupon %}{{ coupon.discount }}{% endif %}" required>
+                    <input name="discount"
+                           type="number"
+                           min="1"
+                           step="1"
+                           class="form-control"
+                           placeholder="Discount in rupees"
+                           value="{% if coupon %}{{ coupon.discount }}{% endif %}">
                 </div>
+
                 <div class="form-group col-md-6">
                     <label>Quantity:</label>
-                    <input name="quantity" type="number" min="1" step="1" class="form-control" placeholder="Quantity" value="{% if coupon %}{{ coupon.quantity }}{% endif %}" required>
+                    <input name="quantity"
+                           type="number"
+                           min="1"
+                           step="1"
+                           class="form-control"
+                           placeholder="Quantity"
+                           value="{% if coupon %}{{ coupon.quantity }}{% endif %}">
                 </div>
             </div>
+
             <div class="row">
                 <div class="form-group col-md-6">
                     <label>Minimum Purchase:</label>
-                    <input name="minimum_purchase" type="number" min="0" step="1" class="form-control" placeholder="Minimum Purchase Amount" value="{% if coupon %}{{ coupon.minimum_purchase }}{% endif %}" required>
+                    <input name="minimum_purchase"
+                           type="number"
+                           min="0"
+                           step="1"
+                           class="form-control"
+                           placeholder="Minimum Purchase Amount"
+                           value="{% if coupon %}{{ coupon.minimum_purchase }}{% endif %}">
                 </div>
+
                 <div class="form-group col-md-6">
                     <label>Active:</label>
                     <select name="active" class="form-control">
-                        <option value="1" {% if coupon and coupon.is_active %}selected{% endif %}>Active</option>
-                        <option value="0" {% if coupon and not coupon.is_active %}selected{% endif %}>Inactive</option>
+                        <option value="1"
+                            {% if coupon and coupon.is_active %}selected{% endif %}>
+                            Active
+                        </option>
+                        <option value="0"
+                            {% if coupon and not coupon.is_active %}selected{% endif %}>
+                            Inactive
+                        </option>
                     </select>
                 </div>
             </div>
+
             <br>
+
             <div class="form-footer pt-3 border-top">
+
                 {% for message in messages %}
-                    <div class="alert alert-danger text-center" role="alert">{{message}}</div>
+                    <div class="alert alert-danger text-center auto-hide-alert" role="alert">
+                        {{ message }}
+                    </div>
                 {% endfor %}
-                <button type="submit" class="btn btn-primary btn-default">Submit</button>
+
+                <button type="submit" class="btn btn-primary btn-default">
+                    Submit
+                </button>
             </div>
+
         </form>
     </div>
 </div>
+
 {% endblock content %}
 
 {% block extra_styles %}
-
-#preview {
-}
-
+<style>
+    /* optional: keep space clean */
+</style>
 {% endblock extra_styles %}
 
 {% block extra_scripts %}
+<script>
 
+    const alerts = document.querySelectorAll(".auto-hide-alert");
+
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            alert.style.transition = "opacity 0.5s ease";
+            alert.style.opacity = "0";
+            setTimeout(() => alert.remove(), 500);
+        }, 2000); 
+    });
+</script>
 {% endblock extra_scripts %}
+

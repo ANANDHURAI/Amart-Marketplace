@@ -9,15 +9,21 @@ from django.db.models import Min
 
 def home(request):
     title = "Home"
-
+    
     products = (
         Product.approved_objects
-        .filter(is_available=True)
+        .filter(
+            is_available=True,
+            main_category__is_deleted=False,
+            inventory_sizes__is_active=True,   
+            inventory_sizes__stock__gt=0       
+        )
+        .distinct()
         .prefetch_related("product_images", "inventory_sizes")[:9]
     )
 
     for product in products:
-        # Primary image
+       
         product.primary_image = (
             product.product_images.filter(priority=1).first()
         )
@@ -28,14 +34,14 @@ def home(request):
             stock__gt=0
         )
 
-        # Lowest available price
+       
         product.shop_price = (
             product.available_inventories.aggregate(
                 Min("price")
             )["price__min"]
         )
 
-        # Favourite check
+      
         if request.user.is_authenticated:
             product.is_favourite = FavouriteItem.objects.filter(
                 customer__id=request.user.id,
@@ -44,7 +50,7 @@ def home(request):
         else:
             product.is_favourite = False
 
-    categories = Category.objects.all()[:4]
+    categories = Category.objects.filter(is_deleted=False)
 
     context = {
         "products": products,
@@ -61,7 +67,9 @@ def shop(request):
     sort_by = request.session.get("sort_by", "")
     selected_category = request.session.get("selected_category", "")
 
-    products = Product.approved_objects.all()
+    products = Product.approved_objects.filter(
+        main_category__is_deleted=False    
+    )
 
     # Search
     if request.GET.get("search"):
@@ -79,7 +87,12 @@ def shop(request):
     # Category filter
     if selected_category:
         products = products.filter(main_category_id=selected_category)
-
+    
+    products = products.filter(
+        inventory_sizes__is_active=True,
+        inventory_sizes__stock__gt=0
+    ).distinct()
+    
     # Sorting
     if sort_by == "price_asc":
         products = products.annotate(
@@ -113,7 +126,7 @@ def shop(request):
     paginator = Paginator(products, 6)
     paged_products = paginator.get_page(request.GET.get("page"))
 
-    categories = Category.objects.all()
+    categories = Category.objects.filter(is_deleted=False)
     
     for product in paged_products:
         product.primary_image = (
@@ -143,6 +156,9 @@ def shop(request):
         "selected_category": selected_category,
     }
     return render(request, "home/shop.html", context)
+
+
+
 
 
 def product_page(request, slug):

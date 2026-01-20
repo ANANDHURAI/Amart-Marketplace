@@ -1,0 +1,91 @@
+{% extends "aadmin/admin-base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="content-wrapper bg-light">
+    <div class="content p-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+                <div class="card border-0 shadow-sm mb-4 overflow-hidden" style="border-radius: 20px;">
+                    <div class="card-header border-0 p-0" style="height: 120px; background: linear-gradient(90deg, #4c84ff 0%, #2c3e50 100%);"></div>
+                    <div class="card-body p-4 pt-0">
+                        <div class="d-flex align-items-end mb-4" style="margin-top: -60px;">
+                            <div class="position-relative">
+                                {% if admin.profile_image %}
+                                    <img src="{{ admin.profile_image.url }}" class="rounded-circle border border-4 border-white shadow-sm" width="130" height="130" style="object-fit: cover; background: white;">
+                                {% else %}
+                                    <img src="{% static 'admin/assets/img/default-user.png' %}" class="rounded-circle border border-4 border-white shadow-sm" width="130">
+                                {% endif %}
+                                <span class="position-absolute bottom-0 end-0 bg-success border border-white border-3 rounded-circle" style="width: 20px; height: 20px;" title="Online"></span>
+                            </div>
+                            <div class="ms-4 mb-2">
+                                <h3 class="fw-bold text-dark mb-0">{{ admin.first_name }} {{ admin.last_name }}</h3>
+                                <p class="text-muted small mb-0"><i class="mdi mdi-email-outline me-1"></i>{{ admin.email }}</p>
+                                <span class="badge bg-primary-soft text-primary mt-2 px-3 py-2">Master Administrator</span>
+                            </div>
+                            <div class="ms-auto mb-2">
+                                <a href="{% url 'edit_admin_profile' %}" class="btn btn-dark px-4 py-2 shadow-sm" style="border-radius: 10px;">
+                                    <i class="mdi mdi-account-edit me-1"></i> Edit Profile
+                                </a>
+                            </div>
+                        </div>
+
+                        <hr class="text-muted opacity-25">
+
+                        <div class="row mt-4">
+                            <div class="col-md-4 mb-4">
+                                <div class="p-3 bg-light rounded-4 border-0">
+                                    <label class="text-uppercase text-muted fw-bold small mb-1 d-block">First Name</label>
+                                    <span class="text-dark fw-semibold">{{ admin.first_name }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-4">
+                                <div class="p-3 bg-light rounded-4 border-0">
+                                    <label class="text-uppercase text-muted fw-bold small mb-1 d-block">Last Name</label>
+                                    <span class="text-dark fw-semibold">{{ admin.last_name }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-4">
+                                <div class="p-3 bg-light rounded-4 border-0">
+                                    <label class="text-uppercase text-muted fw-bold small mb-1 d-block">Mobile</label>
+                                    <span class="text-dark fw-semibold">{{ admin.mobile|default:"Not Provided" }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="p-3 bg-light rounded-4 border-0">
+                                    <label class="text-uppercase text-muted fw-bold small mb-1 d-block">Email Address</label>
+                                    <span class="text-dark fw-semibold">{{ admin.email }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="p-3 bg-light rounded-4 border-0">
+                                    <label class="text-uppercase text-muted fw-bold small mb-1 d-block">Member Since</label>
+                                    <span class="text-dark fw-semibold">{{ admin.date_joined|date:"d F Y" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    /* Modern UI Utility Classes */
+    .bg-primary-soft {
+        background-color: rgba(76, 132, 255, 0.1) !important;
+    }
+    .text-primary {
+        color: #4c84ff !important;
+    }
+    .form-control:focus {
+        background-color: #fff !important;
+        box-shadow: 0 0 0 3px rgba(76, 132, 255, 0.15);
+        border: 1px solid #4c84ff !important;
+    }
+    .rounded-4 { border-radius: 12px !important; }
+    
+    /* Profile Animations */
+    .btn-primary:hover { transform: translateY(-1px); transition: 0.2s; }
+</style>
+{% endblock %}

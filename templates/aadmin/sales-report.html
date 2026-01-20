@@ -1,166 +1,194 @@
 {% extends "aadmin/admin-base.html" %}
-
 {% load static %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <h1 class="col-md-7">Sales Report</h1>
+<div class="container-fluid">
+
+    <!-- HEADER + FILTER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="font-weight-bold mb-0">Sales Report</h2>
+            <small class="text-muted">
+                {{ start_date|date:"d M Y" }} – {{ end_date|date:"d M Y" }}
+            </small>
+        </div>
+
         <form class="form-inline" method="post">
             {% csrf_token %}
-            <div class="form-group mr-2">
-                <label for="filter_option" class="mr-2">Report of:</label>
-                <select class="form-control input-sm" name="filter_option" id="filter_option">
-                    <option {% if request.session.selection == "today" %}selected{% endif %} value="today">Today</option>
-                    <option {% if request.session.selection == "1_week" %}selected{% endif %} value="1_week">1 week</option>
-                    <option {% if request.session.selection == "1_month" %}selected{% endif %} value="1_month">1 month</option>
-                    <option {% if request.session.selection == "6_months" %}selected{% endif %} value="6_months">6 months</option>
-                    <option {% if request.session.selection == "1_year" %}selected{% endif %} value="1_year">1 year</option>
-                    <option {% if request.session.selection == "custom" %}selected{% endif %} value="custom">Custom</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-sm btn-primary">Apply Filter</button>
+            <select class="form-control form-control-sm mr-2" name="filter_option">
+                <option value="today" {% if request.session.selection == "today" %}selected{% endif %}>Today</option>
+                <option value="1_week" {% if request.session.selection == "1_week" %}selected{% endif %}>Last 7 Days</option>
+                <option value="1_month" {% if request.session.selection == "1_month" %}selected{% endif %}>Last 30 Days</option>
+                <option value="6_months" {% if request.session.selection == "6_months" %}selected{% endif %}>Last 6 Months</option>
+                <option value="1_year" {% if request.session.selection == "1_year" %}selected{% endif %}>Last 1 Year</option>
+            </select>
+            <button class="btn btn-sm btn-dark">Apply</button>
         </form>
     </div>
 
-    <br>
-
-    <form class="float-right" method="post">
-        {% csrf_token %}
-        <label for="start_date">Start Date:</label>
-        <input type="date" id="start_date" name="start_date" value="{{ start_date|date:"Y-m-d" }}">
-        <label for="end_date">End Date:</label>
-        <input type="date" id="end_date" name="end_date" value="{{ end_date|date:"Y-m-d" }}"><br>
-        <br>
-        <button name="custom_date" type="submit" class="btn btn-sm btn-primary float-right">Generate Report</button>
-    </form>
-</div>
-
-<br><br>
-<button class="btn btn-primary" id="download-report">Download Sales Report</button>
-<br><br>
-
-{% for message in messages %}
-    {% if message.tags == "error" %}
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">{{ message }}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-            </button>
+    <!-- KPI CARDS -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card stat-card">
+                <p class="stat-title">Total Orders</p>
+                <h3>{{ overall_count }}</h3>
+                <small class="text-muted">Completed orders</small>
+            </div>
         </div>
-    {% endif %}
-{% endfor %}
 
-<div id="sales-report">
-    <hr>
-    <div class="text-center">
-        <img class="report-logo" src="{% static 'images/logo-no-background.png' %}" alt="Amart Fashions Logo">
+        <div class="col-md-4">
+            <div class="card stat-card">
+                <p class="stat-title">Total Revenue</p>
+                <h3>₹ {{ overall_amount }}</h3>
+                <small class="text-muted">Gross sales</small>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card stat-card">
+                <p class="stat-title">Report Range</p>
+                <h6>{{ start_date|date:"d M Y" }} – {{ end_date|date:"d M Y" }}</h6>
+                <small class="text-muted">Selected period</small>
+            </div>
+        </div>
     </div>
-    <br><br>
-    <h2 class="text-center">Sales report from <strong>{{ start_date|date:"d-m-Y" }}</strong> to <strong>{{ end_date|date:"d-m-Y" }}</strong></h2>
-    <hr>
 
-    <table class="table">
-        <thead>
-            <tr>
-                <th scope="col">#</th>
-                <th scope="col">Date</th>
-                <th style="padding-left: 40px;" scope="col">Product Name</th>
-                <th scope="col">Customer</th>
-                <th scope="col" class="text-center">Product ID</th>
-                <th scope="col" class="text-center">Quantity</th>
-                <th scope="col" class="text-center">Unit Price</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for order_item in order_items %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ order_item.order_created_at|date:"Y-m-d" }}</td>
-                <td class="text-center">{{ order_item.product.name }}</td>
-                <td>{{ order_item.order.customer }}</td>
-                <td class="text-center">{{ order_item.product.id }}</td>
-                <td class="text-center">{{ order_item.quantity }}</td>
-                <td class="text-center">₹ {{ order_item.inventory.price }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
 
-    <!-- Pagination Controls -->
-    <nav aria-label="Page navigation example">
-        <ul class="pagination">
-            {% if order_items.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page=1" aria-label="First">
-                        <span aria-hidden="true">&laquo;&laquo;</span>
-                    </a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ order_items.previous_page_number }}" aria-label="Previous">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
-                </li>
-            {% endif %}
-
-            <!-- Page numbers -->
-            {% for num in order_items.paginator.page_range %}
-                <li class="page-item {% if order_items.number == num %}active{% endif %}">
-                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                </li>
-            {% endfor %}
-
-            {% if order_items.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ order_items.next_page_number }}" aria-label="Next">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ order_items.paginator.num_pages }}" aria-label="Last">
-                        <span aria-hidden="true">&raquo;&raquo;</span>
-                    </a>
-                </li>
-            {% endif %}
-        </ul>
-    </nav>
-
-    <br><hr><br>
-    <div class="text-right pr-5">
-        <p>Overall Sales Count: <strong>{{ overall_count }}</strong></p><br>
-        <p>Overall Sales Amount: <strong>₹ {{ overall_amount }}</strong></p>
+    <!-- DOWNLOAD -->
+    <div class="d-flex justify-content-end mb-3">
+        <button class="btn btn-outline-dark btn-sm" id="download-report">
+            ⬇ Download PDF
+        </button>
     </div>
-    <br><hr><br>
-    <p class="float-right pr-5">Generated by <strong class="h3">Amart Fashions</strong></p>
-    <p>Date: {{ end_date|date:"d-m-Y" }}</p>
+
+    <!-- ERROR MESSAGES -->
+    {% for message in messages %}
+        {% if message.tags == "error" %}
+            <div class="alert alert-danger">{{ message }}</div>
+        {% endif %}
+    {% endfor %}
+
+    <!-- REPORT -->
+    <div id="sales-report" class="card shadow-sm">
+        <div class="card-body">
+
+            <div class="text-center mb-4">
+                <img src="{% static 'images/logo-no-background.png' %}" class="report-logo">
+                <h5 class="mt-3 mb-1">Sales Report</h5>
+                <small class="text-muted">
+                    {{ start_date|date:"d M Y" }} – {{ end_date|date:"d M Y" }}
+                </small>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover report-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Product</th>
+                            <th>Customer</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-right">Unit Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order_items %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ item.order_created_at|date:"d M Y" }}</td>
+                            <td class="font-weight-500">{{ item.product.name }}</td>
+                            <td>{{ item.order.customer }}</td>
+                            <td class="text-center">{{ item.quantity }}</td>
+                            <td class="text-right">₹ {{ item.inventory.price }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PAGINATION -->
+            <nav class="mt-4">
+                <ul class="pagination justify-content-end">
+                    {% if order_items.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ order_items.previous_page_number }}">‹</a>
+                        </li>
+                    {% endif %}
+
+                    <li class="page-item active">
+                        <span class="page-link">{{ order_items.number }}</span>
+                    </li>
+
+                    {% if order_items.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ order_items.next_page_number }}">›</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+
+            <hr>
+
+            <div class="d-flex justify-content-between">
+                <p class="mb-0 text-muted">
+                    Generated on {{ end_date|date:"d M Y" }}
+                </p>
+                <strong>Amart Fashions</strong>
+            </div>
+
+        </div>
+    </div>
+
 </div>
-{% endblock content %}
-
-{% block extra_scripts %}
-<script src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js'></script>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("download-report").addEventListener("click", function () {
-            const sales_report = document.getElementById("sales-report");
-            const opt = {
-                margin: 0.2,
-                filename: '{{ pdf_name }}.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-            };
-            html2pdf().from(sales_report).set(opt).save();
-        });
-    });
-</script>
-{% endblock extra_scripts %}
-
+{% endblock %}
 {% block extra_styles %}
 <style>
-    .report-logo {
-        height: 70px;
-    }
-</style>
+.stat-card {
+    padding: 20px;
+    border-radius: 12px;
+    border: none;
+    background: #ffffff;
+    box-shadow: 0 4px 14px rgba(0,0,0,.04);
+}
 
-<link href="{% static 'muladmin/plugins/data-tables/datatables.bootstrap4.min.css' %}" rel="stylesheet">
-<link href="https://unpkg.com/sleek-dashboard/dist/assets/css/sleek.min.css">
-{% endblock extra_styles %}
+.stat-title {
+    font-size: 13px;
+    color: #6c757d;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.report-logo {
+    height: 60px;
+}
+
+.report-table th {
+    font-size: 13px;
+    text-transform: uppercase;
+    color: #6c757d;
+    border-bottom: 1px solid #eee;
+}
+
+.report-table td {
+    vertical-align: middle;
+}
+
+.font-weight-500 {
+    font-weight: 500;
+}
+</style>
+{% endblock %}
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+<script>
+document.getElementById("download-report").addEventListener("click", function () {
+    html2pdf().from(document.getElementById("sales-report")).set({
+        margin: 0.3,
+        filename: "{{ pdf_name }}.pdf",
+        jsPDF: { format: "a4", orientation: "portrait" }
+    }).save();
+});
+</script>
+{% endblock %}
