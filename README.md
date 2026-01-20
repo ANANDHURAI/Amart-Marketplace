@@ -1,7 +1,7 @@
 # Amart | Men’s Fashion E-Commerce Platform
 
 Hi 👋, I’m **Anandhurai**.  
-This is my **second Industrial project**, designed to **connect customers and beauticians** seamlessly.  
+This is my **First Industrial project**, designed to **E-Commerce** seamlessly.  
 
 ---
 
