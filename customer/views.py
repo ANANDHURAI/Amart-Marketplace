@@ -23,19 +23,14 @@ from functools import wraps
 
 
 def customer_required(view_func):
-    @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
-        # 1. Check if user is authenticated
         if not request.user.is_authenticated:
             return redirect('customer_login')
         
-        # 2. Check if user has the is_customer flag
-        if request.user.is_customer:
+        if request.user.is_customer and Customer.objects.filter(pk=request.user.pk).exists():
             return view_func(request, *args, **kwargs)
-        
-        # 3. If they are logged in but NOT a customer (like an Admin), 
-        return redirect('customer_login') 
-        
+
+        return redirect('customer_login')
     return _wrapped_view
 
 
