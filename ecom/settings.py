@@ -14,10 +14,9 @@ os.environ['SSL_CERT_FILE'] = certifi.where() # This tells Python libraries: “
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-SECRET_KEY = 'django-insecure-f3#-izfmdm253-4l4d%@1f#&ej1^9e0xlhzzwba@&17^62w314'
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
-
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
 
@@ -137,29 +136,15 @@ MEDIA_ROOT = BASE_DIR / "media"
 AUTH_USER_MODEL = "accounts.Account"
 
 
-# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-# EMAIL_HOST = "smtp.gmail.com"
-# EMAIL_USE_SSL = True
-# EMAIL_USE_TSL = False
-# EMAIL_PORT = 465
-# EMAIL_HOST_USER = "anandhurai2004@gmail.com"
-# EMAIL_HOST_PASSWORD = 'gtbi lfgc qhcj sedp'
-
-
-
-
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # RazorPay credentials
-RAZOR_KEY_ID = "rzp_test_iZ19mfmqcCWhFx"
-RAZOR_KEY_SECRET = "AgyQbM4WqWQj1hvpHZ9GtT5C"
 
+RAZOR_KEY_ID = os.environ.get("RAZOR_KEY_ID")
+RAZOR_KEY_SECRET = os.environ.get("RAZOR_KEY_SECRET")
 
 # To allow RazorPay Pop-up to restrict comment the below line.
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
-
-
 
 
 

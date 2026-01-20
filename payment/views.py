@@ -8,7 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from accounts.models import Customer
 from django.contrib import messages
 
-from django.contrib.auth.decorators import login_required
+from customer.views import customer_required
 import logging
 from django.db import transaction
 
@@ -22,7 +22,7 @@ razorpay_client = razorpay.Client(
 )
 
 
-@login_required
+@customer_required
 def razorpay_order_creation(request, amount):
     currency = "INR"
     amount = int(amount) * 100
@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 
 
-@login_required
+@customer_required
 @csrf_exempt
 def razorpay_paymenthandler(request):
     if request.method != "POST":
@@ -114,7 +114,7 @@ def razorpay_paymenthandler(request):
 
 
 
-@login_required
+@customer_required
 def cash_on_delivery(request):
     request.session["payment_method"] = "cod"
     request.session["payment_successful"] = False
@@ -139,7 +139,7 @@ def handle_cod_payment(request, customer, total_amount):
 
 
 
-@login_required
+@customer_required
 def pay_now(request, order_id):
     order = Order.objects.get(id=order_id)
     request.session["pay_now"] = "pay_now"
@@ -166,7 +166,7 @@ def handle_wallet_payment(request, customer, total_amount):
 
 
 
-@login_required
+@customer_required
 def wallet_retry_payment(request):
     total_amount = request.session.get("total_amount")
 
@@ -182,14 +182,14 @@ def wallet_retry_payment(request):
 
 
 
-@login_required
+@customer_required
 def payment_success(request):
     return render(request, "customer/customer-payment-success.html")
 
 
 
 
-@login_required
+@customer_required
 def payment_failed(request):
     total_amount = request.session.get("total_amount")
     payment_method = request.session.get("payment_method")

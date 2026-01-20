@@ -9,25 +9,40 @@ from django.db.models import Sum
 from django.contrib import messages
 from django.contrib.auth import logout
 from ecom.views import get_next_url
-from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import F
 import logging
 from django.urls import reverse
-
+import re
+from django.core.exceptions import ValidationError
 from django.db.models import Sum, Prefetch
 from django.http import HttpResponseRedirect
 from django.conf import settings
 import razorpay 
+from functools import wraps
+
+
+def customer_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        # 1. Check if user is authenticated
+        if not request.user.is_authenticated:
+            return redirect('customer_login')
+        
+        # 2. Check if user has the is_customer flag
+        if request.user.is_customer:
+            return view_func(request, *args, **kwargs)
+        
+        # 3. If they are logged in but NOT a customer (like an Admin), 
+        return redirect('customer_login') 
+        
+    return _wrapped_view
 
 
 
-
+@customer_required
 def dashboard(request):
-    try:
-        customer = Customer.objects.get(id=request.user.id)
-    except Customer.DoesNotExist:
-        customer = None
+    customer = get_object_or_404(Customer, pk=request.user.pk)
 
     orders = (
         Order.objects.filter(customer=customer)
@@ -38,16 +53,18 @@ def dashboard(request):
         .order_by("-created_at")[:5]
     )
 
-    try:
-        customer.address = Address.objects.get(customer=customer, is_default=True)
-    except Address.DoesNotExist:
-        pass
+    customer.address = Address.objects.filter(customer=customer, is_default=True).first()
 
-    context = {"customer": customer, "orders": orders}
+    context = {
+        "customer": customer, 
+        "orders": orders
+    }
     return render(request, "customer/customer-dashboard.html", context)
 
 
-@login_required
+
+
+@customer_required
 def address(request):
     customer = Customer.objects.get(id=request.user.id)
     addresses = Address.objects.filter(customer=customer)
@@ -55,14 +72,18 @@ def address(request):
     return render(request, "customer/customer-address.html", context)
 
 
-@login_required
+
+
+@customer_required
 def profile(request):
     customer = Customer.objects.get(id=request.user.id)
     context = {"customer": customer}
     return render(request, "customer/customer-profile.html", context)
 
 
-@login_required
+
+
+@customer_required
 def edit_profile(request):
     if request.method == "POST":
         customer = Customer.objects.get(id=request.user.id)
@@ -81,7 +102,8 @@ def edit_profile(request):
 
 
 
-@login_required
+
+@customer_required
 def change_password(request):
     if request.method == "POST":
         current_password = request.POST.get("current_password")
@@ -111,8 +133,8 @@ def change_password(request):
 
 
 
-import re
-from django.core.exceptions import ValidationError
+
+
 
 def validate_address_data(data):
     errors = []
@@ -150,7 +172,10 @@ def validate_address_data(data):
     return errors
 
 
-@login_required
+
+
+
+@customer_required
 def new_address(request):
     if request.method == "POST":
         errors = validate_address_data(request.POST)
@@ -207,7 +232,10 @@ def new_address(request):
     })
 
 
-@login_required
+
+
+
+@customer_required
 def edit_address(request, address_id):
     address = Address.objects.get(id=address_id)
     if request.method == "POST":
@@ -250,14 +278,20 @@ def edit_address(request, address_id):
     return render(request, "customer/address_form.html", context)
 
 
-@login_required
+
+
+
+@customer_required
 def remove_address(request, address_id):
     address = Address.objects.get(id=address_id)
     address.delete()
     return redirect("customer_address")
 
 
-@login_required
+
+
+
+@customer_required
 def default_address(request, address_id):
     address = Address.objects.get(id=address_id)
 
@@ -274,7 +308,10 @@ def default_address(request, address_id):
     return redirect("customer_address")
 
 
-@login_required
+
+
+
+@customer_required
 def orders(request):
     customer = Customer.objects.get(id=request.user.id)
     orders = (
@@ -300,7 +337,9 @@ def orders(request):
     return render(request, "customer/customer-orders.html", context)
 
 
-@login_required
+
+
+@customer_required
 @transaction.atomic
 def cancel_order(request, order_id):
     order = Order.objects.get(id=order_id)
@@ -333,7 +372,9 @@ def cancel_order(request, order_id):
 
 
 
-@login_required
+
+
+@customer_required
 def cancel_order_item(request, order_item_id):
     order_item = OrderItem.objects.get(id=order_item_id)
     wallet, created = Wallet.objects.get_or_create(customer=request.user)
@@ -361,7 +402,8 @@ def cancel_order_item(request, order_item_id):
 
 
 
-@login_required
+
+@customer_required
 @transaction.atomic
 def return_order(request, order_id):
     order = Order.objects.get(id=order_id)
@@ -401,7 +443,7 @@ def return_order(request, order_id):
 
 
 
-@login_required
+@customer_required
 def favourites(request):
     try:
         customer = Customer.objects.get(id=request.user.id)
@@ -420,7 +462,10 @@ def favourites(request):
     return render(request, "customer/favourites.html", context)
 
 
-@login_required
+
+
+
+@customer_required
 def add_to_favourite(request, product_id):
     next_url = get_next_url(request)
     try:
@@ -446,7 +491,11 @@ def add_to_favourite(request, product_id):
     return redirect(next_url)
 
 
-@login_required
+
+
+
+
+@customer_required
 def remove_favourite_item(request, favourite_item_id):
     next_url = get_next_url(request)
     favourite_item = FavouriteItem.objects.get(id=favourite_item_id)
@@ -455,7 +504,9 @@ def remove_favourite_item(request, favourite_item_id):
 
 
 
-@login_required
+
+
+@customer_required
 def cart(request):
     customer = Customer.objects.get(id=request.user.id)
     cart, _ = Cart.objects.get_or_create(customer=customer)
@@ -496,7 +547,9 @@ def cart(request):
 
 
 
-@login_required
+
+
+@customer_required
 def add_to_cart(request, product_id):
     if request.method == "POST":
         customer = get_object_or_404(Customer, email=request.user.email)
@@ -540,7 +593,10 @@ def add_to_cart(request, product_id):
     return redirect("cart")
 
 
-@login_required
+
+
+
+@customer_required
 def update_cart_item(request, cart_item_id):
     if request.method == "POST":
         cart_item = CartItem.objects.get(id=cart_item_id)
@@ -562,7 +618,11 @@ def update_cart_item(request, cart_item_id):
     return redirect("cart")
 
 
-@login_required
+
+
+
+
+@customer_required
 def remove_cart_item(request, cart_item_id):
     cart_item = CartItem.objects.get(id=cart_item_id)
 
@@ -571,7 +631,10 @@ def remove_cart_item(request, cart_item_id):
     return redirect("cart")
 
 
-@login_required
+
+
+
+@customer_required
 def checkout(request):
     customer = Customer.objects.get(id=request.user.id)
     cart, _ = Cart.objects.get_or_create(customer=customer)
@@ -619,9 +682,13 @@ def checkout(request):
 
 
 
+
+
+
+
 from payment.views import handle_wallet_payment
 
-@login_required
+@customer_required
 def place_order(request):
     if request.method != "POST":
         return redirect("checkout")
@@ -717,7 +784,10 @@ def place_order(request):
 logger = logging.getLogger(__name__)
 
 
-@login_required
+
+
+
+@customer_required
 @transaction.atomic
 def create_order(request):
     address_id = request.session.get("address_id")
@@ -768,7 +838,10 @@ def create_order(request):
     return order
 
 
-@login_required
+
+
+
+@customer_required
 def finalize_order(request):
     
     payment_method = request.session.get("payment_method")
@@ -799,7 +872,10 @@ def finalize_order(request):
 
 
 
-@login_required
+
+
+
+@customer_required
 def order_confirmation(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     customer = Customer.objects.filter(account_ptr=request.user).first()
@@ -822,7 +898,10 @@ razorpay_client = razorpay.Client(
 
 
 
-@login_required
+
+
+
+@customer_required
 def customer_wallet(request):
     customer = request.user.customer
     wallet, _ = Wallet.objects.get_or_create(customer=customer)
@@ -869,7 +948,9 @@ def customer_wallet(request):
 
 
 
-@login_required
+
+
+@customer_required
 def invoice(request, order_id):
     order = Order.objects.get(id=order_id)
     order.order_items = OrderItem.objects.filter(order=order)
