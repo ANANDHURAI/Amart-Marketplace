@@ -58,10 +58,6 @@ The application follows the **MVT (Model-View-Template)** architecture:
 
 ## 📦 Installation & Setup
 
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/your-username/amart.git](https://github.com/your-username/amart.git)
-   cd amart
 Create a Virtual Environment:
 
 Bash
