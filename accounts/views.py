@@ -133,9 +133,6 @@ def customer_logout(request):
 
 
 
-from django.contrib.auth import authenticate, login
-from django.contrib import messages
-
 def admin_login(request):
     if request.method == "POST":
         email = request.POST.get("email", "").strip().lower()
