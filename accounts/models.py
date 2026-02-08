@@ -26,7 +26,6 @@ class AccountManager(BaseUserManager):
         )
         user.is_admin = True
         user.is_active = True
-        user.is_customer = True
         user.is_staff = True
         user.is_superadmin = True
         user.save(using=self.db)
