@@ -28,10 +28,24 @@ def send_otp(request):
         to_emails=email,
         subject="OTP Verification - Amart Fashions",
         plain_text_content=f"""
-        Your OTP is: {otp}
-        Valid for 60 seconds.
-        """
+    Dear Customer,
+
+    Thank you for choosing Amart Fashions.
+
+    To complete your verification, please use the One-Time Password (OTP) below:
+
+    🔐 OTP: {otp}
+
+    This OTP is valid for 60 seconds. For your security, please do not share this code with anyone.
+
+    If you did not request this verification, please ignore this email or contact our support team immediately.
+
+    Warm regards,  
+    Amart Fashions Team  
+    Secure • Trusted • Fashion Forward
+    """
     )
+
 
     sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
     sg.send(message)

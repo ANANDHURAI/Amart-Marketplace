@@ -177,31 +177,42 @@ def otp_view(request):
 
 
 
+from datetime import datetime
+from django.shortcuts import render, redirect
+from django.contrib import messages
+import pyotp
+from .models import Customer
+
+
 def customer_activation(request):
     signup_data = request.session.get("signup_data")
     secret_key = request.session.get("otp_secret_key")
     valid_till = request.session.get("otp_valid_till")
 
+
     if not all([signup_data, secret_key, valid_till]):
-        messages.error(request, "OTP session expired")
+        messages.error(request, "Session expired. Please register again.")
         return redirect("customer_signup")
 
     valid_till = datetime.fromisoformat(valid_till)
+
+  
+    time_left = max(0, int((valid_till - datetime.now()).total_seconds()))
 
     if request.method == "POST":
         otp = request.POST.get("otp", "").strip()
 
         if datetime.now() > valid_till:
-            messages.error(request, "OTP expired")
-            return redirect("otp_view")
+            messages.error(request, "OTP has expired. Please request a new one.")
+            return redirect("customer_activation")
+
 
         totp = pyotp.TOTP(secret_key, interval=60)
 
         if not totp.verify(otp):
-            messages.error(request, "Invalid OTP")
+            messages.error(request, "Invalid OTP. Please enter the correct code.")
             return redirect("customer_activation")
 
-      
         customer = Customer.objects.create_user(
             first_name=signup_data["first_name"],
             last_name=signup_data["last_name"],
@@ -215,10 +226,12 @@ def customer_activation(request):
         for key in ["signup_data", "otp_secret_key", "otp_valid_till", "email"]:
             request.session.pop(key, None)
 
-        messages.success(request, "Account verified. Please login")
+        messages.success(request, "Account verified successfully. Please login.")
         return redirect("customer_login")
 
-    return render(request, "accounts/customer-activation.html")
+    return render(request, "accounts/customer-activation.html", {
+        "time_left": time_left
+    })
 
 
 

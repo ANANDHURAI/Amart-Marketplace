@@ -2,90 +2,193 @@
 {% load static %}
 
 {% block content %}
-<section class="signin-page account">
-  <div class="container">
-    <div class="row">
-      <div class="col-md-6 col-md-offset-3">
-        <div class="block text-center">
+<style>
+/* PAGE CENTERING */
+.otp-wrapper{
+    min-height: 100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:#f8f9fa;
+}
 
-          <a class="logo" href="{% url 'home' %}">
-            <img style="width:150px" src="{% static 'images/logo-no-background.png' %}">
-          </a>
+/* CARD */
+.otp-card{
+    background:#fff;
+    padding:40px 35px;
+    border-radius:12px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.08);
+    text-align:center;
+    max-width:420px;
+    width:100%;
+}
 
-          <h2>OTP Verification</h2>
+/* OTP BOXES */
+.otp-boxes{
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    margin:25px 0;
+}
 
-          <!-- ✅ Messages -->
-          {% if messages %}
-            <div id="msg-box">
-              {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} auto-hide text-center">
-                  {{ message }}
-                </div>
-              {% endfor %}
-            </div>
-          {% endif %}
+.otp-boxes input{
+    width:55px;
+    height:60px;
+    border:2px solid #ddd;
+    border-radius:10px;
+    font-size:22px;
+    text-align:center;
+    outline:none;
+    transition:0.2s ease;
+}
 
-          <p>Please check your email for the OTP.</p>
+.otp-boxes input:focus{
+    border-color:#000;
+    box-shadow:0 0 0 2px rgba(0,0,0,0.05);
+}
 
-          <form method="post">
-            {% csrf_token %}
+/* TIMER */
+.timer-text{
+    font-weight:500;
+    color:#666;
+}
 
-            <div class="form-group">
-              <input
-                type="text"
-                name="otp"
-                maxlength="6"
-                pattern="[0-9]{6}"
-                class="form-control"
-                placeholder="Enter 6-digit OTP"
-                required>
-            </div>
+/* BUTTON */
+.verify-btn{
+    width:100%;
+    padding:14px;
+    border:none;
+    background:#000;
+    color:#fff;
+    border-radius:8px;
+    font-weight:600;
+    letter-spacing:1px;
+    margin-top:15px;
+}
 
-            {% if time_left > 0 %}
-              <p>
-                OTP expires in
-                <span id="countdowntimer">{{ time_left }}</span>
-                seconds
-              </p>
-            {% else %}
-              <p>
-                <a href="{% url 'resend_otp' %}">
-                  Resend OTP
-                </a>
-              </p>
-            {% endif %}
+.verify-btn:disabled{
+    background:#ccc;
+}
 
-            <button type="submit" class="btn btn-main btn-block">
-              Verify
-            </button>
-          </form>
+/* ERROR MESSAGE */
+.error-box{
+    background:#ffe5e5;
+    color:#d60000;
+    padding:10px;
+    border-radius:6px;
+    margin-bottom:15px;
+    font-size:14px;
+}
+</style>
 
-        </div>
+<div class="otp-wrapper">
+  <div class="otp-card">
+
+    <img src="{% static 'images/logo-no-background.png' %}" width="130">
+
+    <h3 class="mt-3">OTP Verification</h3>
+    <p>Please enter the 6-digit code sent to your email</p>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="error-box">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post" id="otpForm">
+      {% csrf_token %}
+      <input type="hidden" name="otp" id="fullOtp">
+
+      <div class="otp-boxes">
+        <input type="text" maxlength="1">
+        <input type="text" maxlength="1">
+        <input type="text" maxlength="1">
+        <input type="text" maxlength="1">
+        <input type="text" maxlength="1">
+        <input type="text" maxlength="1">
       </div>
-    </div>
+
+      <div class="timer-text" id="timerText">
+        OTP expires in <span id="countdown">{{ time_left }}</span>s
+      </div>
+
+      <div id="resendSection" style="display:none;">
+        <a href="{% url 'resend_otp' %}">Resend OTP</a>
+      </div>
+
+      <button type="submit" class="verify-btn" id="verifyBtn" disabled>
+        VERIFY OTP
+      </button>
+    </form>
+
   </div>
-</section>
+</div>
 {% endblock %}
+
 
 {% block extra_scripts %}
 <script>
-  // Countdown timer
-  let timeLeft = {{ time_left }};
+document.addEventListener("DOMContentLoaded", function () {
+
+  const inputs = document.querySelectorAll(".otp-boxes input");
+  const hiddenOtp = document.getElementById("fullOtp");
+  const verifyBtn = document.getElementById("verifyBtn");
+
+  inputs[0].focus();
+
+  inputs.forEach((input, index) => {
+
+    input.addEventListener("input", () => {
+      input.value = input.value.replace(/[^0-9]/g,'');
+
+      if(input.value && index < inputs.length - 1){
+        inputs[index+1].focus();
+      }
+
+      updateOTP();
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if(e.key === "Backspace" && !input.value && index > 0){
+        inputs[index-1].focus();
+      }
+    });
+  });
+
+  function updateOTP(){
+    const otp = Array.from(inputs).map(i => i.value).join("");
+    hiddenOtp.value = otp;
+    verifyBtn.disabled = otp.length !== 6;
+  }
+
+
+  let timeLeft = parseInt("{{ time_left|default:0 }}");
+  const countdown = document.getElementById("countdown");
+  const timerText = document.getElementById("timerText");
+  const resendSection = document.getElementById("resendSection");
+
   const timer = setInterval(() => {
-    if (timeLeft <= 0) {
+    timeLeft--;
+
+    if(timeLeft <= 0){
       clearInterval(timer);
+      timerText.style.display = "none";
+      resendSection.style.display = "block";
       return;
     }
-    timeLeft--;
-    document.getElementById("countdowntimer").innerText = timeLeft;
+
+    countdown.innerText = timeLeft;
+
   }, 1000);
 
-  // Auto-hide messages (1.5 sec)
-  setTimeout(() => {
-    document.querySelectorAll(".auto-hide").forEach(msg => {
-      msg.style.opacity = "0";
-      setTimeout(() => msg.remove(), 400);
-    });
-  }, 1500);
+  const errorBox = document.querySelector(".error-box");
+  if(errorBox){
+    setTimeout(() => {
+      errorBox.style.opacity = "0";
+      setTimeout(()=> errorBox.remove(), 400);
+    }, 3000);
+  }
+
+});
 </script>
 {% endblock %}

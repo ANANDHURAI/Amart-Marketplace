@@ -11,7 +11,6 @@ urlpatterns = [
     path("admin-logout/", views.admin_logout, name="admin_logout"),
     # Account activation urls
     path("customer-activation/", views.customer_activation, name="customer_activation"),
-    path("resend-otp/", views.resend_otp, name="resend_otp"),
-
-    path("otp-view/", views.otp_view, name="otp_view"),
+    path("customer-resend-otp/", views.resend_otp, name="resend_otp"),
+    path("customer-otp-view/", views.otp_view, name="otp_view"),
 ]
