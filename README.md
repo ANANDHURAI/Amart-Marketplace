@@ -1,89 +1,73 @@
-# Amart | Men’s Fashion E-Commerce Platform
+# 🛍️ Amart - Men’s Fashion E-Commerce Engine
 
-Hi 👋, I’m **Anandhurai**.  
-This is my **First Industrial project**, designed to **E-Commerce** seamlessly.  
+> A scalable e-commerce platform featuring automated inventory management, wallet systems.
 
----
+![App Screenshot](Add_Your_Screenshot_Here)
 
-**Amart** is a specialized e-commerce solution designed exclusively for men's fashion. Built with a robust **Django** backend and a sleek, responsive frontend, it offers a seamless shopping experience for users and a powerful management suite for administrators.
+![Django](https://img.shields.io/badge/django-4.0-green.svg)
+![AWS](https://img.shields.io/badge/AWS-EC2-orange.svg)
+![MySQL](https://img.shields.io/badge/MySQL-DB-blue.svg)
+![Razorpay](https://img.shields.io/badge/Payments-Razorpay-blue.svg)
 
----
+## 📌 Project Overview
+Amart is a production-grade e-commerce solution designed for high-volume retail. It moves beyond basic CRUD operations to handle complex business logic like **inventory tracking**, **promotional coupon engines**, and **secure wallet transactions**.
 
-## 🚀 Features
+## 🚀 Key Features
 
-### 👤 Customer Side
-* **Secure Authentication:** Industry-standard Login and Signup processes with password hashing and session management.
-* **Premium UI/UX:** An attractive, minimalist interface built with **HTML5** and **CSS3** tailored for the modern man.
-* **Payment Integration:** Secure checkout powered by **Razorpay**, supporting multiple payment methods.
-* **Wallet System:** Integrated user wallet for faster checkouts and instant refund processing.
-* **Returns & Refunds:** User-friendly cancellation and refund functionality with automated wallet credits.
-* **Smart Discovery:** Advanced sorting (price, popularity, new arrivals) and filtering (size, color, brand).
-* **Error Handling:** Custom-designed, user-friendly error messages for a smooth browsing experience.
+### 🛡️ Admin Management
+* **Analytical Dashboard:** Real-time visualization of sales, revenue, and user growth.
+* **Inventory Control:** Automated stock deduction and low-stock alerts.
+* **Soft Delete:** Data safety implementation to prevent accidental permanent deletion.
 
----
-
-### 🛡️ Admin Side
-* **Analytical Dashboard:** A "Big View" real-time dashboard displaying key metrics like total sales, user growth, and revenue.
-* **User Management:** Ability to monitor user activity, with the power to **Ban/Unban** users to maintain platform integrity.
-* **Data Safety (Soft Delete):** A sophisticated soft-delete system ensuring data is never permanently lost accidentally.
-* **Marketing Tools:**
-    * **Coupon System:** Create and manage discount codes.
-    * **Offers System:** Category-wise or product-wise promotional offers.
-* **Inventory Management:** Full CRUD operations for products, categories, and stock levels.
-* **Order Management:** Track and update order statuses (Pending, Shipped, Delivered, Returned).
-* **Sales Reports:** Generate detailed reports (Daily, Weekly, Monthly) in various formats to track business growth.
-
----
+### 👤 Customer Experience
+* **Smart Discovery:** Advanced filtering (Size, Color, Brand) and sorting algorithms.
+* **Wallet System:** Closed-loop wallet for instant refunds and faster checkout.
+* **Secure Payments:** Integrated **Razorpay** gateway with webhook verification.
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
+| Component | Technology |
 | :--- | :--- |
 | **Backend** | Python, Django Framework |
 | **Frontend** | HTML5, CSS3, JavaScript |
 | **Database** | MySQL |
-| **Database Mapping** | Django ORM |
+| **ORM** | Django ORM |
 | **Payments** | Razorpay API |
-| **Deployment** | AWS (Amazon Web Services) |
+| **Deployment** | AWS EC2 (Gunicorn + Nginx) |
 
----
+## 🔧 Installation & Setup
 
-## 🏗️ System Architecture
-The application follows the **MVT (Model-View-Template)** architecture:
-* **Models:** Defined using Django ORM for seamless MySQL interaction.
-* **Views:** Handles the business logic, from processing payments to generating sales reports.
-* **Templates:** Dynamic HTML rendering for a personalized user experience.
+1.  **Clone & Install**
+    ```bash
+    git clone [https://github.com/ANANDHURAI/Amart-Marketplace.git](https://github.com/ANANDHURAI/Amart-Marketplace.git)
+    cd Amart-Marketplace
+    pip install -r requirements.txt
+    ```
 
----
+2.  **Environment Secrets (.env)**
+    *Create a `.env` file to store sensitive keys:*
+    ```env
+    SECRET_KEY=your_secret_key
+    DB_NAME=amart_db
+    DB_USER=root
+    DB_PASSWORD=your_mysql_password
+    RAZORPAY_KEY_ID=your_razorpay_key
+    RAZORPAY_KEY_SECRET=your_razorpay_secret
+    ```
 
-## 📦 Installation & Setup
+3.  **Database Migration**
+    ```bash
+    python manage.py makemigrations
+    python manage.py migrate
+    ```
 
-Create a Virtual Environment:
+4.  **Run Server**
+    ```bash
+    python manage.py runserver
+    ```
 
-Bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-Install Dependencies:
+## 🌐 Deployment
+Deployed on **AWS EC2** using **Gunicorn** and **Nginx** as a reverse proxy. Database managed via **AWS RDS**.
 
-Bash
-pip install -r requirements.txt
-Database Configuration:
-
-Create a MySQL database named amart_db.
-
-Update your settings.py with your MySQL credentials.
-
-Run Migrations:
-
-Bash
-python manage.py makemigrations
-python manage.py migrate
-Start the Server:
-
-Bash
-python manage.py runserver
-🌐 Deployment
-This application is deployed on AWS, utilizing EC2 for hosting and RDS for the MySQL database management, ensuring high availability and scalability.
-
-🤝 Contact
-Developed by Anandhurai – feel free to reach out for collaborations!
+## 👤 Author
+**Anand Kumar** - *Independent Full Stack Developer*
