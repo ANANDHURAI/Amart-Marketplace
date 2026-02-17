@@ -2,7 +2,8 @@
 
 > A scalable e-commerce platform featuring automated inventory management, wallet systems.
 
-![App Screenshot](Add_Your_Screenshot_Here)
+<img width="1889" height="912" alt="Screenshot 2026-02-17 125641" src="https://github.com/user-attachments/assets/599a1487-f3d6-476f-b591-d641b705bcb0" />
+
 
 ![Django](https://img.shields.io/badge/django-4.0-green.svg)
 ![AWS](https://img.shields.io/badge/AWS-EC2-orange.svg)
