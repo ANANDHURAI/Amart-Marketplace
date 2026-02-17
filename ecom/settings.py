@@ -1,5 +1,5 @@
 
-
+import dj_database_url
 from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
@@ -88,13 +88,14 @@ WSGI_APPLICATION = 'ecom.wsgi.application'
 
 
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3', 
-    }
-}
+# REPLACD YOUR OLD DATABASES SECTION WITH THIS DUE TO RENDER PLOTFORM DOESN'T SUPORT MORE THAN ONE POSTGRESQL DATABASE 
 
+DATABASES = {
+    'default': dj_database_url.config(
+        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
+        conn_max_age=600
+    )
+}
 
 
 AUTH_PASSWORD_VALIDATORS = [
