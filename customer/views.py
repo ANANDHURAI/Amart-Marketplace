@@ -1,25 +1,40 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from accounts.models import Customer
-from django.http import HttpResponse
-from .models import Cart, CartItem, Address, Order, OrderItem, FavouriteItem, Wallet
-from aadmin.models import Coupon, CategoryOffer
-from product.models import Product, Inventory
-from .utils import list_of_states_in_india
-from django.db.models import Sum
+"""
+Customer app views: dashboard, profile, addresses, cart, checkout, orders.
+
+Access controlled by @customer_required. Query optimization: select_related /
+prefetch_related to avoid N+1 in orders, cart, checkout, favourites, invoice.
+"""
+import logging
+import re
+
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
-from ecom.views import get_next_url
 from django.db import transaction
-from django.db.models import F
-import logging
-from django.urls import reverse
-import re
-from django.core.exceptions import ValidationError
-from django.db.models import Sum, Prefetch
+from django.db.models import F, Prefetch, Sum
 from django.http import HttpResponseRedirect
-from django.conf import settings
-import razorpay 
-from functools import wraps
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+
+import razorpay
+
+from accounts.models import Customer
+from aadmin.models import CategoryOffer, Coupon
+from ecom.views import get_next_url
+from product.models import Inventory, Product
+
+from .models import Address, Cart, CartItem, FavouriteItem, Order, OrderItem, Wallet
+from .utils import list_of_states_in_india
+
+logger = logging.getLogger(__name__)
+
+
+def _get_customer(request):
+    """Return the Customer for the current request user or None if not a customer."""
+    if not request.user.is_authenticated or not request.user.is_customer:
+        return None
+    return get_object_or_404(Customer, pk=request.user.pk)
 
 
 def customer_required(view_func):
@@ -61,27 +76,29 @@ def dashboard(request):
 
 @customer_required
 def address(request):
-    customer = Customer.objects.get(id=request.user.id)
+    """List addresses for the current customer."""
+    customer = _get_customer(request)
     addresses = Address.objects.filter(customer=customer)
-    context = {"customer": customer, "addresses": addresses}
-    return render(request, "customer/customer-address.html", context)
-
-
+    return render(request, "customer/customer-address.html", {
+        "customer": customer,
+        "addresses": addresses,
+    })
 
 
 @customer_required
 def profile(request):
-    customer = Customer.objects.get(id=request.user.id)
-    context = {"customer": customer}
-    return render(request, "customer/customer-profile.html", context)
+    """Display customer profile."""
+    customer = _get_customer(request)
+    return render(request, "customer/customer-profile.html", {"customer": customer})
 
 
 
 
 @customer_required
 def edit_profile(request):
+    """Update customer profile (name, mobile, profile image)."""
     if request.method == "POST":
-        customer = Customer.objects.get(id=request.user.id)
+        customer = _get_customer(request)
         customer.first_name = request.POST.get("first_name").title()
         customer.last_name = request.POST.get("last_name").title()
         customer.mobile = request.POST.get("mobile")
@@ -105,7 +122,7 @@ def change_password(request):
         password1 = request.POST.get("password1")
         password2 = request.POST.get("password2")
 
-        customer = Customer.objects.get(id=request.user.id)
+        customer = _get_customer(request)
 
         if not customer.check_password(current_password):
             error_message = "The current password you entered is incorrect."
@@ -189,7 +206,7 @@ def new_address(request):
         district = request.POST["district"].strip().title()
         state = request.POST["state"].strip()
 
-        customer = Customer.objects.get(id=request.user.id)
+        customer = _get_customer(request)
 
         address_parts = [
             name,
@@ -232,7 +249,9 @@ def new_address(request):
 
 @customer_required
 def edit_address(request, address_id):
-    address = Address.objects.get(id=address_id)
+    """Edit an address; address must belong to the current customer."""
+    customer = _get_customer(request)
+    address = get_object_or_404(Address, id=address_id, customer=customer)
     if request.method == "POST":
         name = request.POST.get("name").title()
         pincode = int(request.POST.get("pincode"))
@@ -242,7 +261,6 @@ def edit_address(request, address_id):
         city = request.POST.get("city").title()
         district = request.POST.get("district").title()
         state = request.POST.get("state").title()
-        customer = Customer.objects.get(id=request.user.id)
         address_parts = [
             name,
             building,
@@ -278,28 +296,21 @@ def edit_address(request, address_id):
 
 @customer_required
 def remove_address(request, address_id):
-    address = Address.objects.get(id=address_id)
+    """Delete an address; address must belong to the current customer."""
+    customer = _get_customer(request)
+    address = get_object_or_404(Address, id=address_id, customer=customer)
     address.delete()
     return redirect("customer_address")
 
 
-
-
-
 @customer_required
 def default_address(request, address_id):
-    address = Address.objects.get(id=address_id)
-
-    try:
-        address_default = Address.objects.get(is_default=True)
-        address_default.is_default = False
-        address_default.save()
-    except Exception as e:
-        pass
-
+    """Set an address as default; address must belong to the current customer."""
+    customer = _get_customer(request)
+    address = get_object_or_404(Address, id=address_id, customer=customer)
+    Address.objects.filter(customer=customer, is_default=True).update(is_default=False)
     address.is_default = True
     address.save()
-
     return redirect("customer_address")
 
 
@@ -308,28 +319,35 @@ def default_address(request, address_id):
 
 @customer_required
 def orders(request):
-    customer = Customer.objects.get(id=request.user.id)
-    orders = (
+    """List all orders for the current customer with items and subtotals."""
+    customer = _get_customer(request)
+    order_items_qs = OrderItem.objects.select_related(
+        "product", "inventory"
+    ).prefetch_related("product__product_images")
+    orders_qs = (
         Order.objects.filter(customer=customer)
+        .prefetch_related(Prefetch("items", queryset=order_items_qs))
         .annotate(total_quantity=Sum("items__quantity"))
         .order_by("-created_at")
     )
 
-    for order in orders:
-        order.order_items = OrderItem.objects.filter(order=order)
-        order.sub_total = 0
-
-    
-        order.has_active_items = order.order_items.exclude(status="cancelled").exists()
-
+    for order in orders_qs:
+        order.order_items = list(order.items.all())
+        order.sub_total = sum(
+            oi.quantity * oi.inventory.price for oi in order.order_items
+        )
+        order.has_active_items = any(
+            oi.status != "cancelled" for oi in order.order_items
+        )
         for order_item in order.order_items:
-            order_item.product.primary_image = order_item.product.product_images.filter(
-                priority=1
-            ).first()
-            order.sub_total += order_item.quantity * order_item.inventory.price
+            order_item.product.primary_image = (
+                order_item.product.product_images.order_by("priority").first()
+            )
 
-    context = {"customer": customer, "orders": orders}
-    return render(request, "customer/customer-orders.html", context)
+    return render(request, "customer/customer-orders.html", {
+        "customer": customer,
+        "orders": orders_qs,
+    })
 
 
 
@@ -337,9 +355,11 @@ def orders(request):
 @customer_required
 @transaction.atomic
 def cancel_order(request, order_id):
-    order = Order.objects.get(id=order_id)
-    order_items = OrderItem.objects.filter(order=order)
-    wallet, created = Wallet.objects.get_or_create(customer=request.user)
+    """Cancel an order; restores stock and refunds to wallet for paid non-COD."""
+    customer = _get_customer(request)
+    order = get_object_or_404(Order, id=order_id, customer=customer)
+    order_items = OrderItem.objects.select_related("inventory").filter(order=order)
+    wallet, _ = Wallet.objects.get_or_create(customer=customer)
 
     refund_amount = 0
     for order_item in order_items:
@@ -371,8 +391,15 @@ def cancel_order(request, order_id):
 
 @customer_required
 def cancel_order_item(request, order_item_id):
-    order_item = OrderItem.objects.get(id=order_item_id)
-    wallet, created = Wallet.objects.get_or_create(customer=request.user)
+    """Cancel a single order item; may mark whole order cancelled if no items left."""
+    customer = _get_customer(request)
+    order_item = get_object_or_404(
+        OrderItem,
+        id=order_item_id,
+        order__customer=customer,
+    )
+    order_item.order  # force load
+    wallet, _ = Wallet.objects.get_or_create(customer=customer)
 
     if order_item.status != "cancelled":
         order_item.status = "cancelled"
@@ -401,9 +428,11 @@ def cancel_order_item(request, order_item_id):
 @customer_required
 @transaction.atomic
 def return_order(request, order_id):
-    order = Order.objects.get(id=order_id)
-    order_items = OrderItem.objects.filter(order=order)
-    wallet, created = Wallet.objects.get_or_create(customer=request.user)
+    """Return a delivered order; restores stock and refunds to wallet for paid non-COD."""
+    customer = _get_customer(request)
+    order = get_object_or_404(Order, id=order_id, customer=customer)
+    order_items = OrderItem.objects.select_related("inventory").filter(order=order)
+    wallet, _ = Wallet.objects.get_or_create(customer=customer)
 
     if order.status == "delivered":
         refund_amount = 0
@@ -440,21 +469,25 @@ def return_order(request, order_id):
 
 @customer_required
 def favourites(request):
-    try:
-        customer = Customer.objects.get(id=request.user.id)
-    except Customer.DoesNotExist:
-        customer = None
-    favourite_items = FavouriteItem.objects.filter(customer=customer)
+    """List favourite products with primary image and lowest price."""
+    customer = _get_customer(request)
+    favourite_items = (
+        FavouriteItem.objects.filter(customer=customer)
+        .select_related("product", "product__main_category")
+        .prefetch_related("product__product_images", "product__inventory_sizes")
+    )
 
-    for favourite_item in favourite_items:
-        favourite_item.product.primary_image = (
-            favourite_item.product.product_images.filter(priority=1).first()
+    for fi in favourite_items:
+        fi.product.primary_image = (
+            fi.product.product_images.order_by("priority").first()
         )
-        available_inventory = favourite_item.product.inventory_sizes.first()
-        if available_inventory:
-            favourite_item.product.price = available_inventory.price
-    context = {"favourite_items": favourite_items, "customer": customer}
-    return render(request, "customer/favourites.html", context)
+        inv = fi.product.inventory_sizes.filter(is_active=True).first()
+        fi.product.price = inv.price if inv else 0
+
+    return render(request, "customer/favourites.html", {
+        "favourite_items": favourite_items,
+        "customer": customer,
+    })
 
 
 
@@ -462,18 +495,10 @@ def favourites(request):
 
 @customer_required
 def add_to_favourite(request, product_id):
-    next_url = get_next_url(request)
-    try:
-        customer = Customer.objects.get(id=request.user.id)
-    except Customer.DoesNotExist:
-        messages.error(request, "Customer not found.")
-        return redirect("home")
-    try:
-        product = Product.objects.get(id=product_id)
-    except Product.DoesNotExist:
-
-        messages.error(request, "Product not found.")
-        return redirect(next_url)
+    """Add a product to favourites; redirects back to referrer or home."""
+    next_url = get_next_url(request) or "home"
+    customer = _get_customer(request)
+    product = get_object_or_404(Product, id=product_id)
     favourite_item, created = FavouriteItem.objects.get_or_create(
         customer=customer, product=product
     )
@@ -492,8 +517,12 @@ def add_to_favourite(request, product_id):
 
 @customer_required
 def remove_favourite_item(request, favourite_item_id):
-    next_url = get_next_url(request)
-    favourite_item = FavouriteItem.objects.get(id=favourite_item_id)
+    """Remove an item from favourites; redirects back to referrer."""
+    next_url = get_next_url(request) or "home"
+    customer = _get_customer(request)
+    favourite_item = get_object_or_404(
+        FavouriteItem, id=favourite_item_id, customer=customer
+    )
     favourite_item.delete()
     return redirect(next_url)
 
@@ -503,42 +532,31 @@ def remove_favourite_item(request, favourite_item_id):
 
 @customer_required
 def cart(request):
-    customer = Customer.objects.get(id=request.user.id)
+    """Cart page with items, primary image, available sizes, and total."""
+    customer = _get_customer(request)
     cart, _ = Cart.objects.get_or_create(customer=customer)
-
-    cart_items = CartItem.objects.select_related(
-        "product", "inventory"
-    ).prefetch_related(
-        "product__inventory_sizes"
-    ).filter(cart=cart)
+    cart_items = (
+        CartItem.objects.filter(cart=cart)
+        .select_related("product", "inventory")
+        .prefetch_related("product__product_images", "product__inventory_sizes")
+    )
 
     total_amount = 0
-
     for item in cart_items:
-        # product image
         item.product.primary_image = (
-            item.product.product_images.filter(priority=1).first()
+            item.product.product_images.order_by("priority").first()
         )
-
-        # only available inventories for THIS product
         item.available_inventories = item.product.inventory_sizes.filter(
-            is_active=True,
-            stock__gt=0
+            is_active=True, stock__gt=0
         )
-
         total_amount += item.quantity * item.inventory.price
 
     cart.total_amount = total_amount
-
-    return render(
-        request,
-        "customer/cart.html",
-        {
-            "customer": customer,
-            "cart_items": cart_items,
-            "cart": cart,
-        },
-    )
+    return render(request, "customer/cart.html", {
+        "customer": customer,
+        "cart_items": cart_items,
+        "cart": cart,
+    })
 
 
 
@@ -593,23 +611,28 @@ def add_to_cart(request, product_id):
 
 @customer_required
 def update_cart_item(request, cart_item_id):
-    if request.method == "POST":
-        cart_item = CartItem.objects.get(id=cart_item_id)
-        quantity = int(request.POST.get("product-quantity"))
-        size = request.POST.get("product-size")
-        inventory = Inventory.objects.get(product=cart_item.product, size=size)
+    """Update quantity/size of a cart item; item must belong to current customer's cart."""
+    if request.method != "POST":
+        return redirect("cart")
+    customer = _get_customer(request)
+    cart = get_object_or_404(Cart, customer=customer)
+    cart_item = get_object_or_404(CartItem, id=cart_item_id, cart=cart)
+    quantity = int(request.POST.get("product-quantity", 1))
+    size = request.POST.get("product-size")
+    inventory = get_object_or_404(
+        Inventory, product=cart_item.product, size=size
+    )
 
-        if quantity > inventory.stock:
-            error_message = (
-                f"Only {inventory.stock} item(s) available in stock for this size."
-            )
-            messages.error(request, error_message)
-            return redirect("product_page", slug=cart_item.product.slug)
+    if quantity > inventory.stock:
+        error_message = (
+            f"Only {inventory.stock} item(s) available in stock for this size."
+        )
+        messages.error(request, error_message)
+        return redirect("product_page", slug=cart_item.product.slug)
 
-        cart_item.quantity = quantity
-        cart_item.inventory = inventory
-        cart_item.save()
-
+    cart_item.quantity = quantity
+    cart_item.inventory = inventory
+    cart_item.save()
     return redirect("cart")
 
 
@@ -619,10 +642,11 @@ def update_cart_item(request, cart_item_id):
 
 @customer_required
 def remove_cart_item(request, cart_item_id):
-    cart_item = CartItem.objects.get(id=cart_item_id)
-
+    """Remove a cart item; item must belong to current customer's cart."""
+    customer = _get_customer(request)
+    cart = get_object_or_404(Cart, customer=customer)
+    cart_item = get_object_or_404(CartItem, id=cart_item_id, cart=cart)
     cart_item.delete()
-
     return redirect("cart")
 
 
@@ -631,27 +655,35 @@ def remove_cart_item(request, cart_item_id):
 
 @customer_required
 def checkout(request):
-    customer = Customer.objects.get(id=request.user.id)
+    """Checkout: cart summary, addresses, payment method, category offers and wallet."""
+    customer = _get_customer(request)
     cart, _ = Cart.objects.get_or_create(customer=customer)
-    cart_items = CartItem.objects.filter(cart=cart)
-    wallet = Wallet.objects.get(customer=customer)
+    cart_items = (
+        CartItem.objects.filter(cart=cart)
+        .select_related("product", "product__main_category", "inventory")
+        .prefetch_related("product__product_images")
+    )
     if not cart_items.exists():
         return redirect("cart")
 
+    wallet, _ = Wallet.objects.get_or_create(customer=customer)
+    category_ids = list({ci.product.main_category_id for ci in cart_items})
+    offers_by_category = {
+        co["category_id"]: co["discount"]
+        for co in CategoryOffer.objects.filter(
+            category_id__in=category_ids
+        ).values("category_id", "discount")
+    }
+
     total_amount = 0
     total_offer = 0
-    selected_address_id = request.session.get("address_id")
-    selected_payment_method = request.session.get("payment_method")
-
     for cart_item in cart_items:
-        cart_item.product.primary_image = cart_item.product.product_images.filter(
-            priority=1
-        ).first()
-        offer = CategoryOffer.objects.filter(
-            category=cart_item.product.main_category
-        ).first()
-        offer_discount = offer.discount if offer else 0
-
+        cart_item.product.primary_image = (
+            cart_item.product.product_images.order_by("priority").first()
+        )
+        offer_discount = offers_by_category.get(
+            cart_item.product.main_category_id, 0
+        )
         amount = cart_item.quantity * cart_item.inventory.price
         total_amount += amount
         total_offer += round(amount * offer_discount / 100)
@@ -662,18 +694,16 @@ def checkout(request):
     cart.save()
 
     addresses = Address.objects.filter(customer=customer)
-
-    context = {
+    return render(request, "customer/checkout.html", {
         "customer": customer,
         "cart_items": cart_items,
         "cart": cart,
         "addresses": addresses,
         "states": list_of_states_in_india,
-        "selected_address_id": selected_address_id,
-        "selected_payment_method": selected_payment_method,
+        "selected_address_id": request.session.get("address_id"),
+        "selected_payment_method": request.session.get("payment_method"),
         "wallet_balance": wallet.balance,
-    }
-    return render(request, "customer/checkout.html", context)
+    })
 
 
 
@@ -690,7 +720,7 @@ def place_order(request):
 
     address_id = request.POST.get("address_id")
     payment_method = request.POST.get("payment_method")
-    coupon_code = request.POST.get("coupon_code", "").upper()
+    coupon_code = request.POST.get("coupon_code", "").strip().upper()
 
     request.session["address_id"] = address_id
     request.session["payment_method"] = payment_method
@@ -750,9 +780,9 @@ def place_order(request):
         request.session["total_amount"] = total_amount
 
         
-        # PAYMENT DECISION 
+        # PAYMENT DECISION
         if payment_method == "wallet":
-            return handle_wallet_payment(request, request.user.customer, total_amount)
+            return handle_wallet_payment(request, _get_customer(request), total_amount)
 
         
         if payment_method == "cod":
@@ -769,14 +799,10 @@ def place_order(request):
         messages.error(request, "Invalid payment method")
         return redirect("checkout")
 
-    except Exception as e:
-        logger.error(f"place_order error: {str(e)}")
+    except Exception as exc:
+        logger.exception("place_order error: %s", exc)
         messages.error(request, "Something went wrong. Try again.")
         return redirect("checkout")
-
-
-
-logger = logging.getLogger(__name__)
 
 
 
@@ -790,10 +816,12 @@ def create_order(request):
     discount = request.session.get("discount", 0)
     coupon_code = request.session.get("coupon_code")
 
-    customer = request.user.customer
+    customer = _get_customer(request)
     address = get_object_or_404(Address, id=address_id, customer=customer)
     cart = get_object_or_404(Cart, customer=customer)
-    cart_items = CartItem.objects.filter(cart=cart)
+    cart_items = CartItem.objects.select_related(
+        "product", "inventory"
+    ).filter(cart=cart)
 
     total_amount = sum(
         item.quantity * item.inventory.price for item in cart_items
@@ -872,17 +900,9 @@ def finalize_order(request):
 
 @customer_required
 def order_confirmation(request, order_id):
-    order = get_object_or_404(Order, id=order_id)
-    customer = Customer.objects.filter(account_ptr=request.user).first()
-    if not customer:
-        messages.error(request, "Customer not found.")
-        return redirect("home")
-
-    
-    order = Order.objects.filter(id=order_id, customer=customer).first()
-    if not order:
-        messages.error(request, "Order not found.")
-        return redirect("customer_orders")
+    """Redirect to payment success after order confirmation."""
+    customer = _get_customer(request)
+    order = get_object_or_404(Order, id=order_id, customer=customer)
     messages.success(request, f"Your order #{order.id} has been placed successfully!")
     return HttpResponseRedirect(reverse("payment_success"))
 
@@ -898,14 +918,19 @@ razorpay_client = razorpay.Client(
 
 @customer_required
 def customer_wallet(request):
-    customer = request.user.customer
+    """Wallet balance and top-up; lists recent refunded order items."""
+    customer = _get_customer(request)
     wallet, _ = Wallet.objects.get_or_create(customer=customer)
-
-    order_items = OrderItem.objects.filter(
-        order__customer=customer,
-        status="cancelled",
-        order__is_paid=True
-    ).exclude(order__payment_method="COD").order_by("-id")
+    order_items = (
+        OrderItem.objects.filter(
+            order__customer=customer,
+            status="cancelled",
+            order__is_paid=True,
+        )
+        .exclude(order__payment_method="COD")
+        .select_related("order", "product", "inventory")
+        .order_by("-id")
+    )
 
     context = {
         "customer": customer,
@@ -947,15 +972,20 @@ def customer_wallet(request):
 
 @customer_required
 def invoice(request, order_id):
-    order = Order.objects.get(id=order_id)
-    order.order_items = OrderItem.objects.filter(order=order)
+    """Invoice for an order; order must belong to the current customer."""
+    customer = _get_customer(request)
+    order = get_object_or_404(Order, id=order_id, customer=customer)
+    order_items = (
+        OrderItem.objects.filter(order=order)
+        .select_related("product", "inventory")
+        .prefetch_related("product__product_images")
+    )
+    order.order_items = list(order_items)
     order.sub_total = 0
+    for oi in order.order_items:
+        oi.product.primary_image = (
+            oi.product.product_images.order_by("priority").first()
+        )
+        order.sub_total += oi.quantity * oi.inventory.price
 
-    for order_item in order.order_items:
-        order_item.product.primary_image = order_item.product.product_images.filter(
-            priority=1
-        ).first()
-        order.sub_total += order_item.quantity * order_item.inventory.price
-
-    context = {"order": order}
-    return render(request, "customer/invoice.html", context)
+    return render(request, "customer/invoice.html", {"order": order})
