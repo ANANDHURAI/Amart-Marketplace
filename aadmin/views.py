@@ -1,3 +1,5 @@
+"""Admin app views: dashboard, catalog management, orders, coupons, offers, inventory."""
+
 from django.shortcuts import render, redirect, get_object_or_404
 from accounts.models import Customer, Account
 from product.models import Category, Product, Inventory, ProductImage
@@ -16,8 +18,8 @@ import base64
 from uuid import uuid4
 
 
-
 def admin_login_required(func):
+    """Decorator restricting access to authenticated superadmin users."""
 
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated or not request.user.is_superadmin:
