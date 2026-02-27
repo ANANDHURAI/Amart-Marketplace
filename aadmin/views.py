@@ -9,7 +9,7 @@ from django.utils.text import slugify
 from django.contrib import messages
 from django.http import HttpResponse
 from datetime import datetime, timedelta, date
-from django.db.models import F, Sum
+from django.db.models import Count, F, Sum
 from django.db.models.functions import Coalesce
 from django.db import transaction
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -85,6 +85,7 @@ def edit_admin_profile(request):
 
 @admin_login_required
 def admin_dashboard(request):
+    """Admin dashboard: top products/categories and revenue charts."""
     title = "Dashboard"
     current_page = "admin_dashboard"
 
@@ -95,17 +96,21 @@ def admin_dashboard(request):
         .order_by("-total_quantity")[:5]
     )
 
+    top_product_ids = [p["product__id"] for p in top_products_info]
+    products_by_id = {
+        p.id: p
+        for p in Product.objects.filter(id__in=top_product_ids).prefetch_related(
+            "product_images"
+        )
+    }
     top_products = []
-
-    for product_info in top_products_info:
-        try:
-            product = get_object_or_404(Product, id=product_info["product__id"])
-            primary_image = product.product_images.filter(priority=1).first()
-            product.primary_image = primary_image
-            product.total_quantity = product_info["total_quantity"]
-            top_products.append(product)
-        except:
+    for info in top_products_info:
+        product = products_by_id.get(info["product__id"])
+        if not product:
             continue
+        product.primary_image = product.product_images.order_by("priority").first()
+        product.total_quantity = info["total_quantity"]
+        top_products.append(product)
 
     top_categories_info = (
         Product.objects.filter(main_category__isnull=False)
@@ -114,18 +119,15 @@ def admin_dashboard(request):
         .order_by("-total_quantity")[:10]
     )
 
+    top_category_ids = [c["main_category__id"] for c in top_categories_info]
+    categories_by_id = {c.id: c for c in Category.objects.filter(id__in=top_category_ids)}
     top_categories = []
-
-    for category_info in top_categories_info:
-        try:
-            category = get_object_or_404(
-                Category, id=category_info["main_category__id"]
-            )
-            category.total_quantity = category_info["total_quantity"]
-            top_categories.append(category)
-        except:
-          
+    for info in top_categories_info:
+        category = categories_by_id.get(info["main_category__id"])
+        if not category:
             continue
+        category.total_quantity = info["total_quantity"]
+        top_categories.append(category)
 
     # Line chart for revenue for last year
 
@@ -246,6 +248,7 @@ def customer_approval(request, pk):
 
 @admin_login_required
 def category_list(request):
+    """List categories with filter/search and product counts."""
     title = "Categories"
     current_page = "category_list"
 
@@ -262,10 +265,14 @@ def category_list(request):
     if search_query:
         categories = categories.filter(name__icontains=search_query)
 
+    counts_by_category_id = {
+        row["main_category_id"]: row["count"]
+        for row in Product.all_objects.values("main_category_id").annotate(
+            count=Count("id")
+        )
+    }
     for category in categories:
-        category.count = Product.all_objects.filter(
-            main_category=category
-        ).count()
+        category.count = counts_by_category_id.get(category.id, 0)
 
     paginator = Paginator(categories, 5)
     page_number = request.GET.get("page")
@@ -419,13 +426,14 @@ def restore_category(request, slug):
 
 @admin_login_required
 def product_list(request):
+    """List products with filters, search, and total stock."""
     title = "Products"
     current_page = "product_list"
 
     products = (
-        Product.objects
-        .all()
+        Product.objects.all()
         .prefetch_related("product_images")
+        .annotate(total_stock=Coalesce(Sum("inventory_sizes__stock"), 0))
         .order_by("-created_at")
     )
 
@@ -452,14 +460,7 @@ def product_list(request):
     page_obj = paginator.get_page(page_number)
 
     for product in page_obj:
-        inventory = Inventory.objects.filter(product=product)
-        product.total_stock = sum(inv.stock for inv in inventory)
-
-        product.primary_image = (
-            product.product_images
-            .order_by("priority")
-            .first()
-        )
+        product.primary_image = product.product_images.order_by("priority").first()
 
     context = {
         "products": page_obj,
@@ -684,6 +685,7 @@ def update_order_status(request, order_item_id):
 
 @admin_login_required
 def sales_report(request):
+    """Sales report with date-range filters and pagination."""
     title = "Sales Report"
     current_page = "sales_report"
 
@@ -733,8 +735,10 @@ def sales_report(request):
     orders = Order.objects.filter(created_at__range=[start_date, end_date]).order_by(
         "-created_at"
     )
-    order_items = OrderItem.objects.filter(order__in=orders).annotate(
-        order_created_at=F("order__created_at")
+    order_items = (
+        OrderItem.objects.filter(order__in=orders)
+        .select_related("order", "product", "inventory")
+        .annotate(order_created_at=F("order__created_at"))
     )
     order_items = order_items.order_by("-order_created_at")
 
@@ -747,7 +751,12 @@ def sales_report(request):
     except EmptyPage:
         order_items_paginated = paginator.page(paginator.num_pages)
 
-    overall_amount = sum(item.inventory.price * item.quantity for item in order_items)
+    overall_amount = (
+        order_items.aggregate(total=Sum(F("inventory__price") * F("quantity")))[
+            "total"
+        ]
+        or 0
+    )
     overall_count = order_items.count()
 
     start_date_str = start_date.strftime("%d-%m-%Y")

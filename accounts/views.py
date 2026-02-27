@@ -1,20 +1,30 @@
-from django.shortcuts import render, redirect
-from .models import Customer, Account
+"""Account app views: customer signup/login, admin login, and OTP activation."""
+
+import re
+from datetime import datetime
+
+import pyotp
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from .utils import send_otp, pyotp
-from datetime import datetime
-from django.urls import reverse
-from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
-import re
+from django.core.validators import validate_email
+from django.shortcuts import redirect, render
+
+from .models import Account, Customer
+from .utils import send_otp
+
+
+def _normalize_email(email: str) -> str:
+    """Return a trimmed, lowercased email string."""
+    return (email or "").strip().lower()
 
 
 def customer_signup(request):
+    """Customer registration: validate inputs then start OTP flow."""
     if request.method == "POST":
         first_name = request.POST.get("first_name", "").strip().title()
         last_name = request.POST.get("last_name", "").strip().title()
-        email = request.POST.get("email", "").strip().lower()
+        email = _normalize_email(request.POST.get("email", ""))
         password = request.POST.get("password")
         password2 = request.POST.get("password2")
 
@@ -28,7 +38,7 @@ def customer_signup(request):
             messages.error(request, "Enter a valid email address")
             return redirect("customer_signup")
 
-        name_regex = r'^[A-Za-z ]+$'
+        name_regex = r"^[A-Za-z ]+$"
         if not re.match(name_regex, first_name):
             messages.error(request, "First name should contain only letters")
             return redirect("customer_signup")
@@ -41,8 +51,11 @@ def customer_signup(request):
             messages.error(request, "Passwords do not match")
             return redirect("customer_signup")
 
-        if not re.match(r"^(?=.*\d).{8,}$", password):
-            messages.error(request, "Password must be at least 8 characters and contain a number")
+        if not re.match(r"^(?=.*\d).{8,}$", password or ""):
+            messages.error(
+                request,
+                "Password must be at least 8 characters and contain a number",
+            )
             return redirect("customer_signup")
 
         if Account.objects.filter(email=email).exists():
@@ -69,8 +82,9 @@ def customer_signup(request):
 
 
 def customer_login(request):
+    """Customer login with basic account checks."""
     if request.method == "POST":
-        email = request.POST.get("email", "").strip().lower()
+        email = _normalize_email(request.POST.get("email", ""))
         password = request.POST.get("password")
 
         if not email or not password:
@@ -107,6 +121,7 @@ def customer_login(request):
 
 
 def customer_logout(request):
+    """Log out a customer."""
     logout(request)
     return redirect("home")
 
@@ -114,8 +129,9 @@ def customer_logout(request):
 
 
 def admin_login(request):
+    """Admin login restricted to superadmin accounts."""
     if request.method == "POST":
-        email = request.POST.get("email", "").strip().lower()
+        email = _normalize_email(request.POST.get("email", ""))
         password = request.POST.get("password")
 
         if not email:
@@ -157,6 +173,7 @@ def admin_login(request):
 
 
 def admin_logout(request):
+    """Log out an admin user."""
     logout(request)
     return redirect("admin_login")
 
@@ -165,6 +182,7 @@ def admin_logout(request):
 
 
 def otp_view(request):
+    """Send OTP and redirect to activation page."""
     if not request.session.get("email"):
         messages.error(request, "Session expired")
         return redirect("customer_signup")
@@ -177,14 +195,8 @@ def otp_view(request):
 
 
 
-from datetime import datetime
-from django.shortcuts import render, redirect
-from django.contrib import messages
-import pyotp
-from .models import Customer
-
-
 def customer_activation(request):
+    """Verify OTP and activate the customer account."""
     signup_data = request.session.get("signup_data")
     secret_key = request.session.get("otp_secret_key")
     valid_till = request.session.get("otp_valid_till")
@@ -194,15 +206,15 @@ def customer_activation(request):
         messages.error(request, "Session expired. Please register again.")
         return redirect("customer_signup")
 
-    valid_till = datetime.fromisoformat(valid_till)
+    valid_till_dt = datetime.fromisoformat(valid_till)
 
   
-    time_left = max(0, int((valid_till - datetime.now()).total_seconds()))
+    time_left = max(0, int((valid_till_dt - datetime.now()).total_seconds()))
 
     if request.method == "POST":
         otp = request.POST.get("otp", "").strip()
 
-        if datetime.now() > valid_till:
+        if datetime.now() > valid_till_dt:
             messages.error(request, "OTP has expired. Please request a new one.")
             return redirect("customer_activation")
 
@@ -240,6 +252,7 @@ def customer_activation(request):
 
 
 def resend_otp(request):
+    """Resend OTP with basic rate limiting and expiry checks."""
     email = request.session.get("email")
     otp_valid_till = request.session.get("otp_valid_till")
     resend_count = request.session.get("otp_resend_count", 0)
@@ -252,10 +265,10 @@ def resend_otp(request):
         messages.error(request, "Maximum OTP resend attempts reached. Please try later")
         return redirect("customer_signup")
 
-    otp_valid_till = datetime.fromisoformat(otp_valid_till)
+    otp_valid_till_dt = datetime.fromisoformat(otp_valid_till)
 
 
-    if datetime.now() < otp_valid_till:
+    if datetime.now() < otp_valid_till_dt:
         messages.error(request, "Please wait until OTP expires before resending")
         return redirect("customer_activation")
 
