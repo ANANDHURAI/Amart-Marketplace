@@ -31,7 +31,7 @@ class CustomerCoupon(Coupon):
 class CategoryOffer(models.Model):
     category = models.ForeignKey(
         Category, related_name="category", on_delete=models.CASCADE
-    )
+    ) 
     discount = models.PositiveIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(99)]
     )
