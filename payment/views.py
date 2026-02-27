@@ -1,16 +1,19 @@
-from django.shortcuts import render, redirect
+"""Payment views: Razorpay, COD, and wallet-based flows for customers."""
+
+import logging
+
 import razorpay
 from django.conf import settings
-from customer.models import Order, Cart, CartItem, Wallet, OrderItem
-from django.urls import reverse
-from django.http import HttpResponse, HttpResponseBadRequest, Http404
-from django.views.decorators.csrf import csrf_exempt
-from accounts.models import Customer
 from django.contrib import messages
-
-from customer.views import customer_required
-import logging
 from django.db import transaction
+from django.http import HttpResponse, HttpResponseBadRequest, Http404
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+
+from accounts.models import Customer
+from customer.models import Cart, CartItem, Order, OrderItem, Wallet
+from customer.views import customer_required
 
 
 
@@ -24,6 +27,7 @@ razorpay_client = razorpay.Client(
 
 @customer_required
 def razorpay_order_creation(request, amount):
+    """Create a Razorpay order and render payment page."""
     currency = "INR"
     amount = int(amount) * 100
 
@@ -52,6 +56,7 @@ logger = logging.getLogger(__name__)
 @customer_required
 @csrf_exempt
 def razorpay_paymenthandler(request):
+    """Handle Razorpay callback, including wallet top-up and order payment."""
     if request.method != "POST":
         return redirect("checkout")
 
@@ -116,6 +121,7 @@ def razorpay_paymenthandler(request):
 
 @customer_required
 def cash_on_delivery(request):
+    """Mark upcoming order as COD in the session and finalize later."""
     request.session["payment_method"] = "cod"
     request.session["payment_successful"] = False
     return redirect("finalize_order")
@@ -141,7 +147,8 @@ def handle_cod_payment(request, customer, total_amount):
 
 @customer_required
 def pay_now(request, order_id):
-    order = Order.objects.get(id=order_id)
+    """Start Razorpay payment flow for an existing COD order."""
+    order = get_object_or_404(Order, id=order_id, customer=request.user.customer)
     request.session["pay_now"] = "pay_now"
     request.session["order_id"] = order_id
     return redirect("razorpay_order_creation", amount=order.total_amount)
@@ -168,6 +175,7 @@ def handle_wallet_payment(request, customer, total_amount):
 
 @customer_required
 def wallet_retry_payment(request):
+    """Retry failed payment using wallet, based on session total_amount."""
     total_amount = request.session.get("total_amount")
 
     if not total_amount:
@@ -184,6 +192,7 @@ def wallet_retry_payment(request):
 
 @customer_required
 def payment_success(request):
+    """Simple success page after a completed payment."""
     return render(request, "customer/customer-payment-success.html")
 
 
@@ -191,6 +200,7 @@ def payment_success(request):
 
 @customer_required
 def payment_failed(request):
+    """Payment failed page with options to retry using different methods."""
     total_amount = request.session.get("total_amount")
     payment_method = request.session.get("payment_method")
     address_id = request.session.get("address_id")
