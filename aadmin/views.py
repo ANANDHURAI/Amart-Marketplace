@@ -16,19 +16,19 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 import base64
 from uuid import uuid4
+from functools import wraps
+from django.urls import reverse
 
 
-def admin_login_required(func):
-    """Decorator restricting access to authenticated superadmin users."""
 
-    def wrapper(request, *args, **kwargs):
+def admin_login_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
         if not request.user.is_authenticated or not request.user.is_superadmin:
-            target_url = request.build_absolute_uri()
-            request.session["admin_target_url"] = target_url
-            return redirect("admin_login")
-        return func(request, *args, **kwargs)
+            return redirect(f"{reverse('admin_login')}?next={request.get_full_path()}")
+        return view_func(request, *args, **kwargs)
 
-    return wrapper
+    return _wrapped_view
 
 
 
