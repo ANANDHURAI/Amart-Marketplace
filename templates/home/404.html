@@ -1,22 +1,90 @@
-{% extends "base.html" %}
+{% extends "home/base.html" %}
+{% load static %}
+
 {% block content %}
+<style>
+/* Full page center */
+.page-404 {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+}
 
-	<section class="page-404">
-		<div class="container">
-			<div class="row">
-				<div class="col-md-12">
-					<a href="{% url "home" %}">
-						<img src="{% static "images/logo-no-background.png" %}" alt="site logo" />
-					</a>
-					<h1>404</h1>
-					<h2>Page Not Found</h2>
-					<a href="index.html" class="btn btn-main"><i class="tf-ion-android-arrow-back"></i> Go Home</a>
-					<p class="copyright-text">© 2018 Themefisher All Rights Reserved</p>
-				</div>
-			</div>
-		</div>
-	</section>
+/* Glass card */
+.error-box {
+    text-align: center;
+    padding: 50px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(15px);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    animation: fadeIn 1s ease-in-out;
+}
 
-    {% include 'home/includes/footer.html' %}
+/* Logo */
+.error-box img {
+    width: 120px;
+    margin-bottom: 20px;
+    animation: float 3s ease-in-out infinite;
+}
+
+/* 404 text */
+.error-code {
+    font-size: 120px;
+    font-weight: 800;
+    background: linear-gradient(45deg, #ff416c, #ff4b2b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* subtitle */
+.error-text {
+    font-size: 22px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+/* button */
+.home-btn {
+    padding: 12px 30px;
+    border-radius: 30px;
+    background: black;
+    color: white;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.home-btn:hover {
+    background: #ff416c;
+    transform: scale(1.05);
+}
+
+/* animations */
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(20px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+
+@keyframes float {
+    0%,100% {transform: translateY(0);}
+    50% {transform: translateY(-10px);}
+}
+</style>
+
+<section class="page-404">
+    <div class="error-box">
+
+        <img src="{% static "images/logo-no-background.png" %}" alt="logo">
+
+        <div class="error-code">404</div>
+
+        <div class="error-text">Oops! Page not found</div>
+
+        <a href="/" class="home-btn">Go Home</a>
+
+    </div>
+</section>
 
 {% endblock content %}
