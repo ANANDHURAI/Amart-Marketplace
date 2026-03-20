@@ -56,18 +56,26 @@ def admin_profile(request):
 def edit_admin_profile(request):
     title = "Edit Admin Profile"
     current_page = "admin_profile"
-
     admin = request.user
 
     if request.method == "POST":
-        admin.first_name = request.POST.get("first_name")
-        admin.last_name = request.POST.get("last_name")
-        admin.mobile = request.POST.get("mobile")
+        first_name = request.POST.get("first_name", "").strip()
+        last_name = request.POST.get("last_name", "").strip()
+        mobile = request.POST.get("mobile", "").strip()
+        profile_image = request.FILES.get("profile_image")
 
-        if request.FILES.get("profile_image"):
-            admin.profile_image = request.FILES.get("profile_image")
+       
+        if first_name:
+            admin.first_name = first_name
+        if last_name:
+            admin.last_name = last_name
+        if mobile:
+            admin.mobile = mobile
+        if profile_image:
+            admin.profile_image = profile_image
 
         admin.save()
+
         messages.success(request, "Profile updated successfully")
         return redirect("admin_profile")
 
