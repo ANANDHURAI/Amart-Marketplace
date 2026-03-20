@@ -89,14 +89,27 @@ def edit_admin_profile(request):
 
 
 
-
-
 @admin_login_required
 def admin_dashboard(request):
     """Admin dashboard: top products/categories and revenue charts."""
-    title = "Dashboard"
-    current_page = "admin_dashboard"
+    context = {
+        "title": "Dashboard",
+        "current_page": "admin_dashboard",
+    }
 
+    context.update(get_top_products())
+    context.update(get_top_categories())
+    context.update(get_yearly_revenue())
+    context.update(get_monthly_revenue())
+    context.update(get_order_status_counts())
+
+    return render(request, "aadmin/admin-dashboard.html", context)
+
+
+
+
+
+def get_top_products():
     top_products_info = (
         OrderItem.objects.filter(product__isnull=False)
         .values("product__id", "product__name")
@@ -104,22 +117,31 @@ def admin_dashboard(request):
         .order_by("-total_quantity")[:5]
     )
 
-    top_product_ids = [p["product__id"] for p in top_products_info]
-    products_by_id = {
-        p.id: p
-        for p in Product.objects.filter(id__in=top_product_ids).prefetch_related(
-            "product_images"
-        )
-    }
+    product_ids = [p["product__id"] for p in top_products_info]
+
+    products = (
+        Product.objects.filter(id__in=product_ids)
+        .prefetch_related("product_images")
+    )
+
+    products_by_id = {p.id: p for p in products}
+
     top_products = []
     for info in top_products_info:
         product = products_by_id.get(info["product__id"])
         if not product:
             continue
+
         product.primary_image = product.product_images.order_by("priority").first()
         product.total_quantity = info["total_quantity"]
         top_products.append(product)
 
+    return {"top_products": top_products}
+
+
+
+
+def get_top_categories():
     top_categories_info = (
         Product.objects.filter(main_category__isnull=False)
         .values("main_category__id")
@@ -127,89 +149,102 @@ def admin_dashboard(request):
         .order_by("-total_quantity")[:10]
     )
 
-    top_category_ids = [c["main_category__id"] for c in top_categories_info]
-    categories_by_id = {c.id: c for c in Category.objects.filter(id__in=top_category_ids)}
+    category_ids = [c["main_category__id"] for c in top_categories_info]
+
+    categories = Category.objects.filter(id__in=category_ids)
+    categories_by_id = {c.id: c for c in categories}
+
     top_categories = []
     for info in top_categories_info:
         category = categories_by_id.get(info["main_category__id"])
         if not category:
             continue
+
         category.total_quantity = info["total_quantity"]
         top_categories.append(category)
 
-    # Line chart for revenue for last year
+    return {"top_categories": top_categories}
 
+
+
+
+def get_yearly_revenue():
     end_date = date.today()
     start_date = end_date - timedelta(days=365)
+
     months = []
     revenue_by_month = []
 
-    current_date = start_date
-    while current_date <= end_date:
-        month_start_date = current_date.replace(day=1)
-        next_month_start_date = (
-            current_date.replace(day=1) + timedelta(days=32)
-        ).replace(day=1)
+    current = start_date
 
-        month_label = month_start_date.strftime("%b")
+    while current <= end_date:
+        start = current.replace(day=1)
+        next_month = (start + timedelta(days=32)).replace(day=1)
 
-        total_revenue = Order.objects.filter(
-            created_at__gte=month_start_date, created_at__lt=next_month_start_date
-        ).aggregate(total=Sum("total_amount"))["total"]
+        total = (
+            Order.objects.filter(created_at__gte=start, created_at__lt=next_month)
+            .aggregate(total=Sum("total_amount"))["total"]
+            or 0
+        )
 
-        months.append(month_label)
-        revenue_by_month.append(total_revenue or 0)
+        months.append(start.strftime("%b"))
+        revenue_by_month.append(total)
 
-        current_date = next_month_start_date
+        current = next_month
 
-    total_yearly_revenue = sum(revenue_by_month)
-
-    # Line chart for the month
-
+    return {
+        "months": months,
+        "revenue_by_month": revenue_by_month,
+        "total_yearly_revenue": sum(revenue_by_month),
+    }
+    
+    
+    
+    
+def get_monthly_revenue():
     today = date.today()
     start_date = today.replace(day=1)
-    end_date = today
 
     days = []
     revenue_by_day = []
 
-    current_date = start_date
-    while current_date <= end_date:
-        total_revenue = Order.objects.filter(created_at__date=current_date).aggregate(
-            total=Sum("total_amount")
-        )["total"]
+    current = start_date
 
-        days.append(current_date.day)
-        revenue_by_day.append(total_revenue or 0)
+    while current <= today:
+        total = (
+            Order.objects.filter(created_at__date=current)
+            .aggregate(total=Sum("total_amount"))["total"]
+            or 0
+        )
 
-        current_date += timedelta(days=1)
+        days.append(current.day)
+        revenue_by_day.append(total)
 
-    total_monthly_revenue = sum(revenue_by_day)
+        current += timedelta(days=1)
 
-    # To count the orders according to the status
-    status_counts = {
-        "pending": OrderItem.objects.filter(status="pending").count(),
-        "confirmed": OrderItem.objects.filter(status="confirmed").count(),
-        "shipped": OrderItem.objects.filter(status="shipped").count(),
-        "delivered": OrderItem.objects.filter(status="delivered").count(),
-        "cancelled": OrderItem.objects.filter(status="cancelled").count(),
-    }
-
-    context = {
-        "current_page": current_page,
-        "title": title,
-        "top_products": top_products,
-        "top_categories": top_categories,
-        "months": months,
-        "revenue_by_month": revenue_by_month,
+    return {
         "days": days,
         "revenue_by_day": revenue_by_day,
-        "total_yearly_revenue": total_yearly_revenue,
-        "total_monthly_revenue": total_monthly_revenue,
-        "status_counts": status_counts,
-        "total_orders": OrderItem.objects.all().count(),
+        "total_monthly_revenue": sum(revenue_by_day),
     }
-    return render(request, "aadmin/admin-dashboard.html", context)
+    
+    
+    
+    
+def get_order_status_counts():
+    return {
+        "status_counts": {
+            "pending": OrderItem.objects.filter(status="pending").count(),
+            "confirmed": OrderItem.objects.filter(status="confirmed").count(),
+            "shipped": OrderItem.objects.filter(status="shipped").count(),
+            "delivered": OrderItem.objects.filter(status="delivered").count(),
+            "cancelled": OrderItem.objects.filter(status="cancelled").count(),
+        },
+        "total_orders": OrderItem.objects.count(),
+    }
+
+
+
 
 
 @admin_login_required
