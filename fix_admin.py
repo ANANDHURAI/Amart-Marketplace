@@ -5,6 +5,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ecom.settings")
 django.setup()
 
 from accounts.models import Account  
+from accounts.models import Account
 
 email = os.getenv("DJANGO_SUPERUSER_EMAIL")
 password = os.getenv("DJANGO_SUPERUSER_PASSWORD")
