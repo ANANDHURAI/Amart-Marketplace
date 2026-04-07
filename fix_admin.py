@@ -1,25 +1,23 @@
 import os
 import django
 
-# This must match your project folder name shown in VS Code
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ecom.settings') 
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ecom.settings")
 django.setup()
 
-from django.contrib.auth import get_user_model
-User = get_user_model()
+from accounts.models import Account  
 
-# This pulls from your Render Environment variables
-email = os.environ.get('DJANGO_SUPERUSER_EMAIL')
-password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+email = os.getenv("DJANGO_SUPERUSER_EMAIL")
+password = os.getenv("DJANGO_SUPERUSER_PASSWORD")
+first_name = os.getenv("DJANGO_SUPERUSER_FIRST_NAME")
+last_name = os.getenv("DJANGO_SUPERUSER_LAST_NAME")
 
-try:
-    user = User.objects.get(email=email)
-    user.is_staff = True
-    user.is_superuser = True
-    user.is_active = True
-    if password:
-        user.set_password(password)
-    user.save()
-    print(f"Successfully updated permissions for {email}")
-except User.DoesNotExist:
-    print(f"User {email} not found. Ensure the user exists before running this.")
+if not Account.objects.filter(email=email).exists():
+    print("Creating superuser...")
+    Account.objects.create_superuser(
+        email=email,
+        password=password,
+        first_name=first_name,
+        last_name=last_name,
+    )
+else:
+    print("Superuser already exists")
