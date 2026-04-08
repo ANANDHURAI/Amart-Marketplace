@@ -5,35 +5,67 @@
     {% include "home/includes/navigation.html" %}
     
     <style>
-        /* This section only targets the image size without changing your logic */
-        .single-product-slider .carousel-inner .item img {
-            width: 100% !important;
-            height: 500px !important; /* Makes the image significantly larger */
-            object-fit: contain !important; /* Keeps the hoodie shape perfect */
-            background-color: #f9f9f9; 
+        /* Professional Product Styles */
+        .single-product { padding: 40px 0; }
+        .breadcrumb { background: transparent; padding: 0; margin-bottom: 20px; font-size: 14px; }
+        
+        /* Image Section */
+        .carousel-outer {
+            border: 1px solid #f5f5f5;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
         }
-
-        .carousel-indicators.meartlab img {
-            width: 80px !important; /* Makes thumbnails neat */
-            height: 80px !important;
-            object-fit: cover !important;
+        .carousel-inner .item img {
+            width: 100%;
+            height: 600px; /* Force a larger, consistent height */
+            object-fit: contain; /* Professional look: prevents stretching */
+            background: #fff;
         }
-
-        .single-product-details {
-            padding-left: 20px;
+        
+        /* Thumbnails */
+        .carousel-indicators.meartlab {
+            position: static;
+            width: 100%;
+            margin-top: 15px;
+            display: flex;
+            justify-content: flex-start;
+            overflow-x: auto;
         }
-
-        /* Clean up the price and stock display */
-        #price-display {
-            font-size: 28px;
-            font-weight: bold;
-            color: #333;
+        .carousel-indicators.meartlab li {
+            width: 80px;
+            height: 80px;
+            text-indent: 0;
+            opacity: 0.6;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
         }
+        .carousel-indicators.meartlab li.active { opacity: 1; border-color: #000; }
+        .carousel-indicators.meartlab li img { width: 100%; height: 100%; object-fit: cover; }
 
-        #stock-display {
-            color: #d9534f;
+        /* Product Info Section */
+        .single-product-details h2 { font-weight: 700; margin-bottom: 10px; font-size: 32px; }
+        .price-tag { font-size: 24px; color: #222; margin: 20px 0; display: block; }
+        .stock-badge { 
+            background: #fff5f5; 
+            color: #e53e3e; 
+            padding: 4px 12px; 
+            border-radius: 20px; 
+            font-size: 13px; 
             font-weight: 600;
         }
+        .btn-main {
+            background: #000;
+            color: #fff;
+            padding: 15px 40px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            border-radius: 0;
+            transition: 0.3s;
+        }
+        .btn-main:hover { background: #333; color: #fff; }
     </style>
 
     <section class="single-product">
@@ -43,29 +75,23 @@
                     <ol class="breadcrumb">
                         <li><a href="{% url 'home' %}">Home</a></li>
                         <li><a href="{% url 'shop' %}">Shop</a></li>
-                        <li class="active">{{ product }}</li>
+                        <li class="active">{{ product.name }}</li>
                     </ol>
                 </div>
             </div>
-            <div class="row mt-20">
-                <div class="col-md-5">
+            
+            <div class="row">
+                <div class="col-md-6">
                     <div class="single-product-slider">
                         <div id="carousel-custom" class="carousel slide" data-ride="carousel">
                             <div class="carousel-outer">
                                 <div class="carousel-inner">
                                     {% for product_image in product_images %}
-                                        {% if product_image.priority == 1 %}
-                                            <div class="item active">
-                                                <img src="{{ product_image.image.url }}" alt="productimage" data-zoom-image="{{ product_image.image.url }}" />
-                                            </div>
-                                        {% else %}
-                                            <div class="item">
-                                                <img src="{{ product_image.image.url }}" alt="productimage" data-zoom-image="{{ product_image.image.url }}" />
-                                            </div>
-                                        {% endif %}
+                                        <div class="item {% if forloop.first %}active{% endif %}">
+                                            <img src="{{ product_image.image.url }}" alt="{{ product.name }}">
+                                        </div>
                                     {% endfor %}
                                 </div>
-                                
                                 <a class="left carousel-control" href="#carousel-custom" data-slide="prev">
                                     <i class="tf-ion-ios-arrow-left"></i>
                                 </a>
@@ -74,90 +100,76 @@
                                 </a>
                             </div>
                             
-                            <ol class="carousel-indicators mCustomScrollbar meartlab">
+                            <ol class="carousel-indicators meartlab">
                                 {% for product_image in product_images %}
-                                    {% if product_image.priority == 1 %}
-                                        <li data-target="#carousel-custom" data-slide-to="{{ forloop.counter0 }}" class="active">
-                                            <img src="{{ product_image.image.url }}" alt="product_image" />
-                                        </li>
-                                    {% else %}
-                                        <li data-target="#carousel-custom" data-slide-to="{{ forloop.counter0 }}">
-                                            <img src="{{ product_image.image.url }}" alt="" />
-                                        </li>
-                                    {% endif %}
+                                    <li data-target="#carousel-custom" data-slide-to="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}">
+                                        <img src="{{ product_image.image.url }}" alt="thumbnail" />
+                                    </li>
                                 {% endfor %}
                             </ol>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-7">
-                    <div class="single-product-details">
-                    <form method="post" action="{% url "add_to_cart" product.id %}">
-                        {% csrf_token %}
-                            {% if product.is_favourite %}
-                                <a class="btn mt-20 pull-right">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="red" class="bi bi-heart-fill" viewBox="0 0 16 16">
-                                        <title>Add to Favorites</title> 
+
+                <div class="col-md-6">
+                    <div class="single-product-details" style="padding-left: 30px;">
+                        <form method="post" action="{% url 'add_to_cart' product.id %}">
+                            {% csrf_token %}
+                            
+                            <div class="pull-right">
+                                {% if product.is_favourite %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="#e53e3e" class="bi bi-heart-fill" viewBox="0 0 16 16">
                                         <path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314"/>
                                     </svg>
-                                </a>
-                            {% else %}
-                                <a href="{% url "add_to_favourite" product.id %}" class="btn mt-20 pull-right">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-heart" viewBox="0 0 16 16">
-                                        <title>Add to Favorites</title>
-                                        <path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143q.09.083.176.171a3 3 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15"/>
-                                    </svg>
-                                </a>
-                            {% endif %}
-                        <h2>{{ product.name }}</h2>
-                        <hr>
-                        <div class="product-size">
-                            <span>Size:</span>
-                            <select id="size-select" class="form-control" name="product-size">
-                                {% for inventory_item in inventory %}
-                                    <option value="{{ inventory_item.size }}" data-price="{{ inventory_item.price }}" data-stock="{{ inventory_item.stock }}">{{ inventory_item.size }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        <div class="product-quantity">
-                            <span>Quantity:</span>
-                            <div class="product-quantity-slider">
-                                <input id="product-quantity" type="text" value="1" name="product-quantity" readonly>
-                            </div> 
-                        </div>
-                        <div class="product-category">
-                            <span>Category:</span>
-                            <ul>
-                                <li><a href="">{{ product.main_category }}</a></li>
-                            </ul>
-                        </div>
-                        <div class="product-category">
-                            <span>Stock Left:</span>
-                            <ul>
-                                <li><a id="stock-display">Only {{ inventory.0.stock }} left</a></li>
-                            </ul>
-                        </div>
-                        {% for message in messages %}
-                            {% if message.tags == "error" %}
-                                <div class="alert alert-danger alert-common" role="alert">
-                                    <i class="tf-ion-close-circled"></i><span></span>{{ message }}
+                                {% else %}
+                                    <a href="{% url 'add_to_favourite' product.id %}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-heart" viewBox="0 0 16 16">
+                                            <path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143q.09.083.176.171a3 3 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15"/>
+                                        </svg>
+                                    </a>
+                                {% endif %}
+                            </div>
+
+                            <h2>{{ product.name }}</h2>
+                            <p class="text-muted">{{ product.main_category }}</p>
+
+                            <div class="price-tag" id="price-display">₹ {{ inventory.0.price }}</div>
+
+                            <div class="product-size mb-20">
+                                <span style="display:block; margin-bottom: 8px; font-weight: 600;">SELECT SIZE</span>
+                                <select id="size-select" class="form-control" name="product-size" style="width: 200px; height: 45px;">
+                                    {% for item in inventory %}
+                                        <option value="{{ item.size }}" data-price="{{ item.price }}" data-stock="{{ item.stock }}">{{ item.size }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="product-quantity mt-20">
+                                <span style="display:block; margin-bottom: 8px; font-weight: 600;">QUANTITY</span>
+                                <div class="product-quantity-slider" style="width: 150px;">
+                                    <input id="product-quantity" type="text" value="1" name="product-quantity" readonly>
+                                </div>
+                            </div>
+
+                            <div class="mt-20">
+                                <span class="stock-badge" id="stock-display">Only {{ inventory.0.stock }} left in stock</span>
+                            </div>
+
+                            {% if offer %}
+                                <div class="alert alert-success mt-20" style="border-radius: 0; border: none; background: #f0fff4; color: #2f855a;">
+                                    <strong>Special Offer!</strong> {{offer}}% off on this category.
                                 </div>
                             {% endif %}
-                        {% endfor %}
-                        <br>
-                        <span class="product-price">
-                            <strong id="price-display">Price: ₹ {{ inventory.0.price }}</strong>
-                        </span>
-                        <br><br>
-                        {% if offer %}
-                        <p class="text-success"><b>Special offer {{offer}}% on {{ product.main_category }}. Buy now to grab the offer.</b></p>
-                        {% endif %}
-                        <button type="submit" class="btn btn-main">Add To Cart</button>
-                        <hr>
-                        <h4>Product summary</h4>
-                        <p class="product-description mt-20">{{ product.description|linebreaksbr }}</p>
-                    </form>
+
+                            <div style="margin-top: 30px;">
+                                <button type="submit" class="btn btn-main btn-block">Add To Cart</button>
+                            </div>
+
+                            <div class="product-info-tabs mt-30">
+                                <h4 style="font-weight: 700; border-bottom: 2px solid #000; display: inline-block; padding-bottom: 5px;">Product Description</h4>
+                                <p class="mt-20" style="color: #666; line-height: 1.8;">{{ product.description|linebreaksbr }}</p>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -175,13 +187,12 @@
             max: 10
         });
 
-        document.getElementById('size-select').addEventListener('change', function() {
-            var selectedSize = this.value;
-            var selectedOption = this.querySelector('option[value="' + selectedSize + '"]');
-            var price = selectedOption.getAttribute('data-price');
-            var stock = selectedOption.getAttribute('data-stock');
-            document.getElementById('price-display').innerText = 'Price: ₹ ' + price;
-            document.getElementById('stock-display').innerText = 'Only ' + stock + ' left';
+        $('#size-select').on('change', function() {
+            var selectedOption = $(this).find('option:selected');
+            var price = selectedOption.data('price');
+            var stock = selectedOption.data('stock');
+            $('#price-display').text('₹ ' + price);
+            $('#stock-display').text('Only ' + stock + ' left in stock');
         });
     });
 </script>
