@@ -18,20 +18,13 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = [
-
-    'amart.fun',
-    'localhost',
-    'amart-e-commerce-website.onrender.com',
-    '127.0.0.1'
-]
+ALLOWED_HOSTS = ['amart.fun', 'localhost', '127.0.0.1', '*']
 
 
 CSRF_TRUSTED_ORIGINS = [
+    "http://*.compute.amazonaws.com",
     "http://amart.fun",
-    "https://amart.fun",
     "https://amart-e-commerce-website.onrender.com",
-    
 ]
 
 
@@ -173,8 +166,6 @@ LOGOUT_REDIRECT_URL = 'customer_dashboard'
 
 SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
-
-
 
 
 
