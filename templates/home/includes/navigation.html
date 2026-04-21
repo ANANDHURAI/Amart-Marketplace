@@ -1,111 +1,33 @@
 {% load static %}
+<nav class="navbar navigation shadow-sm" style="background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 1000;">
+    <div class="container">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="{% url 'home' %}">
+                <img src="{% static 'images/logo-no-background.png' %}" alt="logo" style="height: 45px; width: auto;">
+            </a>
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+                <span class="tf-ion-android-menu" style="font-size: 25px;"></span>
+            </button>
+        </div>
 
-<!-- Start Top Header Bar -->
-<section class="top-header">
-	<div class="container">
-		<div class="row">
-			<div class="col-md-4 col-xs-12 col-sm-4">
-				<div class="contact-number">
-					<i class="tf-ion-ios-telephone"></i>
-					<span>+91 6383280434</span>
-				</div>
-			</div>
-			<div class="col-md-4 col-xs-12 col-sm-4">
-				<!-- Site Logo -->
-				<div class="logo text-center">
-					
-					<a href="{% url "home" %}">
-						<!-- replace logo here -->
-						
-						<img style="width:300px" src="{% static "images/logo-no-background.png" %}" alt="logo">
-						
-					</a>
-					
-				</div>
-			</div>
-			<div class="col-md-4 col-xs-12 col-sm-4">
-				<!-- Cart -->
-				<ul class="top-menu text-right list-inline">
-
-					<!-- Search -->
-					<li class="dropdown search dropdown-slide">
-						<a href="#!" class="dropdown-toggle" data-toggle="dropdown" data-hover="dropdown"><i class="tf-ion-ios-search-strong"></i> Search</a>
-						<ul class="dropdown-menu search-dropdown d-flex justify-content-center">
-							<form method="get" action="{% url 'shop' %}">
-								{% csrf_token %}	
-								<li>
-									<input type="search" class="form-control" name="search" placeholder="Search...">
-								</li>
-							</form>
-						</ul>
-					</li><!-- / Search -->
-
-					
-
-				</ul><!-- / .nav .navbar-nav .navbar-right -->
-			</div>
-		</div>
-	</div>
-</section><!-- End Top Header Bar -->
-
-
-<!-- Main Menu Section -->
-<section class="menu">
-	<nav class="navbar navigation">
-		<div class="container">
-			<div class="navbar-header">
-				<h2 class="menu-title">Main Menu</h2>
-				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
-					aria-expanded="false" aria-controls="navbar">
-					<span class="sr-only">Toggle navigation</span>
-					<span class="icon-bar"></span>
-					<span class="icon-bar"></span>
-					<span class="icon-bar"></span>
-				</button>
-
-			</div><!-- / .navbar-header -->
-
-			<!-- Navbar Links -->
-			<div id="navbar" class="navbar-collapse collapse text-center">
-				<ul class="nav navbar-nav">
-
-					<!-- Home -->
-					<li class="dropdown ">
-						<a href="{% url "home" %}">Home</a>
-					</li><!-- / Home -->
-					<li class="dropdown ">
-						<a href="{% url "shop" %}">Shop</a>
-					</li><!-- / Home -->
-
-					<li class="dropdown dropdown-slide">
-						<a href="{% url "favourites" %}" class="dropdown-toggle" role="button"><span class="tf-ion-ios-heart"></span>Favourites</a>
-					</li><!-- / Blog -->
-					
-					<li class="dropdown cart-nav dropdown-slide">
-						<a href="{% url "cart" %}"><i
-								class="tf-ion-android-cart"></i>Cart</a>
-					</li><!-- / Cart -->
-
-					
-					<!-- Shop -->
-					<li class="dropdown dropdown-slide">
-						<a href="#!" class="dropdown-toggle" data-toggle="dropdown" data-hover="dropdown" data-delay="350"
-							role="button" aria-haspopup="true" aria-expanded="false">Accounts <span
-								class="tf-ion-ios-arrow-down"></span></a>
-						<ul class="dropdown-menu">
-							{% if user.is_authenticated and user.is_customer %}
-								<li><a href="{% url 'customer_dashboard' %}">Dashboard</a></li>
-								<li><a href="{% url 'customer_logout' %}">Logout</a></li>
-							{% else %}
-								<li><a href="{% url 'customer_login' %}">LogIn</a></li>
-								<li><a href="{% url 'customer_signup' %}">SignUp</a></li>
-							{% endif %}
-						</ul>
-					</li><!-- / Blog -->
-				</ul><!-- / .nav .navbar-nav -->
-
-			</div>
-			<!--/.navbar-collapse -->
-		</div><!-- / .container -->
-	</nav>
-</section>
+        <div id="navbar" class="navbar-collapse collapse text-center">
+            <ul class="nav navbar-nav navbar-right">
+                <li><a href="{% url 'home' %}" style="font-weight: 600;">Home</a></li>
+                <li><a href="{% url 'shop' %}" style="font-weight: 600;">Shop</a></li>
+                <li><a href="{% url 'favourites' %}"><i class="tf-ion-ios-heart-outline"></i></a></li>
+                <li><a href="{% url 'cart' %}"><i class="tf-ion-android-cart"></i></a></li>
+                <li class="dropdown">
+                    <a href="#!" class="dropdown-toggle" data-toggle="dropdown">Account <i class="tf-ion-ios-arrow-down"></i></a>
+                    <ul class="dropdown-menu">
+                        {% if user.is_authenticated %}
+                            <li><a href="{% url 'customer_dashboard' %}">Dashboard</a></li>
+                            <li><a href="{% url 'customer_logout' %}">Logout</a></li>
+                        {% else %}
+                            <li><a href="{% url 'customer_login' %}">Login</a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>

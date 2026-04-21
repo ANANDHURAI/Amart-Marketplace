@@ -13,4 +13,8 @@ urlpatterns = [
     path("customer-activation/", views.customer_activation, name="customer_activation"),
     path("customer-resend-otp/", views.resend_otp, name="resend_otp"),
     path("customer-otp-view/", views.otp_view, name="otp_view"),
+    
+    path("forgot-password/", views.forgot_password, name="forgot_password"),
+    path("change-password/", views.change_password, name="change_password"),
+
 ]

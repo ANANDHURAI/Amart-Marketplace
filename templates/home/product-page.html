@@ -5,86 +5,190 @@
     {% include "home/includes/navigation.html" %}
     
     <style>
-        /* Professional Product Styles */
-        .single-product { padding: 40px 0; }
-        .breadcrumb { background: transparent; padding: 0; margin-bottom: 20px; font-size: 14px; }
-        
-        /* Image Section */
-        .carousel-outer {
-            border: 1px solid #f5f5f5;
-            border-radius: 8px;
-            overflow: hidden;
-            background: #fff;
+        :root {
+            --accent-color: #c5a059; /* Modern gold/luxury accent */
+            --bg-soft: #f8f9fa;
         }
-        .carousel-inner .item img {
-            width: 100%;
-            height: 600px; /* Force a larger, consistent height */
-            object-fit: contain; /* Professional look: prevents stretching */
-            background: #fff;
-        }
-        
-        /* Thumbnails */
-        .carousel-indicators.meartlab {
-            position: static;
-            width: 100%;
-            margin-top: 15px;
-            display: flex;
-            justify-content: flex-start;
-            overflow-x: auto;
-        }
-        .carousel-indicators.meartlab li {
-            width: 80px;
-            height: 80px;
-            text-indent: 0;
-            opacity: 0.6;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-right: 10px;
-        }
-        .carousel-indicators.meartlab li.active { opacity: 1; border-color: #000; }
-        .carousel-indicators.meartlab li img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Product Info Section */
-        .single-product-details h2 { font-weight: 700; margin-bottom: 10px; font-size: 32px; }
-        .price-tag { font-size: 24px; color: #222; margin: 20px 0; display: block; }
-        .stock-badge { 
-            background: #fff5f5; 
-            color: #e53e3e; 
-            padding: 4px 12px; 
-            border-radius: 20px; 
-            font-size: 13px; 
-            font-weight: 600;
+        .single-product { padding: 60px 0; background: #fff; }
+
+        /* Modern Image Gallery */
+        .product-gallery-container {
+            position: sticky;
+            top: 100px;
         }
-        .btn-main {
+        .main-image-wrapper {
+            border-radius: 20px;
+            overflow: hidden;
+            background: var(--bg-soft);
+            transition: transform 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+        .main-image-wrapper:hover {
+            transform: scale(1.02);
+        }
+        .carousel-inner img {
+            width: 100%;
+            height: 700px;
+            object-fit: cover;
+        }
+
+        /* Glassmorphism Thumbnails */
+        .carousel-indicators.modern-thumbs {
+            position: static;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            overflow: visible;
+        }
+        .carousel-indicators.modern-thumbs li {
+            width: 70px;
+            height: 70px;
+            text-indent: 0;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            overflow: hidden;
+            transition: 0.3s;
+            background: rgba(255,255,255,0.5);
+            backdrop-filter: blur(5px);
+        }
+        .carousel-indicators.modern-thumbs li.active {
+            border-color: var(--accent-color);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .carousel-indicators.modern-thumbs li img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Fantasy Typography & Details */
+        .product-info-column { padding-left: 50px; }
+        .category-label {
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-size: 12px;
+            color: var(--accent-color);
+            font-weight: 700;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .product-title {
+            font-family: 'Playfair Display', serif; /* Use a fantasy/high-fashion serif if available */
+            font-size: 42px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            line-height: 1.1;
+        }
+        .price-wrapper {
+            margin: 25px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .current-price { font-size: 32px; font-weight: 300; color: #111; }
+        
+        /* Size Radio Buttons (Instead of Select for better UI) */
+        .size-selector { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 30px; }
+        .size-item { position: relative; }
+        .size-item input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .size-label {
+            display: block;
+            padding: 10px 25px;
+            border: 1px solid #ddd;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .size-item input:checked + .size-label {
             background: #000;
             color: #fff;
-            padding: 15px 40px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 600;
-            border-radius: 0;
+            border-color: #000;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        /* Modern Add to Cart */
+        .action-row { display: flex; gap: 20px; align-items: center; }
+        .qty-input-wrapper {
+            background: var(--bg-soft);
+            border-radius: 30px;
+            padding: 5px 15px;
+            display: flex;
+            align-items: center;
+        }
+        .btn-fantasy {
+            flex-grow: 1;
+            background: #000;
+            color: #fff;
+            border-radius: 40px;
+            padding: 18px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            border: none;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            transition: 0.4s;
+        }
+        .btn-fantasy:hover {
+            color: #fff;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .btn-fantasy::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 0%; height: 100%;
+            background: var(--accent-color);
+            transition: 0.4s;
+            z-index: -1;
+        }
+        .btn-fantasy:hover::after { width: 100%; }
+
+        /* Floating Wishlist Icon */
+        .wishlist-float {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            background: #fff;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             transition: 0.3s;
         }
-        .btn-main:hover { background: #333; color: #fff; }
+        .wishlist-float:hover { transform: scale(1.1); }
+
+        .offer-banner {
+            background: linear-gradient(90deg, #fff5f5 0%, #fff 100%);
+            border-left: 4px solid var(--accent-color);
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
     </style>
 
     <section class="single-product">
         <div class="container">
             <div class="row">
-                <div class="col-md-12">
-                    <ol class="breadcrumb">
-                        <li><a href="{% url 'home' %}">Home</a></li>
-                        <li><a href="{% url 'shop' %}">Shop</a></li>
-                        <li class="active">{{ product.name }}</li>
-                    </ol>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="single-product-slider">
+                <div class="col-lg-7">
+                    <div class="product-gallery-container">
                         <div id="carousel-custom" class="carousel slide" data-ride="carousel">
-                            <div class="carousel-outer">
+                            <div class="main-image-wrapper shadow-lg">
+                                <div class="wishlist-float">
+                                    <a href="{% url 'add_to_favourite' product.id %}">
+                                        <i class="tf-ion-ios-heart{% if not product.is_favourite %}-outline{% endif %}" 
+                                           style="font-size: 24px; color: {% if product.is_favourite %}#e53e3e{% else %}#111{% endif %};"></i>
+                                    </a>
+                                </div>
+                                
                                 <div class="carousel-inner">
                                     {% for product_image in product_images %}
                                         <div class="item {% if forloop.first %}active{% endif %}">
@@ -92,18 +196,12 @@
                                         </div>
                                     {% endfor %}
                                 </div>
-                                <a class="left carousel-control" href="#carousel-custom" data-slide="prev">
-                                    <i class="tf-ion-ios-arrow-left"></i>
-                                </a>
-                                <a class="right carousel-control" href="#carousel-custom" data-slide="next">
-                                    <i class="tf-ion-ios-arrow-right"></i>
-                                </a>
                             </div>
                             
-                            <ol class="carousel-indicators meartlab">
+                            <ol class="carousel-indicators modern-thumbs">
                                 {% for product_image in product_images %}
                                     <li data-target="#carousel-custom" data-slide-to="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}">
-                                        <img src="{{ product_image.image.url }}" alt="thumbnail" />
+                                        <img src="{{ product_image.image.url }}" alt="thumb" />
                                     </li>
                                 {% endfor %}
                             </ol>
@@ -111,65 +209,73 @@
                     </div>
                 </div>
 
-                <div class="col-md-6">
-                    <div class="single-product-details" style="padding-left: 30px;">
+                <div class="col-lg-5">
+                    <div class="product-info-column">
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+                                <li class="breadcrumb-item"><a href="{% url 'shop' %}">Collection</a></li>
+                            </ol>
+                        </nav>
+
+                        <span class="category-label">{{ product.main_category.name }}</span>
+                        <h1 class="product-title">{{ product.name }}</h1>
+
+                        <div class="price-wrapper">
+                            <span class="current-price" id="price-display">₹ {{ inventory.0.price }}</span>
+                            <span class="stock-badge" id="stock-display" style="background: {% if inventory.0.stock > 0 %}#f0fff4; color: #2f855a{% else %}#fff5f5; color: #e53e3e{% endif %};">
+                                {% if inventory.0.stock > 0 %}In Stock: {{ inventory.0.stock }}{% else %}Out of Stock{% endif %}
+                            </span>
+                        </div>
+
+                        <p class="text-muted" style="margin-bottom: 30px;">{{ product.description|truncatewords:30 }}</p>
+
                         <form method="post" action="{% url 'add_to_cart' product.id %}">
                             {% csrf_token %}
                             
-                            <div class="pull-right">
-                                {% if product.is_favourite %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="#e53e3e" class="bi bi-heart-fill" viewBox="0 0 16 16">
-                                        <path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314"/>
-                                    </svg>
-                                {% else %}
-                                    <a href="{% url 'add_to_favourite' product.id %}">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-heart" viewBox="0 0 16 16">
-                                            <path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143q.09.083.176.171a3 3 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15"/>
-                                        </svg>
-                                    </a>
-                                {% endif %}
-                            </div>
-
-                            <h2>{{ product.name }}</h2>
-                            <p class="text-muted">{{ product.main_category }}</p>
-
-                            <div class="price-tag" id="price-display">₹ {{ inventory.0.price }}</div>
-
-                            <div class="product-size mb-20">
-                                <span style="display:block; margin-bottom: 8px; font-weight: 600;">SELECT SIZE</span>
-                                <select id="size-select" class="form-control" name="product-size" style="width: 200px; height: 45px;">
+                            <div class="mb-30">
+                                <label style="font-weight: 700; font-size: 12px; letter-spacing: 1px; display: block; margin-bottom: 15px;">SELECT SIZE</label>
+                                <div class="size-selector">
                                     {% for item in inventory %}
-                                        <option value="{{ item.size }}" data-price="{{ item.price }}" data-stock="{{ item.stock }}">{{ item.size }}</option>
+                                        <div class="size-item">
+                                            <input type="radio" 
+                                                name="product-size" 
+                                                id="size-{{ item.id }}" 
+                                                value="{{ item.size }}" 
+                                                data-price="{{ item.price }}" 
+                                                data-discounted="{{ item.discounted_price }}"
+                                                data-stock="{{ item.stock }}" 
+                                                {% if forloop.first %}checked{% endif %} 
+                                                required>
+                                            <label for="size-{{ item.id }}" class="size-label">{{ item.size }}</label>
+                                        </div>
                                     {% endfor %}
-                                </select>
-                            </div>
-
-                            <div class="product-quantity mt-20">
-                                <span style="display:block; margin-bottom: 8px; font-weight: 600;">QUANTITY</span>
-                                <div class="product-quantity-slider" style="width: 150px;">
-                                    <input id="product-quantity" type="text" value="1" name="product-quantity" readonly>
                                 </div>
-                            </div>
-
-                            <div class="mt-20">
-                                <span class="stock-badge" id="stock-display">Only {{ inventory.0.stock }} left in stock</span>
+                                </div>
                             </div>
 
                             {% if offer %}
-                                <div class="alert alert-success mt-20" style="border-radius: 0; border: none; background: #f0fff4; color: #2f855a;">
-                                    <strong>Special Offer!</strong> {{offer}}% off on this category.
+                                <div class="offer-banner">
+                                    <strong>Enchanted Offer:</strong> {{offer}}% discount automatically applied.
                                 </div>
                             {% endif %}
 
-                            <div style="margin-top: 30px;">
-                                <button type="submit" class="btn btn-main btn-block">Add To Cart</button>
-                            </div>
-
-                            <div class="product-info-tabs mt-30">
-                                <h4 style="font-weight: 700; border-bottom: 2px solid #000; display: inline-block; padding-bottom: 5px;">Product Description</h4>
-                                <p class="mt-20" style="color: #666; line-height: 1.8;">{{ product.description|linebreaksbr }}</p>
+                            <div class="action-row">
+                                <div class="qty-input-wrapper">
+                                    <input id="product-quantity" type="text" value="1" name="product-quantity" style="width: 60px; border: none; background: transparent; text-align: center; font-weight: 700;">
+                                </div>
+                                <button type="submit" class="btn btn-fantasy">
+                                    PURCHASE NOW
+                                </button>
                             </div>
                         </form>
+
+                        <div class="mt-50">
+                            <h4 style="font-weight: 800; font-size: 16px; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">The Details</h4>
+                            <div style="color: #666; line-height: 1.8; font-size: 15px;">
+                                {{ product.description|linebreaks }}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -182,18 +288,42 @@
 {% block extra_scripts %}
 <script>
     $(document).ready(function() {
-        $('input[name=\'product-quantity\']').TouchSpin({
-            min: 1,
-            max: 10
+        // 1. Function to update price and stock display
+        function updateDisplay(element) {
+            const price = element.data('price');
+            const discountedPrice = element.data('discounted');
+            const stock = element.data('stock');
+            
+            // Update Price with Animation
+            $('#price-display').fadeOut(100, function() {
+                if (parseInt(discountedPrice) < parseInt(price)) {
+                    $(this).html('₹ ' + discountedPrice + 
+                        ' <span style="text-decoration: line-through; color: #999; font-size: 16px; margin-left: 10px;">₹ ' + price + '</span>');
+                } else {
+                    $(this).text('₹ ' + price);
+                }
+                $(this).fadeIn(100);
+            });
+
+            // Update Stock Badge
+            const stockBadge = $('#stock-display');
+            if (parseInt(stock) > 0) {
+                stockBadge.text('In Stock: ' + stock).css('color', '#2f855a');
+            } else {
+                stockBadge.text('Out of Stock').css('color', '#e53e3e');
+            }
+        }
+
+        // 2. Event listener for Size change
+        $('input[name="product-size"]').on('change', function() {
+            updateDisplay($(this));
         });
 
-        $('#size-select').on('change', function() {
-            var selectedOption = $(this).find('option:selected');
-            var price = selectedOption.data('price');
-            var stock = selectedOption.data('stock');
-            $('#price-display').text('₹ ' + price);
-            $('#stock-display').text('Only ' + stock + ' left in stock');
-        });
+        // 3. Run once on page load to set the default price (Small/First item)
+        const initialSelected = $('input[name="product-size"]:checked');
+        if (initialSelected.length) {
+            updateDisplay(initialSelected);
+        }
     });
 </script>
-{% endblock extra_scripts %}
+{% endblock %}

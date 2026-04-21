@@ -2,97 +2,72 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
-  <!-- Basic Page Needs
-  ================================================== -->
   <meta charset="utf-8">
-  <title> {{ title }} | Amart Fashions</title>
-
-  <!-- Mobile Specific Metas
-  ================================================== -->
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="description" content="Construction Html5 Template">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <meta name="author" content="Themefisher">
-  <meta name="generator" content="Themefisher Constra HTML Template v1.0">
-
-  <!-- theme meta -->
-  <meta name="theme-name" content="aviato" />
-
-  <!-- Themefisher Icon font -->
+  <title>{{ title }} | Amart Fashions</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="{% static 'plugins/themefisher-font/style.css' %}">
-  <!-- bootstrap.min css -->
   <link rel="stylesheet" href="{% static 'plugins/bootstrap/css/bootstrap.min.css' %}">
-  <!-- Animate css -->
   <link rel="stylesheet" href="{% static 'plugins/animate/animate.css' %}">
-  <!-- Slick Carousel -->
   <link rel="stylesheet" href="{% static 'plugins/slick/slick.css' %}">
-  <link rel="stylesheet" href="{% static 'plugins/slick/slick-theme.css' %}">
-  <!-- Main Stylesheet -->
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
 
   <style>
-    ::-webkit-scrollbar {
-      width: 1rem;
+    :root { --primary: #111; --accent: #c5a059; }
+    body { font-family: 'Inter', sans-serif; color: #333; overflow-x: hidden; }
+    h1, h2, h3 { font-family: 'Playfair Display', serif; font-weight: 700; }
+    
+    /* Modern Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+
+    /* Reveal Animation on Scroll */
+    .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s ease-out; }
+    .reveal.active { opacity: 1; transform: translateY(0); }
+
+    .btn-main {
+        background: var(--primary);
+        color: #fff;
+        padding: 12px 30px;
+        border-radius: 0;
+        transition: 0.3s all;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-weight: 600;
     }
-    ::-webkit-scrollbar-track {
-      box-shadow: inset 0 0 5px white;
-      border-radius: 0.5rem;
-    }
-    ::-webkit-scrollbar-thumb {
-      height: 50px;
-      background: #888888;
-      border-radius: 0.5rem;
-    }
+    .btn-main:hover { background: var(--accent); color: #fff; transform: translateY(-3px); }
   </style>
-
-  {% block extra_styles %}{% endblock extra_styles %}
+  {% block extra_styles %}{% endblock %}
 </head>
-
 <body id="body">
 
-{% block content %}
-{% endblock content %}
+{% block content %}{% endblock %}
 
 <script src="{% static 'plugins/jquery/dist/jquery.min.js' %}"></script>
-<script src="{% static 'plugins/bootstrap-touchspin/dist/jquery.bootstrap-touchspin.min.js' %}"></script>
-<script src="{% static 'plugins/syo-timer/build/jquery.syotimer.min.js' %}"></script>
 <script src="{% static 'plugins/bootstrap/js/bootstrap.min.js' %}"></script>
-<script src="{% static 'plugins/instafeed/instafeed.min.js' %}"></script>
-<script src="{% static 'plugins/ekko-lightbox/dist/ekko-lightbox.min.js' %}"></script>
 <script src="{% static 'plugins/slick/slick.min.js' %}"></script>
-<script src="{% static 'plugins/slick/slick-animation.min.js' %}"></script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCC72vZw-6tGqFyRhhg5CkF2fqfILn2Tsw"></script>
-<script type="text/javascript" src="{% static 'plugins/google-map/gmap.js' %}"></script>
-
-<script src="{% static 'js/script.js' %}"></script>
-
-<!-- Clear HTML5 validation message -->
 <script>
-  var inputs = document.querySelectorAll('input');
-  inputs.forEach(function(input) {
-    input.addEventListener('input', function(event) {
-      event.target.setCustomValidity('');
-    });
-  });
+  // Simple Scroll Reveal Logic
+  function reveal() {
+    var reveals = document.querySelectorAll(".reveal");
+    for (var i = 0; i < reveals.length; i++) {
+      var windowHeight = window.innerHeight;
+      var elementTop = reveals[i].getBoundingClientRect().top;
+      if (elementTop < windowHeight - 100) { reveals[i].classList.add("active"); }
+    }
+  }
+  window.addEventListener("scroll", reveal);
+  
+  // Auto-dismiss alerts
+  setTimeout(() => {
+    $('.alert').fadeOut('slow', function(){ $(this).remove(); });
+  }, 2000);
 </script>
 
-<!-- AUTO DISMISS DJANGO MESSAGES (1.5 seconds) -->
-<script>
-  setTimeout(function () {
-    document.querySelectorAll('.alert').forEach(function(alert) {
-      alert.style.transition = 'opacity 0.4s ease';
-      alert.style.opacity = '0';
-      setTimeout(function () {
-        alert.remove();
-      }, 400);
-    });
-  }, 1500);
-</script>
-
-{% block extra_scripts %}
-{% endblock extra_scripts %}
-
+{% block extra_scripts %}{% endblock %}
 </body>
 </html>

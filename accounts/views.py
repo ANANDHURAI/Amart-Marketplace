@@ -12,6 +12,9 @@ from django.shortcuts import redirect, render
 
 from .models import Account, Customer
 from .utils import send_otp
+from django.utils.timezone import now
+from django.utils.dateparse import parse_datetime
+
 
 
 def _normalize_email(email: str) -> str:
@@ -180,7 +183,6 @@ def admin_logout(request):
 
 
 
-
 def otp_view(request):
     """Send OTP and redirect to activation page."""
     if not request.session.get("email"):
@@ -195,59 +197,104 @@ def otp_view(request):
 
 
 
-def customer_activation(request):
-    """Verify OTP and activate the customer account."""
-    signup_data = request.session.get("signup_data")
-    secret_key = request.session.get("otp_secret_key")
-    valid_till = request.session.get("otp_valid_till")
-
-
-    if not all([signup_data, secret_key, valid_till]):
-        messages.error(request, "Session expired. Please register again.")
-        return redirect("customer_signup")
-
-    valid_till_dt = datetime.fromisoformat(valid_till)
-
-  
-    time_left = max(0, int((valid_till_dt - datetime.now()).total_seconds()))
-
+def forgot_password(request):
+    """Step 1: Enter email to request OTP."""
     if request.method == "POST":
-        otp = request.POST.get("otp", "").strip()
+        email = _normalize_email(request.POST.get("email", ""))
+        if not Account.objects.filter(email=email, is_customer=True).exists():
+            messages.error(request, "No account found with this email.")
+            return redirect("forgot_password")
+        
+        request.session["email"] = email
+        send_otp(request, purpose="forgot_password")
+        messages.success(request, "OTP sent to your email.")
+        return redirect("customer_activation") # Reuse activation UI
+        
+    return render(request, "accounts/forgot-password.html")
 
-        if datetime.now() > valid_till_dt:
-            messages.error(request, "OTP has expired. Please request a new one.")
-            return redirect("customer_activation")
 
 
-        totp = pyotp.TOTP(secret_key, interval=60)
 
-        if not totp.verify(otp):
-            messages.error(request, "Invalid OTP. Please enter the correct code.")
-            return redirect("customer_activation")
-
-        customer = Customer.objects.create_user(
-            first_name=signup_data["first_name"],
-            last_name=signup_data["last_name"],
-            email=signup_data["email"],
-            password=signup_data["password"],
-        )
-        customer.is_customer = True
-        customer.is_active = True
-        customer.save()
-
-        for key in ["signup_data", "otp_secret_key", "otp_valid_till", "email"]:
-            request.session.pop(key, None)
-
-        messages.success(request, "Account verified successfully. Please login.")
+def change_password(request):
+    """Step 3: Final step to set the new password."""
+    email = request.session.get("reset_email")
+    if not email:
+        messages.error(request, "Unauthorized access.")
         return redirect("customer_login")
 
-    return render(request, "accounts/customer-activation.html", {
-        "time_left": time_left
-    })
+    if request.method == "POST":
+        p1 = request.POST.get("password")
+        p2 = request.POST.get("password2")
+
+        if p1 != p2:
+            messages.error(request, "Passwords do not match.")
+            return redirect("change_password")
+        
+        if not re.match(r"^(?=.*\d).{8,}$", p1 or ""):
+            messages.error(request, "Password must be at least 8 characters and include a number.")
+            return redirect("change_password")
+
+        user = Account.objects.get(email=email)
+        user.set_password(p1)
+        user.save()
+
+        request.session.pop("reset_email", None)
+        messages.success(request, "Password reset successful. Please login.")
+        return redirect("customer_login")
+
+    return render(request, "accounts/change-password.html")
 
 
 
 
+def customer_activation(request):
+    stored_otp = request.session.get("otp_code")
+    valid_till = request.session.get("otp_valid_till")
+    purpose = request.session.get("otp_purpose")
+
+    if not all([stored_otp, valid_till]):
+        messages.error(request, "Session expired.")
+        return redirect("customer_signup")
+
+    valid_till_dt = parse_datetime(valid_till)
+    time_left = max(0, int((valid_till_dt - now()).total_seconds()))
+
+    if request.method == "POST":
+        user_otp = request.POST.get("otp", "").strip()
+
+        if now() > valid_till_dt:
+            messages.error(request, "OTP expired.")
+            return redirect("customer_activation")
+
+        if user_otp != stored_otp:
+            messages.error(request, "Invalid OTP.")
+            return redirect("customer_activation")
+
+        # Logic Branching
+        if purpose == "forgot_password":
+            request.session["reset_email"] = request.session.get("email")
+            return redirect("change_password")
+        else:
+            # Registration Logic
+            signup_data = request.session.get("signup_data")
+            customer = Customer.objects.create_user(
+                first_name=signup_data["first_name"],
+                last_name=signup_data["last_name"],
+                email=signup_data["email"],
+                password=signup_data["password"],
+            )
+            customer.is_customer = True
+            customer.is_active = True
+            customer.save()
+            
+            # Clear session
+            for key in ["signup_data", "otp_code", "otp_valid_till", "email", "otp_purpose"]:
+                request.session.pop(key, None)
+            
+            messages.success(request, "Verified! Please login.")
+            return redirect("customer_login")
+
+    return render(request, "accounts/customer-activation.html", {"time_left": time_left})
 
 
 
@@ -261,17 +308,17 @@ def resend_otp(request):
         messages.error(request, "Session expired. Please signup again")
         return redirect("customer_signup")
 
+    # Limit resend attempts
     if resend_count >= 3:
         messages.error(request, "Maximum OTP resend attempts reached. Please try later")
         return redirect("customer_signup")
 
-    otp_valid_till_dt = datetime.fromisoformat(otp_valid_till)
+    valid_till_dt = parse_datetime(otp_valid_till)
 
-
-    if datetime.now() < otp_valid_till_dt:
+    # Prevent resend before expiry
+    if now() < valid_till_dt:
         messages.error(request, "Please wait until OTP expires before resending")
         return redirect("customer_activation")
-
 
     send_otp(request)
 

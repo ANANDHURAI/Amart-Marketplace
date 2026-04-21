@@ -7,7 +7,7 @@ Query optimization: prefetch_related for images/inventory; batch favourite check
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator
 from django.db.models import Sum, Q, Min, Max
-
+from django.db.models.functions import Lower
 from product.models import Product, Category, ProductImage, Inventory
 from customer.models import FavouriteItem
 from aadmin.models import CategoryOffer
@@ -68,82 +68,117 @@ def home(request):
     })
 
 
+
+
+
+
+
+
 def shop(request):
-    """
-    Shop listing with optional search, category filter, and sort.
-
-    Sort/session: POST updates session; GET used for pagination.
-    Uses prefetch for product_images and inventory_sizes; batch favourite check.
-    """
     title = "Shop"
-    sort_by = request.session.get("sort_by", "")
-    selected_category = request.session.get("selected_category", "")
-
+    
+    # 1. Retrieve filter values from Session or POST
     if request.method == "POST":
         sort_by = request.POST.get("sort_by", "")
         selected_category = request.POST.get("selected_category", "")
+        min_price = request.POST.get("min_price", "")
+        max_price = request.POST.get("max_price", "")
+        
+        # Store in session for persistence
         request.session["sort_by"] = sort_by
         request.session["selected_category"] = selected_category
+        request.session["min_price"] = min_price
+        request.session["max_price"] = max_price
+    else:
+        sort_by = request.session.get("sort_by", "")
+        selected_category = request.session.get("selected_category", "")
+        min_price = request.session.get("min_price", "")
+        max_price = request.session.get("max_price", "")
 
-    products = (
-        Product.approved_objects.filter(main_category__is_deleted=False)
-        .filter(
-            inventory_sizes__is_active=True,
-            inventory_sizes__stock__gt=0,
-        )
-        .distinct()
-    )
+    # 2. Base Queryset (Optimized)
+    products = Product.approved_objects.filter(
+        main_category__is_deleted=False,
+        inventory_sizes__is_active=True,
+        inventory_sizes__stock__gt=0
+    ).distinct()
 
+    # 3. Apply Filters
     search = request.GET.get("search", "").strip()
     if search:
-        products = products.filter(name__icontains=search)
+        products = products.filter(Q(name__icontains=search) | Q(description__icontains=search))
+    
     if selected_category:
         products = products.filter(main_category_id=selected_category)
 
+    # Price Range Filter Logic
+    if min_price:
+        products = products.filter(inventory_sizes__price__gte=min_price)
+    if max_price:
+        products = products.filter(inventory_sizes__price__lte=max_price)
+
+    # 4. Apply Sorting
+        
     if sort_by == "price_asc":
-        products = products.annotate(price=Min("inventory_sizes__price")).order_by("price")
+        products = products.annotate(min_p=Min("inventory_sizes__price")).order_by("min_p")
     elif sort_by == "price_desc":
-        products = products.annotate(price=Max("inventory_sizes__price")).order_by("-price")
+        products = products.annotate(max_p=Max("inventory_sizes__price")).order_by("-max_p")
+    elif sort_by == "popularity":
+        products = products.annotate(total_sold=Sum("orderitem__quantity")).order_by("-total_sold")
     elif sort_by == "new":
         products = products.order_by("-created_at")
     elif sort_by == "name_asc":
-        products = products.order_by("name")
+        # Industry level: sort by lowercase name to avoid Case Sensitivity issues
+        products = products.annotate(name_lower=Lower('name')).order_by("name_lower")
     elif sort_by == "name_desc":
-        products = products.order_by("-name")
-    elif sort_by == "popularity":
-        products = products.annotate(
-            total_sold=Sum("orderitem__quantity")
-        ).order_by("-total_sold")
+        products = products.annotate(name_lower=Lower('name')).order_by("-name_lower")
+    else:
+        # Default sort (newest first is usually better than -id)
+        products = products.order_by("-created_at")
 
+    # 5. Performance Optimization & Pagination
     products = products.prefetch_related("product_images", "inventory_sizes")
-    paginator = Paginator(products, 6)
-    paged_products = paginator.get_page(request.GET.get("page"))
+    paginator = Paginator(products, 9) # Increased per page for better UI
+    page_number = request.GET.get("page")
+    paged_products = paginator.get_page(page_number)
 
     _enrich_products_with_display_data(paged_products, request)
     categories = Category.objects.filter(is_deleted=False)
 
-    return render(request, "home/shop.html", {
+    context = {
         "products": paged_products,
         "categories": categories,
         "title": title,
         "sort_by": sort_by,
         "selected_category": selected_category,
-    })
+        "min_price": min_price,
+        "max_price": max_price,
+    }
+    return render(request, "home/shop.html", context)
+
+
+
+
 
 
 def product_page(request, slug):
-    """
-    Single product detail: images, inventory, category offer, favourite flag.
-
-    Uses select_related for main_category; one query for CategoryOffer.
-    Favourite check only when user is authenticated.
-    """
     product = get_object_or_404(
         Product.approved_objects.select_related("main_category"),
         slug=slug,
     )
     product_images = ProductImage.objects.filter(product=product).order_by("priority")
-    inventory = Inventory.objects.filter(product=product)
+    inventory = Inventory.objects.filter(product=product, is_active=True)
+
+    # Get Category Discount
+    discount = CategoryOffer.objects.filter(
+        category=product.main_category
+    ).values_list("discount", flat=True).first() or 0
+
+    # Calculate discounted price for each size
+    for item in inventory:
+        if discount > 0:
+            item.discounted_price = int(item.price * (1 - discount / 100))
+        else:
+            item.discounted_price = item.price
 
     product.is_favourite = False
     if request.user.is_authenticated:
@@ -152,23 +187,10 @@ def product_page(request, slug):
             product=product,
         ).exists()
 
-    offer = 0
-    category_offer = CategoryOffer.objects.filter(
-        category=product.main_category
-    ).values_list("discount", flat=True).first()
-    if category_offer is not None:
-        offer = category_offer
-
     return render(request, "home/product-page.html", {
         "product": product,
-        "offer": offer,
+        "offer": discount,
         "inventory": inventory,
         "product_images": product_images,
-        "title": product,
+        "title": product.name,
     })
-
-
-def test_modal_view(request):
-    """Placeholder view for modal test template."""
-    return render(request, "home/test_modal.html")
-    

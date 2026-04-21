@@ -608,33 +608,32 @@ def add_to_cart(request, product_id):
 
 
 
-
 @customer_required
 def update_cart_item(request, cart_item_id):
-    """Update quantity/size of a cart item; item must belong to current customer's cart."""
     if request.method != "POST":
         return redirect("cart")
+        
     customer = _get_customer(request)
     cart = get_object_or_404(Cart, customer=customer)
     cart_item = get_object_or_404(CartItem, id=cart_item_id, cart=cart)
+    
     quantity = int(request.POST.get("product-quantity", 1))
     size = request.POST.get("product-size")
-    inventory = get_object_or_404(
-        Inventory, product=cart_item.product, size=size
-    )
+    inventory = get_object_or_404(Inventory, product=cart_item.product, size=size)
+
+    
+    if quantity > 10:
+        messages.warning(request, "Maximum limit is 10 units.")
+        return redirect("cart") # Keep them here
 
     if quantity > inventory.stock:
-        error_message = (
-            f"Only {inventory.stock} item(s) available in stock for this size."
-        )
-        messages.error(request, error_message)
-        return redirect("product_page", slug=cart_item.product.slug)
+        messages.error(request, f"Only {inventory.stock} left in stock.")
+        return redirect("cart") # Keep them here
 
     cart_item.quantity = quantity
     cart_item.inventory = inventory
     cart_item.save()
     return redirect("cart")
-
 
 
 
