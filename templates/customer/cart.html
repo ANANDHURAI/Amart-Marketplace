@@ -99,46 +99,64 @@
                         <td>
                           <img width="80" src="{{ cart_item.product.primary_image.image.url }}" alt="" />
                         </td>
+
                         <td>
                           <a href="{% url 'product_page' cart_item.product.slug %}">
                             <strong>{{ cart_item.product.brand_name }}</strong> {{ cart_item.product.name }}
                           </a>
+
+                          {% if cart_item.inventory.stock < 10 %}
+                          <div class="stock-alert" style="color: #d9534f; font-size: 12px; margin-top: 5px;">
+                            <i class="tf-ion-android-warning"></i> Only {{ cart_item.inventory.stock }} left in stock!
+                          </div>
+                          {% endif %}
                         </td>
+
                         <td class="text-center">₹ {{ cart_item.inventory.price }}</td>
-                        <td class="text-center"><span class="badge-size">{{ cart_item.inventory.size }}</span></td>
+
+                        <td class="text-center">
+                          <span class="badge-size">{{ cart_item.inventory.size }}</span>
+                        </td>
                         
                         <td>
-                            <div class="qty-input-group">
-                                <button type="button" class="qty-btn minus" data-id="{{ cart_item.id }}">-</button>
-                                
-                                <form action="{% url 'update_cart_item' cart_item.id %}" method="post" id="form-{{ cart_item.id }}">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="product-size" value="{{ cart_item.inventory.size }}">
-                                    <input type="text" name="product-quantity" class="qty-val" id="qty-{{ cart_item.id }}" value="{{ cart_item.quantity }}" readonly>
-                                </form>
+                          <div class="qty-input-group">
+                            <button type="button" class="qty-btn minus" data-id="{{ cart_item.id }}">-</button>
+                            
+                            <form action="{% url 'update-cart-item' cart_item.id %}" method="post" id="form-{{ cart_item.id }}">
+                              {% csrf_token %}
+                              <input type="hidden" name="product-size" value="{{ cart_item.inventory.size }}">
+                              <input type="text" name="product-quantity" class="qty-val" id="qty-{{ cart_item.id }}" value="{{ cart_item.quantity }}" readonly>
+                            </form>
 
-                                <button type="button" class="qty-btn plus" data-id="{{ cart_item.id }}">+</button>
-                            </div>
+                            <button type="button" class="qty-btn plus" data-id="{{ cart_item.id }}">+</button>
+                          </div>
                         </td>
 
                         <td class="text-center">
-                            <a href="" data-toggle="modal" data-target="#add-to-cart-modal-{{ cart_item.id }}" class="text-primary" style="margin-right:15px; font-size: 12px; text-decoration: underline;">Update Size</a>
-                            <a data-toggle="modal" data-target="#remove-modal-{{ cart_item.id }}" class="text-danger"><i class="tf-ion-ios-trash-outline" style="font-size:22px"></i></a>
+                          <a href="" data-toggle="modal" data-target="#add-to-cart-modal-{{ cart_item.id }}" class="text-primary" style="margin-right:15px; font-size: 12px; text-decoration: underline;">
+                            Update Size
+                          </a>
+                          <a data-toggle="modal" data-target="#remove-modal-{{ cart_item.id }}" class="text-danger">
+                            <i class="tf-ion-ios-trash-outline" style="font-size:22px"></i>
+                          </a>
                         </td>
                       </tr>
 
+                      <!-- Change Size Modal -->
                       <div class="modal fade" id="add-to-cart-modal-{{ cart_item.id }}">
                         <div class="modal-dialog">
                           <div class="modal-content p-4">
                             <button type="button" class="close" data-dismiss="modal">&times;</button>
                             <h4 class="mb-4">Change Size</h4>
-                            <form method="post" action="{% url 'update_cart_item' cart_item.id %}">
+                            <form method="post" action="{% url 'update-cart-item' cart_item.id %}">
                               {% csrf_token %}
                               <input type="hidden" name="product-quantity" value="{{ cart_item.quantity }}">
                               <div class="form-group">
                                 <select class="form-control" name="product-size">
                                   {% for inv in cart_item.available_inventories %}
-                                    <option value="{{ inv.size }}" {% if inv.id == cart_item.inventory.id %}selected{% endif %}>{{ inv.size }} - ₹{{ inv.price }}</option>
+                                    <option value="{{ inv.size }}" {% if inv.id == cart_item.inventory.id %}selected{% endif %}>
+                                      {{ inv.size }} - ₹{{ inv.price }}
+                                    </option>
                                   {% endfor %}
                                 </select>
                               </div>
@@ -148,17 +166,18 @@
                         </div>
                       </div>
 
+                      <!-- Remove Modal -->
                       <div class="modal fade" id="remove-modal-{{ cart_item.id }}">
                         <div class="modal-dialog modal-sm">
                           <div class="modal-content p-4 text-center">
                             <h4>Remove Item?</h4>
                             <p class="text-muted">Are you sure?</p>
-                            <a href="{% url 'remove_cart_item' cart_item.id %}" class="btn btn-main btn-block">Yes, Remove</a>
+                            <a href="{% url 'remove-cart-item' cart_item.id %}" class="btn btn-main btn-block">Yes, Remove</a>
                             <button class="btn btn-link text-muted" data-dismiss="modal">Cancel</button>
                           </div>
                         </div>
                       </div>
-                      
+
                     {% endfor %}
 
                     <tr>

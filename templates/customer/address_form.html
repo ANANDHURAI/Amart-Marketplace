@@ -12,8 +12,8 @@
                     <h1 class="page-name">Cart</h1>
                     <ol class="breadcrumb">
                         <li><a href="{% url "home" %}">Home</a></li>
-                        <li><a href="{% url "customer_dashboard" %}">Profile</a></li>
-                        <li><a href="{% url "customer_address" %}">Address</a></li>
+                        <li><a href="{% url "customer-dashboard" %}">Profile</a></li>
+                        <li><a href="{% url "customer-addresses" %}">Address</a></li>
                         {% if address %}
                             <li class="active"><a href="">Edit Address</a></li>
                         {% else %}
@@ -43,7 +43,7 @@
                             </div>
                         {% endif %}
                     {% endfor %}
-                <form class="checkout-form" method="post" {% if address %}action="{% url "edit_address" address.id %}"{% endif %}>
+                <form class="checkout-form" method="post" {% if address %}action="{% url "edit-address" address.id %}"{% endif %}>
                     {% csrf_token %}
                     <div class="form-group">
                         <label for="full_name">Full Name</label>

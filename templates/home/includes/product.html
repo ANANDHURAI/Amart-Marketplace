@@ -6,7 +6,7 @@
              style="width: 100%; height: 350px; object-fit: cover;">
         
         <div class="preview-meta" style="position: absolute; width: 100%; bottom: -50px; transition: 0.4s all; background: rgba(255,255,255,0.9); display: flex; justify-content: space-around; padding: 15px;">
-            <a href="{% url 'add_to_favourite' product.id %}" style="color: #333;"><i class="tf-ion-ios-heart{% if product.is_favourite %}" style="color: red;{% else %}-outline"{% endif %}></i></a>
+            <a href="{% url 'add-to-favourite' product.id %}" style="color: #333;"><i class="tf-ion-ios-heart{% if product.is_favourite %}" style="color: red;{% else %}-outline"{% endif %}></i></a>
             <a href="#!" data-toggle="modal" data-target="#add-to-cart-modal-{{ product.id }}" style="color: #333;"><i class="tf-ion-android-cart"></i></a>
             <a href="#!" data-toggle="modal" data-target="#product-modal-{{ product.id }}" style="color: #333;"><i class="tf-ion-ios-search"></i></a>
         </div>

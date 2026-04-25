@@ -27,11 +27,11 @@
             <div class="row">
                 <div class="col-md-12">
                     <ul class="list-inline dashboard-menu text-center">
-                        <li><a href="{% url "customer_dashboard" %}">Dashboard</a></li>
-                        <li><a href="{% url "customer_orders" %}">Orders</a></li>
-                        <li><a class="active" href="{% url "customer_address" %}">Address</a></li>
-                        <li><a href="{% url "customer_profile" %}">Profile Details</a></li> 
-                        <li><a href="{% url "customer_wallet" %}">Wallet</a></li>   
+                        <li><a href="{% url "customer-dashboard" %}">Dashboard</a></li>
+                        <li><a href="{% url "customer-orders" %}">Orders</a></li>
+                        <li><a class="active" href="{% url "customer-addresses" %}">Address</a></li>
+                        <li><a href="{% url "customer-profile" %}">Profile Details</a></li> 
+                        <li><a href="{% url "customer-wallet" %}">Wallet</a></li>   
                     </ul>
                     <div class="dashboard-wrapper user-dashboard">
                         {% if addresses %}
@@ -56,14 +56,14 @@
                                                 {% if address.is_default  %}
                                                 <a type="button" title="Default address"><i class="bi bi-toggle-on h3"></i></a>
                                                 {% else %}
-                                                    <a href="{% url 'default_address' address.id %}" type="button" class="btn" title="Set default"><i class="bi bi-toggle-off h3"></i></a>
+                                                    <a href="{% url 'default-address' address.id %}" type="button" class="btn" title="Set default"><i class="bi bi-toggle-off h3"></i></a>
                                                 {% endif %}
                                             </center></td>
                                             <td><center>{{ address.pincode }}</center></td>
                                             <td><center>+91 {{ address.mobile }}</center></td>  
                                             <td><center>
                                                 <div class="btn-group" role="group">
-                                                    <a title="Edit address" href="{% url "edit_address" address.id %}" type="button" class="btn btn-default"><i class="tf-pencil2 text-primary" aria-hidden="true"></i></a>
+                                                    <a title="Edit address" href="{% url "edit-address" address.id %}" type="button" class="btn btn-default"><i class="tf-pencil2 text-primary" aria-hidden="true"></i></a>
                                                     <a title="Remove address" data-toggle="modal" data-target="#remove-address-modal-{{ address.id }}" type="button" class="btn btn-default"><i class="tf-ion-close text-danger" aria-hidden="true"></i></a>
                                                 </div>
                                             </center></td>
@@ -79,7 +79,7 @@
                                                         <br>
                                                         <p>If you are currently using this address for any active orders, removing it may result in potential delivery delays or errors. Are you sure you want to proceed with removing this address?</p>
                                                         <div class="modal-footer">
-                                                            <a href="{% url "remove_address" address.id %}" type="button" class="btn btn-main">Remove Address</a>
+                                                            <a href="{% url "delete-address" address.id %}" type="button" class="btn btn-main">Remove Address</a>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -92,7 +92,7 @@
                         {% else %}
                         <p>No Addresses Added Yet. Add One Now for Seamless Shopping!</p>
                         {% endif %}
-                        <a href="{% url "new_address" %}" class="btn btn-main mt-20">Add New Address</a >
+                        <a href="{% url "new-address" %}" class="btn btn-main mt-20">Add New Address</a >
                     </div>
                 </div>
             </div>

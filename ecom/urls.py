@@ -12,6 +12,7 @@ urlpatterns = [
     path('customer/', include('customer.urls')),
     path("account/", include("accounts.urls")),
     path("aadmin/", include("aadmin.urls")),
+    path('product/', include('product.urls')),
     path("payment/", include("payment.urls")),
 ] 
 
@@ -19,4 +20,3 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     
-handler404 = "ecom.views.custom_404"

@@ -158,39 +158,3 @@ def shop(request):
 
 
 
-
-
-def product_page(request, slug):
-    product = get_object_or_404(
-        Product.approved_objects.select_related("main_category"),
-        slug=slug,
-    )
-    product_images = ProductImage.objects.filter(product=product).order_by("priority")
-    inventory = Inventory.objects.filter(product=product, is_active=True)
-
-    # Get Category Discount
-    discount = CategoryOffer.objects.filter(
-        category=product.main_category
-    ).values_list("discount", flat=True).first() or 0
-
-    # Calculate discounted price for each size
-    for item in inventory:
-        if discount > 0:
-            item.discounted_price = int(item.price * (1 - discount / 100))
-        else:
-            item.discounted_price = item.price
-
-    product.is_favourite = False
-    if request.user.is_authenticated:
-        product.is_favourite = FavouriteItem.objects.filter(
-            customer_id=request.user.pk,
-            product=product,
-        ).exists()
-
-    return render(request, "home/product-page.html", {
-        "product": product,
-        "offer": discount,
-        "inventory": inventory,
-        "product_images": product_images,
-        "title": product.name,
-    })

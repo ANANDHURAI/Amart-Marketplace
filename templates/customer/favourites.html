@@ -12,7 +12,7 @@
                     <h1 class="page-name">Favourites</h1>
                     <ol class="breadcrumb">
                         <li><a href="{% url "home" %}">Home</a></li>
-                        <li><a href="{% url "customer_dashboard" %}">{{ customer.first_name }} {{ customer.last_name }}</a></li>
+                        <li><a href="{% url "customer-dashboard" %}">{{ customer.first_name }} {{ customer.last_name }}</a></li>
                         <li class="active"><a href="">Favourites</a></li>
                     </ol>
                 </div>
@@ -52,7 +52,7 @@
                                     <p class="truncate">{{ favourite_item.product.name }}</p>
                                     <p class="price"><strong class="h4">&#8377; {{ favourite_item.product.price }} </strong>
                                 </a>
-                                <a href="{% url "remove_favourite_item" favourite_item.id %}" class="btn btn-small btn-primary">Remove</a>
+                                <a href="{% url "remove-favourite-item" favourite_item.id %}" class="btn btn-small btn-primary">Remove</a>
                             </div>
                         </div>
                         
@@ -109,7 +109,7 @@
                                                     <hr>
                                                     <p>Select size and quantity</p>
                                                     <hr>
-                                                    <form method="post" action="{% url 'add_to_cart' favourite_item.product.id %}">
+                                                    <form method="post" action="{% url 'add-to-cart' favourite_item.product.id %}">
                                                         {% csrf_token %}
                                                         <div class="product-size">
                                                             <span>Size:</span>

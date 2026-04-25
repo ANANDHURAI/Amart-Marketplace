@@ -29,11 +29,11 @@
             <div class="col-md-12">
                 <!-- Dashboard Menu -->
                 <ul class="list-inline dashboard-menu text-center">
-                    <li><a href="{% url 'customer_dashboard' %}">Dashboard</a></li>
-                    <li><a href="{% url 'customer_orders' %}">Orders</a></li>
-                    <li><a href="{% url 'customer_address' %}">Address</a></li>
-                    <li><a class="active" href="{% url 'customer_profile' %}">Profile Details</a></li>
-                    <li><a href="{% url 'customer_wallet' %}">Wallet</a></li>
+                    <li><a href="{% url 'customer-dashboard' %}">Dashboard</a></li>
+                    <li><a href="{% url 'customer-orders' %}">Orders</a></li>
+                    <li><a href="{% url 'customer-addresses' %}">Address</a></li>
+                    <li><a class="active" href="{% url 'customer-profile' %}">Profile Details</a></li>
+                    <li><a href="{% url 'customer-wallet' %}">Wallet</a></li>
                 </ul>
 
                 <!-- Profile Info -->
@@ -57,7 +57,7 @@
                                 <li><span>Date of Join:</span> {{ customer.date_joined|date:"d-m-Y" }}</li>
                                 <br>
                                 <a data-toggle="modal" data-target="#edit-profile-modal" class="btn btn-main btn-small">Edit Profile</a>
-                                <a href="{% url 'change_password' %}" class="btn btn-main btn-small">Change Password</a>
+                                <a href="{% url 'change-password' %}" class="btn btn-main btn-small">Change Password</a>
                             </ul>
                         </div>
                     </div>
@@ -88,7 +88,7 @@
                             {% endif %}
                         {% endfor %}
 
-                        <form class="checkout-form" method="post" action="{% url 'edit_profile' %}" enctype="multipart/form-data">
+                        <form class="checkout-form" method="post" action="{% url 'edit-profile' %}" enctype="multipart/form-data">
                             {% csrf_token %}
 
                             <!-- First & Last Name -->

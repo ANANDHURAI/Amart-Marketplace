@@ -6,41 +6,81 @@
 
 <section class="payment-failed-section">
     <div class="container">
-        <h2 class="mb-4">Payment Failed</h2>
-        <div class="row">
-            <div class="col-md-8">
-                <div class="alert alert-danger" role="alert">
-                    Your payment for order #{{ order_id }} was unsuccessful. Please try again.
+        <div class="row centered-content">
+
+            <div class="col-lg-6 col-md-8 col-sm-10">
+
+                <div class="failure-card">
+
+                    <!-- Header -->
+                    <div class="failure-header text-center">
+                        <div class="failure-icon">✖</div>
+                        <h2>Payment Failed</h2>
+                    </div>
+
+                    <!-- Alert -->
+                    <div class="failure-alert">
+                        Your payment was unsuccessful. Don't worry — you can try again below.
+                    </div>
+
+                    <!-- Retry Options -->
+                    <form method="post" class="retry-form">
+                        {% csrf_token %}
+
+                        <h4 class="section-title">Choose Payment Method</h4>
+
+                        <label class="option-card">
+                            <input type="radio" name="retry_method" value="razorpay" required>
+                            <div class="option-content">
+                                <span>Razorpay</span>
+                                <small>Fast & secure online payment</small>
+                            </div>
+                        </label>
+
+                        <label class="option-card">
+                            <input type="radio" name="retry_method" value="wallet" required>
+                            <div class="option-content">
+                                <span>Wallet</span>
+                                <small>Balance: ₹{{ wallet_balance }}</small>
+                            </div>
+                        </label>
+
+                        <label class="option-card">
+                            <input type="radio" name="retry_method" value="cod" required>
+                            <div class="option-content">
+                                <span>Cash on Delivery</span>
+                                <small>Pay when you receive</small>
+                            </div>
+                        </label>
+
+                        <button type="submit" class="btn retry-btn">
+                            Retry Payment
+                        </button>
+                    </form>
+
                 </div>
-                <h3 class="mt-4">Retry Payment</h3>
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="retry_method" id="razorpay" value="razorpay" required>
-                        <label class="form-check-label" for="razorpay">
-                            Razorpay
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="retry_method" id="wallet" value="wallet" required>
-                        <label class="form-check-label" for="wallet">
-                            Wallet (Balance: ₹{{ wallet_balance }})
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="retry_method" id="cod" value="cod" required>
-                        <label class="form-check-label" for="cod">
-                            Cash on Delivery
-                        </label>
-                    </div>
-                    <button type="submit" class="btn btn-primary mt-3">Retry Payment</button>
-                </form>
+
             </div>
-            <div class="col-md-4">
-                <h3>Order Summary</h3>
-                <p><strong>Total Amount:</strong> ₹{{ total_amount }}</p>
-                <p><strong>Previous Payment Method:</strong> {{ payment_method }}</p>
+
+            <!-- Order Summary -->
+            <div class="col-lg-4 col-md-6 col-sm-10 mt-4">
+
+                <div class="summary-card">
+                    <h4>Order Summary</h4>
+
+                    <div class="summary-row">
+                        <span>Total Amount</span>
+                        <strong>₹{{ total_amount }}</strong>
+                    </div>
+
+                    <div class="summary-row">
+                        <span>Previous Method</span>
+                        <strong>{{ payment_method }}</strong>
+                    </div>
+                </div>
+
             </div>
+
         </div>
     </div>
 </section>
@@ -50,11 +90,136 @@
 
 {% block extra_styles %}
 <style>
-    .payment-failed-section {
-        padding: 50px 0;
-    }
-    .form-check {
-        margin-bottom: 10px;
-    }
+
+/* Layout */
+.payment-failed-section {
+    background: linear-gradient(135deg, #f8f9fb, #eef1f5);
+    padding: 60px 0;
+}
+
+.centered-content {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+/* Failure Card */
+.failure-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+/* Header */
+.failure-header h2 {
+    margin-top: 10px;
+    font-weight: 600;
+}
+
+.failure-header p {
+    color: #888;
+    font-size: 14px;
+}
+
+/* Icon */
+.failure-icon {
+    width: 60px;
+    height: 60px;
+    background: #ffe5e5;
+    color: #d9534f;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin: auto;
+}
+
+/* Alert */
+.failure-alert {
+    background: #fff4f4;
+    color: #c9302c;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 20px 0;
+    font-size: 14px;
+}
+
+/* Options */
+.section-title {
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+.option-card {
+    display: flex;
+    align-items: center;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.option-card:hover {
+    border-color: #000;
+}
+
+.option-card input {
+    margin-right: 12px;
+}
+
+.option-content span {
+    font-weight: 500;
+}
+
+.option-content small {
+    display: block;
+    color: #888;
+    font-size: 12px;
+}
+
+/* Button */
+.retry-btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+    background: #000;
+    color: #fff;
+    border-radius: 10px;
+    transition: 0.3s;
+}
+
+.retry-btn:hover {
+    background: #333;
+}
+
+/* Summary Card */
+.summary-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+}
+
+.summary-card h4 {
+    margin-bottom: 15px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    color: #555;
+}
+
+.summary-row strong {
+    color: #000;
+}
+
 </style>
 {% endblock extra_styles %}

@@ -183,7 +183,7 @@
                         <div id="carousel-custom" class="carousel slide" data-ride="carousel">
                             <div class="main-image-wrapper shadow-lg">
                                 <div class="wishlist-float">
-                                    <a href="{% url 'add_to_favourite' product.id %}">
+                                    <a href="{% url 'add-to-favourite' product.id %}">
                                         <i class="tf-ion-ios-heart{% if not product.is_favourite %}-outline{% endif %}" 
                                            style="font-size: 24px; color: {% if product.is_favourite %}#e53e3e{% else %}#111{% endif %};"></i>
                                     </a>
@@ -230,7 +230,7 @@
 
                         <p class="text-muted" style="margin-bottom: 30px;">{{ product.description|truncatewords:30 }}</p>
 
-                        <form method="post" action="{% url 'add_to_cart' product.id %}">
+                        <form method="post" action="{% url 'add-to-cart' product.id %}">
                             {% csrf_token %}
                             
                             <div class="mb-30">

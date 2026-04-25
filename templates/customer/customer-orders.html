@@ -62,11 +62,11 @@
             <div class="row">
                 <div class="col-md-12">
                     <ul class="list-inline dashboard-menu text-center">
-                        <li><a href="{% url "customer_dashboard" %}">Dashboard</a></li>
-                        <li><a class="active" href="{% url "customer_orders" %}">Orders</a></li>
-                        <li><a href="{% url "customer_address" %}">Address</a></li>
-                        <li><a href="{% url "customer_profile" %}">Profile Details</a></li>     
-                        <li><a href="{% url "customer_wallet" %}">Wallet</a></li>    
+                        <li><a href="{% url "customer-dashboard" %}">Dashboard</a></li>
+                        <li><a class="active" href="{% url "customer-orders" %}">Orders</a></li>
+                        <li><a href="{% url "customer-addresses" %}">Address</a></li>
+                        <li><a href="{% url "customer-profile" %}">Profile Details</a></li>     
+                        <li><a href="{% url "customer-wallet" %}">Wallet</a></li>    
                     </ul>
                     <div class="dashboard-wrapper user-dashboard">
                         {% if orders %}
@@ -171,7 +171,7 @@
                                                                                                 <br>
                                                                                                 <p> Are you sure you want to proceed with removing this Order?</p>
                                                                                                 <div class="modal-footer">
-                                                                                                    <a href="{% url "cancel_order_item" order_item.id %}" type="button" class="btn btn-main">Cancel</a>
+                                                                                                    <a href="{% url "cancel-order-item" order_item.id %}" type="button" class="btn btn-main">Cancel</a>
                                                                                                 </div>
                                                                                             </div>
                                                                                         </div>
@@ -189,13 +189,21 @@
                                                                                 <span>₹ {{ order.sub_total }}</span>
                                                                             </span>
                                                                         </li>
-                                                                        {% if order.discount > 0 %}
-                                                                            <li>
-                                                                                <span class="d-flex justify-content-between">
-                                                                                    <span>Discount:</span>
-                                                                                    <span>{{ order.discount }}</span>
-                                                                                </span>
-                                                                            </li>
+                                                                        {% if order.offer %}
+                                                                        <li>
+                                                                            <span class="d-flex justify-content-between">
+                                                                                <span class="text-success"><b>Category Offers:</b></span>
+                                                                                <span class="text-success"><b>- ₹ {{ order.offer }}</b></span>
+                                                                            </span>
+                                                                        </li>
+                                                                        {% endif %}
+                                                                        {% if order.discount %}
+                                                                        <li>
+                                                                            <span class="d-flex justify-content-between">
+                                                                                <span class="text-success"><b>Coupon Discount:</b></span>
+                                                                                <span class="text-success"><b>- ₹ {{ order.discount }}</b></span>
+                                                                            </span>
+                                                                        </li>
                                                                         {% endif %}
                                                                         <li>
                                                                             <span class="d-flex justify-content-between">
@@ -205,9 +213,9 @@
                                                                         </li>
                                                                     </ul>
                                                                     <div class="summary-total">
-                                                                        <span>Total</span>
-                                                                        <span>₹ {{ order.total_amount }}</span>
-                                                                    </div>
+                                                                        <span>Total (Paid)</span>
+                                                                        <span>₹ {{ order.total_amount }}</span>   {# ← This is the actually paid amount #}
+                                                                    </div>                                                                   
                                                                     <hr>
                                                                     <div>
                                                                         <div class="delivery-address pull-left">

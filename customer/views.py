@@ -7,7 +7,6 @@ prefetch_related to avoid N+1 in orders, cart, checkout, favourites, invoice.
 import logging
 import re
 
-
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
@@ -18,13 +17,11 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 import razorpay
-
 from accounts.models import Customer
 from aadmin.models import CategoryOffer, Coupon
-from ecom.views import get_next_url
-from product.models import Inventory, Product
 
-from .models import Address, Cart, CartItem, FavouriteItem, Order, OrderItem, Wallet
+
+from .models import Address, Cart, CartItem, Order, OrderItem, Wallet
 from .utils import list_of_states_in_india
 
 logger = logging.getLogger(__name__)
@@ -110,7 +107,7 @@ def edit_profile(request):
         customer.save()
         messages.success(request, "Profile updated successfully!")
 
-    return redirect("customer_profile")
+    return redirect("customer-profile")
 
 
 
@@ -127,19 +124,19 @@ def change_password(request):
         if not customer.check_password(current_password):
             error_message = "The current password you entered is incorrect."
             messages.error(request, error_message)
-            return redirect("change_password")
+            return redirect("change-password")
 
         if password1 != password2:
             error_message = "The new passwords do not match. Please try again."
             messages.error(request, error_message)
-            return redirect("change_password")
+            return redirect("change-password")
 
         customer.set_password(password1)
         customer.save()
         logout(request)
         success_message = "Your password has been successfully changed. Please Login"
         messages.success(request, success_message)
-        return redirect("customer_profile")
+        return redirect("customer-profile")
 
     return render(request, "customer/change-password.html")
 
@@ -195,7 +192,7 @@ def new_address(request):
         if errors:
             for error in errors:
                 messages.error(request, error)
-            return redirect("new_address")
+            return redirect("new-address")
 
         name = request.POST["name"].strip().title()
         mobile = request.POST["mobile"].strip()
@@ -237,12 +234,11 @@ def new_address(request):
             address.is_default = True
             address.save()
 
-        return redirect("checkout" if "checkout_submit" in request.POST else "customer_address")
+        return redirect("checkout" if "checkout_submit" in request.POST else "customer-addresses")
 
     return render(request, "customer/address_form.html", {
         "states": list_of_states_in_india
     })
-
 
 
 
@@ -285,7 +281,7 @@ def edit_address(request, address_id):
         address.address_text = address_text
         address.save()
 
-        return redirect("customer_address")
+        return redirect("customer-addresses")
 
     context = {"address": address, "states": list_of_states_in_india}
     return render(request, "customer/address_form.html", context)
@@ -300,7 +296,9 @@ def remove_address(request, address_id):
     customer = _get_customer(request)
     address = get_object_or_404(Address, id=address_id, customer=customer)
     address.delete()
-    return redirect("customer_address")
+    return redirect("customer-addresses")
+
+
 
 
 @customer_required
@@ -311,7 +309,7 @@ def default_address(request, address_id):
     Address.objects.filter(customer=customer, is_default=True).update(is_default=False)
     address.is_default = True
     address.save()
-    return redirect("customer_address")
+    return redirect("customer-addresses")
 
 
 
@@ -355,23 +353,21 @@ def orders(request):
 @customer_required
 @transaction.atomic
 def cancel_order(request, order_id):
-    """Cancel an order; restores stock and refunds to wallet for paid non-COD."""
-    customer = _get_customer(request)
-    order = get_object_or_404(Order, id=order_id, customer=customer)
+    customer   = _get_customer(request)
+    order      = get_object_or_404(Order, id=order_id, customer=customer)
     order_items = OrderItem.objects.select_related("inventory").filter(order=order)
-    wallet, _ = Wallet.objects.get_or_create(customer=customer)
+    wallet, _  = Wallet.objects.get_or_create(customer=customer)
 
     refund_amount = 0
     for order_item in order_items:
         if order_item.status != "cancelled":
+            if order.is_paid and order.payment_method.lower() != "cod":
+                refund_amount += _proportional_refund(order, order_item)
+
             order_item.status = "cancelled"
             order_item.inventory.stock += order_item.quantity
             order_item.inventory.save()
             order_item.save()
-
-            # Refund only for non-COD paid orders
-            if order.is_paid and order.payment_method != "COD":
-                refund_amount += order_item.quantity * order_item.inventory.price
 
     order.status = "cancelled"
     order.save()
@@ -379,11 +375,14 @@ def cancel_order(request, order_id):
     if refund_amount > 0:
         wallet.balance += refund_amount
         wallet.save()
-        messages.success(request, f"Order cancelled. Refund of ₹{refund_amount} added to your wallet.")
+        messages.success(
+            request,
+            f"Order cancelled. Refund of ₹{refund_amount} added to your wallet."
+        )
     else:
         messages.success(request, "Order cancelled successfully.")
 
-    return redirect("customer_orders")
+    return redirect("customer-orders")
 
 
 
@@ -391,417 +390,36 @@ def cancel_order(request, order_id):
 
 @customer_required
 def cancel_order_item(request, order_item_id):
-    """Cancel a single order item; may mark whole order cancelled if no items left."""
-    customer = _get_customer(request)
+    customer   = _get_customer(request)
     order_item = get_object_or_404(
-        OrderItem,
-        id=order_item_id,
-        order__customer=customer,
+        OrderItem, id=order_item_id, order__customer=customer
     )
-    order_item.order  # force load
-    wallet, _ = Wallet.objects.get_or_create(customer=customer)
+    order      = order_item.order
+    wallet, _  = Wallet.objects.get_or_create(customer=customer)
 
     if order_item.status != "cancelled":
+        refund = 0
+        if order.is_paid and order.payment_method.lower() != "cod":
+            refund = _proportional_refund(order, order_item)
+
         order_item.status = "cancelled"
-
-        # Refund only for non-COD paid orders
-        if order_item.order.is_paid and order_item.order.payment_method != "COD":
-            wallet.balance += order_item.quantity * order_item.inventory.price
-            wallet.save()
-
         order_item.inventory.stock += order_item.quantity
         order_item.inventory.save()
         order_item.save()
 
-        
-        order = order_item.order
+        if refund > 0:
+            wallet.balance += refund
+            wallet.save()
+            messages.success(
+                request,
+                f"Item cancelled. Refund of ₹{refund} added to your wallet."
+            )
+
         if not OrderItem.objects.filter(order=order).exclude(status="cancelled").exists():
             order.status = "cancelled"
             order.save()
 
-    return redirect("customer_orders")
-
-
-
-
-
-@customer_required
-@transaction.atomic
-def return_order(request, order_id):
-    """Return a delivered order; restores stock and refunds to wallet for paid non-COD."""
-    customer = _get_customer(request)
-    order = get_object_or_404(Order, id=order_id, customer=customer)
-    order_items = OrderItem.objects.select_related("inventory").filter(order=order)
-    wallet, _ = Wallet.objects.get_or_create(customer=customer)
-
-    if order.status == "delivered":
-        refund_amount = 0
-
-        for order_item in order_items:
-            if order_item.status != "returned":
-                order_item.status = "returned"
-                order_item.inventory.stock += order_item.quantity
-                order_item.inventory.save()
-                order_item.save()
-
-                # Refund only for non-COD paid orders
-                if order.is_paid and order.payment_method != "COD":
-                    refund_amount += order_item.quantity * order_item.inventory.price
-
-        order.status = "returned"
-        order.save()
-
-        if refund_amount > 0:
-            wallet.balance += refund_amount
-            wallet.save()
-            messages.success(request, f"Order returned. Refund of ₹{refund_amount} added to your wallet.")
-        else:
-            messages.success(request, "Order returned successfully.")
-    else:
-        messages.error(request, "This order cannot be returned.")
-
-    return redirect("customer_orders")
-
-
-
-
-
-
-@customer_required
-def favourites(request):
-    """List favourite products with primary image and lowest price."""
-    customer = _get_customer(request)
-    favourite_items = (
-        FavouriteItem.objects.filter(customer=customer)
-        .select_related("product", "product__main_category")
-        .prefetch_related("product__product_images", "product__inventory_sizes")
-    )
-
-    for fi in favourite_items:
-        fi.product.primary_image = (
-            fi.product.product_images.order_by("priority").first()
-        )
-        inv = fi.product.inventory_sizes.filter(is_active=True).first()
-        fi.product.price = inv.price if inv else 0
-
-    return render(request, "customer/favourites.html", {
-        "favourite_items": favourite_items,
-        "customer": customer,
-    })
-
-
-
-
-
-@customer_required
-def add_to_favourite(request, product_id):
-    """Add a product to favourites; redirects back to referrer or home."""
-    next_url = get_next_url(request) or "home"
-    customer = _get_customer(request)
-    product = get_object_or_404(Product, id=product_id)
-    favourite_item, created = FavouriteItem.objects.get_or_create(
-        customer=customer, product=product
-    )
-
-    if created:
-        messages.success(request, "Product added to favourites!")
-    else:
-        messages.info(request, "Product is already in favourites.")
-
-    return redirect(next_url)
-
-
-
-
-
-
-@customer_required
-def remove_favourite_item(request, favourite_item_id):
-    """Remove an item from favourites; redirects back to referrer."""
-    next_url = get_next_url(request) or "home"
-    customer = _get_customer(request)
-    favourite_item = get_object_or_404(
-        FavouriteItem, id=favourite_item_id, customer=customer
-    )
-    favourite_item.delete()
-    return redirect(next_url)
-
-
-
-
-
-@customer_required
-def cart(request):
-    """Cart page with items, primary image, available sizes, and total."""
-    customer = _get_customer(request)
-    cart, _ = Cart.objects.get_or_create(customer=customer)
-    cart_items = (
-        CartItem.objects.filter(cart=cart)
-        .select_related("product", "inventory")
-        .prefetch_related("product__product_images", "product__inventory_sizes")
-    )
-
-    total_amount = 0
-    for item in cart_items:
-        item.product.primary_image = (
-            item.product.product_images.order_by("priority").first()
-        )
-        item.available_inventories = item.product.inventory_sizes.filter(
-            is_active=True, stock__gt=0
-        )
-        total_amount += item.quantity * item.inventory.price
-
-    cart.total_amount = total_amount
-    return render(request, "customer/cart.html", {
-        "customer": customer,
-        "cart_items": cart_items,
-        "cart": cart,
-    })
-
-
-
-
-
-@customer_required
-def add_to_cart(request, product_id):
-    if request.method == "POST":
-        customer = get_object_or_404(Customer, email=request.user.email)
-        product = get_object_or_404(Product, pk=product_id)
-        cart, cart_created = Cart.objects.get_or_create(customer=customer)
-        quantity = int(request.POST.get("product-quantity"))
-        size = request.POST.get("product-size")
-
-        inventory_items = Inventory.objects.filter(product=product, size=size)
-        if not inventory_items.exists():
-            messages.error(request, "Selected size is not available for this product.")
-            return redirect("product_page", slug=product.slug)
-
-        inventory = inventory_items.first()
-
-        if quantity > inventory.stock:
-            error_message = (
-                f"Only {inventory.stock} item(s) available in stock for this size."
-            )
-            messages.error(request, error_message)
-            return redirect("product_page", slug=product.slug)
-
-        with transaction.atomic():
-            cart_item, cart_item_created = CartItem.objects.get_or_create(
-                cart=cart, product=product, inventory=inventory
-            )
-
-            
-            FavouriteItem.objects.filter(customer=customer, product=product).delete()
-
-            # Managing the maximum number of products per customer
-            if not cart_item_created:
-                if cart_item.quantity + quantity > 10:
-                    cart_item.quantity = 10
-                else:
-                    cart_item.quantity += quantity
-            else:
-                cart_item.quantity = quantity
-            cart_item.save()
-
-    return redirect("cart")
-
-
-
-
-@customer_required
-def update_cart_item(request, cart_item_id):
-    if request.method != "POST":
-        return redirect("cart")
-        
-    customer = _get_customer(request)
-    cart = get_object_or_404(Cart, customer=customer)
-    cart_item = get_object_or_404(CartItem, id=cart_item_id, cart=cart)
-    
-    quantity = int(request.POST.get("product-quantity", 1))
-    size = request.POST.get("product-size")
-    inventory = get_object_or_404(Inventory, product=cart_item.product, size=size)
-
-    
-    if quantity > 10:
-        messages.warning(request, "Maximum limit is 10 units.")
-        return redirect("cart") # Keep them here
-
-    if quantity > inventory.stock:
-        messages.error(request, f"Only {inventory.stock} left in stock.")
-        return redirect("cart") # Keep them here
-
-    cart_item.quantity = quantity
-    cart_item.inventory = inventory
-    cart_item.save()
-    return redirect("cart")
-
-
-
-
-
-@customer_required
-def remove_cart_item(request, cart_item_id):
-    """Remove a cart item; item must belong to current customer's cart."""
-    customer = _get_customer(request)
-    cart = get_object_or_404(Cart, customer=customer)
-    cart_item = get_object_or_404(CartItem, id=cart_item_id, cart=cart)
-    cart_item.delete()
-    return redirect("cart")
-
-
-
-
-
-@customer_required
-def checkout(request):
-    """Checkout: cart summary, addresses, payment method, category offers and wallet."""
-    customer = _get_customer(request)
-    cart, _ = Cart.objects.get_or_create(customer=customer)
-    cart_items = (
-        CartItem.objects.filter(cart=cart)
-        .select_related("product", "product__main_category", "inventory")
-        .prefetch_related("product__product_images")
-    )
-    if not cart_items.exists():
-        return redirect("cart")
-
-    wallet, _ = Wallet.objects.get_or_create(customer=customer)
-    category_ids = list({ci.product.main_category_id for ci in cart_items})
-    offers_by_category = {
-        co["category_id"]: co["discount"]
-        for co in CategoryOffer.objects.filter(
-            category_id__in=category_ids
-        ).values("category_id", "discount")
-    }
-
-    total_amount = 0
-    total_offer = 0
-    for cart_item in cart_items:
-        cart_item.product.primary_image = (
-            cart_item.product.product_images.order_by("priority").first()
-        )
-        offer_discount = offers_by_category.get(
-            cart_item.product.main_category_id, 0
-        )
-        amount = cart_item.quantity * cart_item.inventory.price
-        total_amount += amount
-        total_offer += round(amount * offer_discount / 100)
-
-    cart.total_amount = total_amount
-    cart.total_offer = total_offer
-    cart.remaining_amount = total_amount - total_offer
-    cart.save()
-
-    addresses = Address.objects.filter(customer=customer)
-    return render(request, "customer/checkout.html", {
-        "customer": customer,
-        "cart_items": cart_items,
-        "cart": cart,
-        "addresses": addresses,
-        "states": list_of_states_in_india,
-        "selected_address_id": request.session.get("address_id"),
-        "selected_payment_method": request.session.get("payment_method"),
-        "wallet_balance": wallet.balance,
-    })
-
-
-
-
-
-
-
-from payment.views import handle_wallet_payment
-
-@customer_required
-def place_order(request):
-    if request.method != "POST":
-        return redirect("checkout")
-
-    address_id = request.POST.get("address_id")
-    payment_method = request.POST.get("payment_method")
-    coupon_code = request.POST.get("coupon_code", "").strip().upper()
-
-    request.session["address_id"] = address_id
-    request.session["payment_method"] = payment_method
-
-    try:
-        cart = Cart.objects.get(customer=request.user)
-        cart_items = CartItem.objects.filter(cart=cart)
-
-        if not cart_items.exists():
-            messages.error(request, "Your cart is empty!")
-            return redirect("checkout")
-
-        total_amount = cart_items.aggregate(
-            total=Sum(F("quantity") * F("inventory__price"))
-        )["total"] or 0
-
-        # Category offers
-        total_offer = 0
-        for item in cart_items:
-            offer = CategoryOffer.objects.filter(
-                category=item.product.main_category
-            ).first()
-            if offer:
-                total_offer += round(item.quantity * item.inventory.price * offer.discount / 100)
-
-        total_amount -= total_offer
-
-        # Coupon
-        if coupon_code:
-            coupon = Coupon.objects.filter(code=coupon_code, is_active=True).first()
-
-            if not coupon:
-                messages.error(request, "Invalid coupon code.")
-                return redirect("checkout")
-
-            
-            if request.session.get("coupon_code") == coupon.code:
-                messages.error(request, "You have already used this coupon.")
-                return redirect("checkout")
-
-            if coupon.quantity < 1:
-                messages.error(request, "This coupon is no longer available.")
-                return redirect("checkout")
-
-            if coupon.minimum_purchase > total_amount:
-                messages.error(
-                    request,
-                    f"Minimum purchase of ₹{coupon.minimum_purchase} required to use this coupon."
-                )
-                return redirect("checkout")
-
-            total_amount -= coupon.discount
-
-            request.session["coupon_code"] = coupon.code
-            request.session["discount"] = coupon.discount
-
-        request.session["total_amount"] = total_amount
-
-        
-        # PAYMENT DECISION
-        if payment_method == "wallet":
-            return handle_wallet_payment(request, _get_customer(request), total_amount)
-
-        
-        if payment_method == "cod":
-            if total_amount > 1000:
-                messages.error(request, "COD not available above ₹1000")
-                return redirect("checkout")
-
-            request.session["payment_successful"] = False  
-            return redirect("finalize_order")
-
-        if payment_method == "razorpay":
-            return redirect("razorpay_order_creation", amount=total_amount)
-
-        messages.error(request, "Invalid payment method")
-        return redirect("checkout")
-
-    except Exception as exc:
-        logger.exception("place_order error: %s", exc)
-        messages.error(request, "Something went wrong. Try again.")
-        return redirect("checkout")
+    return redirect("customer-orders")
 
 
 
@@ -810,40 +428,56 @@ def place_order(request):
 @customer_required
 @transaction.atomic
 def create_order(request):
-    address_id = request.session.get("address_id")
-    payment_method = request.session.get("payment_method")
-    discount = request.session.get("discount", 0)
-    coupon_code = request.session.get("coupon_code")
-
-    customer = _get_customer(request)
-    address = get_object_or_404(Address, id=address_id, customer=customer)
-    cart = get_object_or_404(Cart, customer=customer)
+    address_id      = request.session.get("address_id")
+    payment_method  = request.session.get("payment_method")
+    coupon_code     = request.session.get("coupon_code", "")
+    coupon_discount = request.session.get("coupon_discount", 0)
+    
+    customer   = _get_customer(request)
+    address    = get_object_or_404(Address, id=address_id, customer=customer)
+    cart       = get_object_or_404(Cart, customer=customer)
     cart_items = CartItem.objects.select_related(
-        "product", "inventory"
+        "product__main_category", "inventory"
     ).filter(cart=cart)
 
-    total_amount = sum(
-        item.quantity * item.inventory.price for item in cart_items
-    )
+    subtotal = sum(item.quantity * item.inventory.price for item in cart_items)
 
-    total_amount = max(total_amount - discount, 0)
-    
-    order = Order.objects.create(
-        customer=customer,
-        address=address.address_text,
-        total_amount=total_amount,
-        payment_method=payment_method,
-        is_paid=payment_method in ["razorpay", "wallet"], 
-    )
+    total_offer = 0
+    for item in cart_items:
+        offer = CategoryOffer.objects.filter(
+            category=item.product.main_category, is_active=True
+        ).first()
+        if offer:
+            total_offer += round(
+                item.quantity * item.inventory.price * offer.discount / 100
+            )
 
+    amount_after_offers = subtotal - total_offer
+
+    coupon = None
     if coupon_code:
         coupon = Coupon.objects.filter(code=coupon_code).first()
         if coupon:
-            order.discount = discount
-            order.coupon = coupon
-            order.save()
-            coupon.quantity -= 1
-            coupon.save()
+            coupon_discount = min(coupon_discount, amount_after_offers)
+        else:
+            coupon_discount = 0
+
+    final_amount = request.session.get("total_amount", 0)
+
+    order = Order.objects.create(
+        customer=customer,
+        address=address.address_text,
+        total_amount=final_amount,    
+        offer=total_offer,           
+        discount=coupon_discount,   
+        coupon=coupon,
+        payment_method=payment_method,
+        is_paid=request.session.get("payment_successful", False),
+    )
+
+    if coupon:
+        coupon.quantity = max(coupon.quantity - 1, 0)
+        coupon.save()
 
     for item in cart_items:
         OrderItem.objects.create(
@@ -863,37 +497,16 @@ def create_order(request):
 
 
 
-@customer_required
-def finalize_order(request):
-    
-    payment_method = request.session.get("payment_method")
+def _proportional_refund(order, order_item):
 
-    if payment_method != "cod" and not request.session.get("payment_successful"):
-        messages.error(request, "Payment not completed")
-        return redirect("checkout")
-    
+    all_items = OrderItem.objects.filter(order=order).select_related("inventory")
+    order_subtotal = sum(oi.quantity * oi.inventory.price for oi in all_items)
 
-    order = create_order(request)
+    if order_subtotal == 0:
+        return 0
 
-    if not order:
-        messages.error(request, "Order creation failed")
-        return redirect("checkout")
-
-    for key in [
-        "payment_successful",
-        "total_amount",
-        "payment_method",
-        "address_id",
-        "coupon_code",
-        "discount",
-    ]:
-        request.session.pop(key, None)
-
-    messages.success(request, "Order placed successfully!")
-    return redirect("order_confirmation", order_id=order.id)
-
-
-
+    item_subtotal = order_item.quantity * order_item.inventory.price
+    return round(item_subtotal / order_subtotal * order.total_amount)
 
 
 
@@ -913,47 +526,61 @@ razorpay_client = razorpay.Client(
 
 
 
-
-
 @customer_required
 def customer_wallet(request):
-    """Wallet balance and top-up; lists recent refunded order items."""
     customer = _get_customer(request)
     wallet, _ = Wallet.objects.get_or_create(customer=customer)
-    order_items = (
+
+    order_items_qs = (
         OrderItem.objects.filter(
             order__customer=customer,
             status="cancelled",
             order__is_paid=True,
         )
-        .exclude(order__payment_method="COD")
+        .exclude(order__payment_method__iexact="cod")
         .select_related("order", "product", "inventory")
         .order_by("-id")
     )
 
+    from collections import defaultdict
+
+    order_ids = list({oi.order_id for oi in order_items_qs})
+
+    all_items_in_orders = (
+        OrderItem.objects
+        .filter(order_id__in=order_ids)
+        .select_related("inventory")
+    )
+    order_subtotals = defaultdict(int)
+    for item in all_items_in_orders:
+        order_subtotals[item.order_id] += item.quantity * item.inventory.price
+
+    for oi in order_items_qs:
+        subtotal = order_subtotals[oi.order_id]
+        if subtotal > 0:
+            item_subtotal = oi.quantity * oi.inventory.price
+            oi.actual_refund = round(item_subtotal / subtotal * oi.order.total_amount)
+        else:
+            oi.actual_refund = 0
+
     context = {
         "customer": customer,
         "wallet": wallet,
-        "order_items": order_items,
+        "order_items": order_items_qs,
     }
 
     if request.method == "POST":
         amount = int(request.POST.get("amount", 0))
-
         if amount > 0:
             currency = "INR"
-
             razorpay_order = razorpay_client.order.create({
                 "amount": amount * 100,
                 "currency": currency,
                 "payment_capture": 1,
                 "receipt": f"wallet_{customer.id}"
             })
-
-            # store wallet top-up info in session
             request.session["wallet_topup"] = True
             request.session["wallet_amount"] = amount
-
             context.update({
                 "razorpay_order_id": razorpay_order["id"],
                 "razorpay_merchant_key": settings.RAZOR_KEY_ID,
@@ -963,7 +590,6 @@ def customer_wallet(request):
             })
 
     return render(request, "customer/customer-wallet.html", context)
-
 
 
 

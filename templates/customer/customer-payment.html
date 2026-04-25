@@ -4,60 +4,55 @@
 {% block content %}
 {% include "home/includes/navigation.html" %}
 
-<section class="pricing-table">
+<section class="pricing-table modern-payment-section">
     <div class="container">
         <div class="row centered-content">
-            <div class="col-md-6 col-sm-6 col-xs-12">
-                <div class="pricing-item">
-                    <div class="price-title text-center">
+            <div class="col-lg-5 col-md-6 col-sm-8 col-xs-12">
+                
+                <div class="payment-card">
 
-                        <h3>Order ID: Order #{{ razorpay_order_id }}</h3>
-                        <br>
+                    <div class="payment-header text-center">
+                        <h2>Secure Checkout</h2>
+                        <p class="order-id">Order #{{ razorpay_order_id }}</p>
+                    </div>
 
-                        <p class="h3">
-                            Payment Method:
-                            <strong class="h2">
+                    <div class="payment-body">
+
+                        <div class="info-row">
+                            <span>Payment Method</span>
+                            <strong>
                                 {% if request.session.payment_method == 'wallet' %}
                                     Wallet
                                 {% else %}
                                     Online Payment
                                 {% endif %}
                             </strong>
-                        </p>
+                        </div>
 
-                        <br>
-                        <p class="h3">Payment Gateway:
-                            <strong class="h2">RazorPay</strong>
-                        </p>
+                        <div class="info-row">
+                            <span>Gateway</span>
+                            <strong>RazorPay</strong>
+                        </div>
 
-                        <br>
-                        <p class="h3">
-                            Amount:
-                            <strong class="h2">₹ {{ actual_amount }}</strong>
-                        </p>
+                        <div class="info-row total">
+                            <span>Total Amount</span>
+                            <strong>₹ {{ actual_amount }}</strong>
+                        </div>
 
-                        {% if request.session.discount %}
-                            <p class="h3">
-                                Discount applied:
-                                <strong class="h2">₹ {{ request.session.discount }}</strong>
-                            </p>
-                        {% else %}
-                            <p>No discount applied</p>
-                        {% endif %}
+                    </div>
 
-                        <br>
-
-                        <button type="button" class="btn btn-main" id="rzp-button1">
+                    <div class="payment-footer text-center">
+                        <button type="button" class="btn pay-btn" id="rzp-button1">
                             {% if request.session.payment_method == 'wallet' %}
                                 Recharge Wallet
                             {% else %}
-                                Pay with Razorpay
+                                Pay Now
                             {% endif %}
                         </button>
-
-
                     </div>
+
                 </div>
+
             </div>
         </div>
     </div>
@@ -68,11 +63,90 @@
 
 {% block extra_styles %}
 <style>
+
+/* Centering */
 .centered-content {
     display: flex;
     justify-content: center;
-    flex-wrap: wrap;
+    align-items: center;
+    min-height: 70vh;
 }
+
+/* Section Background */
+.modern-payment-section {
+    background: linear-gradient(135deg, #f5f7fa, #e4e8ec);
+    padding: 40px 0;
+}
+
+/* Card */
+.payment-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 30px 25px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    transition: 0.3s ease;
+}
+
+.payment-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Header */
+.payment-header h2 {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.order-id {
+    color: #888;
+    font-size: 14px;
+}
+
+/* Body rows */
+.payment-body {
+    margin-top: 25px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    font-size: 15px;
+    color: #555;
+}
+
+.info-row strong {
+    color: #111;
+}
+
+.info-row.total {
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+    font-size: 18px;
+}
+
+.info-row.total strong {
+    color: #000;
+}
+
+/* Button */
+.pay-btn {
+    margin-top: 25px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    background: #000;
+    color: #fff;
+    font-weight: 500;
+    font-size: 16px;
+    transition: 0.3s ease;
+}
+
+.pay-btn:hover {
+    background: #333;
+    transform: scale(1.02);
+}
+
 </style>
 {% endblock extra_styles %}
 
@@ -103,6 +177,11 @@ var options = {
 
         document.body.appendChild(form);
         form.submit();
+    },
+    "modal": {
+        "ondismiss": function() {
+            window.location.href = "{% url 'payment_failed' %}";
+        }
     },
 
     "theme": {

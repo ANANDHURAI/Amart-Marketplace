@@ -12,184 +12,246 @@
                     <h1 class="page-name">Cart</h1>
                     <ol class="breadcrumb">
                         <li><a href="{% url "home" %}">Home</a></li>
-                        <li><a href="{% url "customer_dashboard" %}">{{ customer.first_name }} {{ customer.last_name }}</a></li>
-                        <li><a href="{% url "customer_dashboard" %}">Cart</a></li>
+                        <li><a href="{% url "customer-dashboard" %}">{{ customer.first_name }} {{ customer.last_name }}</a></li>
+                        <li><a href="{% url "customer-dashboard" %}">Cart</a></li>
                         <li class="active"><a href="">Checkout</a></li>
                     </ol>
                 </div>
             </div>
         </div>
-    </div> 
+    </div>
 </section>
-
 
 <div class="page-wrapper">
    <div class="checkout shopping">
       <div class="container">
          <div class="row">
             <div class="col-md-8">
+
+               <!-- ADDRESS -->
                <div class="block billing-details">
                   <h4 class="widget-title">Select address</h4>
                   <p>Select your delivery address</p>
                   <br>
-                  <form method="post" class="checkout-form" name="place_order" action="{% url "place_order" %}">
+
+                  {# Single form wrapping address + coupon + payment #}
+                  <form method="post" id="place_order_form" name="place_order" action="{% url "place-order" %}">
                   {% csrf_token %}
 
                   <p>Default Address:</p>
                   <div class="row display-flex">
-                  {% for address in addresses %}
-                     {% if address.is_default %}
-                        <div class="form-check col-xs-12 col-sm-12 col-md-12 ">
-                           <label class="form-check-label" for="address-radio{{ address.id }}">
-                              <input checked class="form-check-input" type="radio" name="address_id" id="address-radio{{ address.id }}" value="{{ address.id }}" required>
-                              {{ address.address_text|linebreaksbr }}
-                           </label>
-                              <br>
-                              <br>
-                        </div>
-                     {% endif %}
-                  {% endfor %}
+                     {% for address in addresses %}
+                        {% if address.is_default %}
+                           <div class="form-check col-xs-12 col-sm-12 col-md-12">
+                              <label class="form-check-label" for="address-radio{{ address.id }}">
+                                 <input checked class="form-check-input" type="radio"
+                                        name="address_id" id="address-radio{{ address.id }}"
+                                        value="{{ address.id }}" required>
+                                 {{ address.address_text|linebreaksbr }}
+                              </label>
+                              <br><br>
+                           </div>
+                        {% endif %}
+                     {% endfor %}
                   </div>
-                  
+
                   <p>Other Addresses:</p>
                   <div class="row display-flex">
                      {% for address in addresses %}
                         {% if not address.is_default %}
-                           <div class="form-check col-xs-12 col-sm-6 col-md-6 ">
+                           <div class="form-check col-xs-12 col-sm-6 col-md-6">
                               <label class="form-check-label" for="address-radio{{ address.id }}">
-                                 <input {% if address.id == selected_address_id %} checked {% endif %} class="form-check-input" type="radio" name="address_id" id="address-radio{{ address.id }}" value="{{ address.id }}" required>
+                                 <input {% if address.id == selected_address_id %}checked{% endif %}
+                                        class="form-check-input" type="radio"
+                                        name="address_id" id="address-radio{{ address.id }}"
+                                        value="{{ address.id }}" required>
                                  {{ address.address_text|linebreaksbr }}
                               </label>
-                                 <br>
+                              <br>
                            </div>
                         {% endif %}
                      {% endfor %}
                   </div>
                </div>
+
+               <!-- COUPON -->
                <div class="block billing-details">
-                  <div class="form-group">
-                     <label for="full_name">Coupon:</label>
-                     <input type="text" class="form-control" name="coupon_code" placeholder="Have a discount coupon?">
+                  <h4 class="widget-title">Coupon</h4>
+                  <div style="display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap;">
+                     <input type="text"
+                            class="form-control"
+                            id="coupon_input"
+                            name="coupon_code"
+                            placeholder="Have a discount coupon?"
+                            style="max-width:280px; text-transform:uppercase;"
+                            autocomplete="off">
+                     <button type="button" class="btn btn-main" id="apply-coupon-btn">Apply</button>
+                     <button type="button" class="btn btn-secondary" id="remove-coupon-btn"
+                             style="display:none;">Remove</button>
                   </div>
+
+                  {# Live feedback #}
+                  <div id="coupon-feedback" style="margin-top:10px;"></div>
+
+                 
                   {% for message in messages %}
                      {% if message.tags == "error" %}
-                        <div class="alert alert-danger" role="alert">{{message}}</div>
+                        <div class="alert alert-danger mt-2" role="alert">{{ message }}</div>
                      {% endif %}
                   {% endfor %}
                </div>
+
+               <!-- PAYMENT -->
                <div class="block billing-details">
                   <h4 class="widget-title">Select Payment option</h4>
                   <p>Select your payment method</p>
                   <br>
-                     <div class="row">
-                        <div class="form-check col-md-6" style="margin-bottom:30px;">
-                           <input {% if cart.total_amount <= 0 %} disabled {% endif %} {% if selected_payment_method == "razorpay" %}checked{% endif %} class="form-check-input" type="radio" name="payment_method" id="payment-razorpay" value="razorpay" required>
-                           <label class="form-check-label" for="payment-razorpay">
-                              <img class="payment-image" src="{% static "images\razorpay.png" %}" alt="">
-                           </label>
-                           {% if cart.total_amount <= 0 %} <p>This payment option is not available for this order.</p> {% endif %}
-                        </div>
-                        {% comment %} <div class="form-check col-md-6" style="margin-bottom:30px;">
-                           <input {% if selected_payment_method == "paypal" %}checked{% endif %} class="form-check-input" type="radio" name="payment_method" id="payment-paypal" value="paypal" required>
-                           <label class="form-check-label" for="payment-paypal">
-                              <img class="payment-image" src="{% static "images\paypal.png" %}" alt="">
-                           </label>
-                        </div> {% endcomment %}
-                        <div class="form-check col-md-6" style="margin-bottom:30px;">
-                           <input {% if cart.total_amount > 1000 %} disabled {% endif %} {% if selected_payment_method == "cod" %}checked{% endif %} class="form-check-input" type="radio" name="payment_method" id="payment-cod" value="cod" required>
-                           <label class="form-check-label" for="payment-cod">
-                              <img class="payment-image" src="{% static "images\cash-on-delivery.png" %}" alt="">
-                           </label>
-                           {% if cart.total_amount > 1000 %} <p>Cash on delivery is not available for orders above 1000 Rs.</p> {% endif %}
-                        </div>
-                        <div class="form-check">
-                           <input class="form-check-input" type="radio" name="payment_method" id="wallet" value="wallet" {% if wallet_balance >= cart.remaining_amount %}{% else %}disabled{% endif %}>
-                           <label class="form-check-label" for="wallet">
-                               Wallet (Balance: ₹{{ wallet_balance }})
-                               {% if wallet_balance < cart.remaining_amount %}
-                               <span class="text-danger">(Insufficient balance)</span>
-                               {% endif %}
-                           </label>
-                       </div>
+                  <div class="row">
+
+                     <div class="form-check col-md-6" style="margin-bottom:30px;">
+                        <input {% if cart.remaining_amount <= 0 %}disabled{% endif %}
+                               {% if selected_payment_method == "razorpay" %}checked{% endif %}
+                               class="form-check-input" type="radio"
+                               name="payment_method" id="payment-razorpay"
+                               value="razorpay" required>
+                        <label class="form-check-label" for="payment-razorpay">
+                           <img class="payment-image" src="{% static "images/razorpay.png" %}" alt="Razorpay">
+                        </label>
+                        {% if cart.remaining_amount <= 0 %}
+                           <p>This payment option is not available for this order.</p>
+                        {% endif %}
                      </div>
+
+                     <div class="form-check col-md-6" style="margin-bottom:30px;">
+                        <input {% if cart.remaining_amount > 1000 %}disabled{% endif %}
+                               {% if selected_payment_method == "cod" %}checked{% endif %}
+                               class="form-check-input" type="radio"
+                               name="payment_method" id="payment-cod"
+                               value="cod" required>
+                        <label class="form-check-label" for="payment-cod">
+                           <img class="payment-image" src="{% static "images/cash-on-delivery.png" %}" alt="Cash on Delivery">
+                        </label>
+                        {% if cart.remaining_amount > 1000 %}
+                           <p>Cash on delivery is not available for orders above ₹1000.</p>
+                        {% endif %}
+                     </div>
+
+                     <div class="form-check col-md-12">
+                        <input class="form-check-input" type="radio"
+                               name="payment_method" id="wallet" value="wallet"
+                               {% if wallet_balance < cart.remaining_amount %}disabled{% endif %}>
+                        <label class="form-check-label" for="wallet">
+                           Wallet (Balance: ₹{{ wallet_balance }})
+                           {% if wallet_balance < cart.remaining_amount %}
+                              <span class="text-danger">(Insufficient balance)</span>
+                           {% endif %}
+                        </label>
+                     </div>
+
+                  </div>
                   <br>
+
                   <div id="address-warning" class="alert alert-warning" role="alert" style="display:none;">
                      Please add an address before placing the order!
                   </div>
+
                   <button type="submit" class="btn btn-main mt-20" id="place-order-btn">Place Order</button>
 
-                  </form>
+                  </form>{# end place_order_form #}
                </div>
+
+               <!-- ADD NEW ADDRESS (separate form, outside order form) -->
                <div class="block billing-details">
                   <h4 class="widget-title">Add new address</h4>
-                  <form class="checkout-form" method="post" name="new_address" action="{% url "new_address" %}">
+                  <form class="checkout-form" method="post" name="new-address" action="{% url "new-address" %}">
                      {% csrf_token %}
                      <div class="form-group">
-                         <label for="full_name">Full Name</label>
-                         <input type="text" class="form-control" id="full_name" name="name" placeholder="Full name *" required>
+                        <label for="full_name">Full Name</label>
+                        <input type="text" class="form-control" id="full_name" name="name"
+                               placeholder="Full name *" required>
                      </div>
                      <div class="checkout-country-code clearfix">
-                         <div class="form-group">
-                             <label for="user_pin_code">Pin Code</label>
-                             <input type="text" class="form-control" id="user_pin_code" name="pincode" placeholder="Pin code *" pattern="\d{6}" required oninvalid="this.setCustomValidity('Invalid Pin code')">
-                         </div>
-                         <div class="form-group">
-                             <label for="user_mobile">Mobile No. <strong> +91</strong></label>
-                             <input type="text" class="form-control" id="user_mobile" name="mobile" placeholder="10 digit mobile number *" pattern="\d{10}" required oninvalid="this.setCustomValidity('Invalid mobile number')">
-                         </div>
+                        <div class="form-group">
+                           <label for="user_pin_code">Pin Code</label>
+                           <input type="text" class="form-control" id="user_pin_code" name="pincode"
+                                  placeholder="Pin code *" pattern="\d{6}" required
+                                  oninvalid="this.setCustomValidity('Invalid Pin code')">
+                        </div>
+                        <div class="form-group">
+                           <label for="user_mobile">Mobile No. <strong>+91</strong></label>
+                           <input type="text" class="form-control" id="user_mobile" name="mobile"
+                                  placeholder="10 digit mobile number *" pattern="\d{10}" required
+                                  oninvalid="this.setCustomValidity('Invalid mobile number')">
+                        </div>
                      </div>
                      <div class="form-group">
-                         <label for="user_house">Building</label>
-                         <input type="text" class="form-control" id="user_house" name="building" placeholder="House/Building/Apartment *" required>
+                        <label for="user_house">Building</label>
+                        <input type="text" class="form-control" id="user_house" name="building"
+                               placeholder="House/Building/Apartment *" required>
                      </div>
                      <div class="form-group">
-                         <label for="user_street">Street</label>
-                         <input type="text" class="form-control" id="user_street" name="street" placeholder="Street/Locality *" required>
+                        <label for="user_street">Street</label>
+                        <input type="text" class="form-control" id="user_street" name="street"
+                               placeholder="Street/Locality *" required>
                      </div>
                      <div class="form-group">
-                         <label for="user_city">City</label>
-                         <input type="text" class="form-control" id="user_city" name="city" placeholder="City/Town (Optional)">
+                        <label for="user_city">City</label>
+                        <input type="text" class="form-control" id="user_city" name="city"
+                               placeholder="City/Town (Optional)">
                      </div>
                      <div class="form-group">
-                         <label for="user_district">district</label>
-                         <input type="text" class="form-control" id="user_district" name="district" placeholder="district *" required>
+                        <label for="user_district">District</label>
+                        <input type="text" class="form-control" id="user_district" name="district"
+                               placeholder="District *" required>
                      </div>
                      <div class="checkout-country-code clearfix">
-                         <div class="form-group">
-                             <select style="height: 50px;" class="form-control" id="user_state" name="state" required>
-                                 {% for state in states %}
-                                     <option value="{{ state }}">{{ state }}</option>
-                                 {% endfor %}
-                             </select>
-                         </div>
-                         <div class="form-group">
-                             <label for="user_country">Country</label>
-                             <input type="text" class="form-control" id="user_country" name="country" value="India" readonly required>
-                         </div>
+                        <div class="form-group">
+                           <select style="height:50px;" class="form-control" id="user_state" name="state" required>
+                              {% for state in states %}
+                                 <option value="{{ state }}">{{ state }}</option>
+                              {% endfor %}
+                           </select>
+                        </div>
+                        <div class="form-group">
+                           <label for="user_country">Country</label>
+                           <input type="text" class="form-control" id="user_country" name="country"
+                                  value="India" readonly required>
+                        </div>
                      </div>
                      <button type="submit" class="btn btn-main mt-20" name="checkout_submit">Save Address</button>
-                 </form>   
+                  </form>
                </div>
-            </div>
+
+            </div>{# col-md-8 #}
+
+            <!-- ORDER SUMMARY SIDEBAR -->
             <div class="col-md-4">
                <div class="product-checkout-details">
                   <div class="block">
                      <h4 class="widget-title">Order Summary</h4>
+
                      {% for cart_item in cart_items %}
                         <div class="media product-card">
                            <a class="pull-left" href="{% url "product_page" cart_item.product.slug %}">
-                              <img class="media-object" src="{{ cart_item.product.primary_image.image.url }}" alt="Image" />
+                              <img class="media-object"
+                                   src="{{ cart_item.product.primary_image.image.url }}" alt="Image">
                            </a>
                            <div class="media-body">
-                              <h4 class="media-heading"><a href="{% url "product_page" cart_item.product.slug %}">{{ cart_item.product.brand_name }}</a></h4>
-                              <h6 class="media-heading"><a href="{% url "product_page" cart_item.product.slug %}">{{ cart_item.product.name }}</a></h6>
+                              <h4 class="media-heading">
+                                 <a href="{% url "product_page" cart_item.product.slug %}">
+                                    {{ cart_item.product.brand_name }}
+                                 </a>
+                              </h4>
+                              <h6 class="media-heading">
+                                 <a href="{% url "product_page" cart_item.product.slug %}">
+                                    {{ cart_item.product.name }}
+                                 </a>
+                              </h6>
                               <p class="price">{{ cart_item.quantity }} x ₹ {{ cart_item.inventory.price }}</p>
                            </div>
                         </div>
                      {% endfor %}
-                     {% comment %} <div class="discount-code">
-                        <p>Have a discount coupon? <a data-toggle="modal" data-target="#coupon-modal" href="#!">enter it here</a></p>
-                     </div> {% endcomment %}
+
                      <ul class="summary-prices">
                         <li>
                            <span>Subtotal:</span>
@@ -197,136 +259,195 @@
                         </li>
                         {% if cart.total_offer %}
                         <li>
-                           <span class="text-success"><b>Offers:</b></span>
-                           <span class="price text-success"><b>₹ {{ cart.total_offer }}</b></span>
+                           <span class="text-success"><b>Category Offers:</b></span>
+                           <span class="price text-success"><b>- ₹ {{ cart.total_offer }}</b></span>
                         </li>
                         {% endif %}
+
+                        {# Coupon row — shown by JS after successful preview #}
+                        <li id="coupon-summary-row" style="display:none;">
+                           <span class="text-success"><b>Coupon Discount:</b></span>
+                           <span class="price text-success" id="coupon-summary-amount"><b></b></span>
+                        </li>
+
                         <li>
                            <span>Shipping:</span>
                            <span>Free</span>
                         </li>
                      </ul>
+
                      <div class="summary-total">
                         <span>Total</span>
-                        <span>₹ {{ cart.remaining_amount }}</span>
+                        <span id="summary-total-amount">₹ {{ cart.remaining_amount }}</span>
                      </div>
+
                      <div class="verified-icon">
                         <img src="{% static "images/shop/verified.png" %}">
                      </div>
                   </div>
                </div>
             </div>
+
          </div>
       </div>
    </div>
 </div>
-   <!-- Modal -->
-   <div class="modal fade" id="coupon-modal" tabindex="-1" role="dialog">
-      <div class="modal-dialog" role="document">
-         <div class="modal-content">
-            <div class="modal-body">
-               <form>
-                  <div class="form-group">
-                     <input class="form-control" type="text" placeholder="Enter Coupon Code">
-                  </div>
-                  <button type="submit" class="btn btn-main">Apply Coupon</button>
-               </form>
-            </div>
-         </div>
+
+<div id="confirmOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+     background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+   <div style="background:#fff; padding:30px; border-radius:8px; max-width:400px; width:90%; text-align:center;">
+      <h5 style="margin-bottom:15px;">Confirm Order</h5>
+      <p>Are you sure you want to place this order?</p>
+      <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
+         <button id="cancel-order-btn" style="padding:8px 20px; background:#6c757d; color:#fff; border:none; border-radius:4px; cursor:pointer;">Cancel</button>
+         <button id="confirm-order-btn" style="padding:8px 20px; background:#007bff; color:#fff; border:none; border-radius:4px; cursor:pointer;">Yes, Place Order</button>
       </div>
    </div>
-   <!-- Confirmation Modal -->
-   <div class="modal fade" id="confirmOrderModal" tabindex="-1" role="dialog" aria-labelledby="confirmOrderLabel" aria-hidden="true">
-   <div class="modal-dialog modal-dialog-centered" role="document">
-      <div class="modal-content">
-         <div class="modal-header">
-         <h5 class="modal-title" id="confirmOrderLabel">Confirm Order</h5>
-         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-         </button>
-         </div>
-         <div class="modal-body">
-         Are you sure you want to place this order?
-         </div>
-         <div class="modal-footer">
-   
-         <button type="button" class="btn btn-secondary" data-dismiss="modal">
-            Cancel
-         </button>
-         <button type="button" class="btn btn-primary" id="confirm-order-btn">Yes, Place Order</button>
-         </div>
-      </div>
-   </div>
-   </div>
+</div>
 
-
-   
 {% include 'home/includes/footer.html' %}
 {% endblock content %}
 
+
 {% block extra_styles %}
-
 <style>
-   .row.display-flex {
-      display: flex;
-      flex-wrap: wrap;
-    }
-    .row.display-flex > [class*='col-'] {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .payment-image {
-      width: 250px;
-      height: 50px;
-      object-fit: cover;
-    }
+   .row.display-flex { display:flex; flex-wrap:wrap; }
+   .row.display-flex > [class*='col-'] { display:flex; flex-direction:column; }
+   .payment-image { width:250px; height:50px; object-fit:cover; }
 </style>
-
 {% endblock extra_styles %}
+
+
 {% block extra_scripts %}
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    const placeOrderBtn = document.getElementById("place-order-btn");
-    const addressWarning = document.getElementById("address-warning");
-    const confirmBtn = document.getElementById("confirm-order-btn");
-    const orderForm = document.querySelector('form[name="place_order"]');
-    const confirmModalEl = $('#confirmOrderModal');
+document.addEventListener("DOMContentLoaded", function () {
 
-    placeOrderBtn.addEventListener("click", function(e) {
-        e.preventDefault();
+   const $  = id => document.getElementById(id);
+   const baseTotal = {{ remaining_amount }};
 
-        // Address check
-        const addressRadios = document.querySelectorAll('input[name="address_id"]');
-        let hasAddress = false;
-        addressRadios.forEach(radio => {
-            if (radio.checked) hasAddress = true;
-        });
+   /* ── coupon elements ─────────────────────────────────────────── */
+   const couponInput  = $("coupon_input");
+   const applyBtn     = $("apply-coupon-btn");
+   const removeBtn    = $("remove-coupon-btn");
+   const feedback     = $("coupon-feedback");
+   const couponRow    = $("coupon-summary-row");
+   const couponAmt    = $("coupon-summary-amount");
+   const totalDisplay = $("summary-total-amount");
 
-        if (!hasAddress) {
-            addressWarning.style.display = "block";
-            setTimeout(() => addressWarning.style.opacity = 0, 2000);
-            setTimeout(() => {
-                addressWarning.style.display = "none";
-                addressWarning.style.opacity = 1;
-            }, 2500);
-            return;
-        }
+   function setFeedback(msg, success) {
+      feedback.innerHTML =
+         `<div class="alert alert-${success ? "success" : "danger"}" role="alert">${msg}</div>`;
+   }
 
-        // Payment check
-        const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
-        if (selectedPayment && (selectedPayment.value === "cod" || selectedPayment.value === "wallet")) {
-            confirmModalEl.modal('show');
-        } else {
-            orderForm.submit();
-        }
-    });
+   function resetCoupon() {
+      couponRow.style.display  = "none";
+      totalDisplay.textContent = `₹ ${baseTotal}`;
+      couponInput.readOnly     = false;
+      couponInput.value        = "";
+      applyBtn.style.display   = "";
+      removeBtn.style.display  = "none";
+   }
 
-    confirmBtn.addEventListener("click", function() {
-        confirmModalEl.modal('hide');
-        orderForm.submit();
-    });
+   applyBtn.addEventListener("click", function () {
+      const code = couponInput.value.trim();
+      if (!code) { setFeedback("Please enter a coupon code.", false); return; }
+
+      applyBtn.disabled    = true;
+      applyBtn.textContent = "Checking…";
+
+      fetch("{% url 'preview-coupon' %}", {
+         method:  "POST",
+         headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken":  "{{ csrf_token }}"
+         },
+         body: "coupon_code=" + encodeURIComponent(code)
+      })
+      .then(r => r.json())
+      .then(data => {
+         applyBtn.disabled    = false;
+         applyBtn.textContent = "Apply";
+
+         if (data.valid) {
+            setFeedback(data.message, true);
+            couponAmt.innerHTML      = `<b>- ₹${data.coupon_discount}</b>`;
+            couponRow.style.display  = "";
+            totalDisplay.textContent = `₹ ${data.final_amount}`;
+            couponInput.readOnly     = true;
+            applyBtn.style.display   = "none";
+            removeBtn.style.display  = "";
+         } else {
+            setFeedback(data.message, false);
+            resetCoupon();
+            couponInput.readOnly = false;
+         }
+      })
+      .catch(() => {
+         applyBtn.disabled    = false;
+         applyBtn.textContent = "Apply";
+         setFeedback("Something went wrong. Please try again.", false);
+      });
+   });
+
+   removeBtn.addEventListener("click", function () {
+      resetCoupon();
+      feedback.innerHTML = "";
+   });
+
+   couponInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); applyBtn.click(); }
+   });
+
+   /* ── place-order + confirmation ──────────────────────────────── */
+   const placeOrderBtn  = $("place-order-btn");
+   const addressWarning = $("address-warning");
+   const confirmBtn     = $("confirm-order-btn");
+   const cancelBtn      = $("cancel-order-btn");
+   const orderForm      = $("place_order_form");
+   const overlay        = $("confirmOverlay");
+
+   // Show/hide overlay helpers
+   function showConfirm() { overlay.style.display = "flex"; }
+   function hideConfirm() { overlay.style.display = "none"; }
+
+   // Close on backdrop click
+   overlay.addEventListener("click", function(e) {
+      if (e.target === overlay) hideConfirm();
+   });
+
+   cancelBtn.addEventListener("click", hideConfirm);
+
+   confirmBtn.addEventListener("click", function () {
+      hideConfirm();
+      orderForm.submit();
+   });
+
+   placeOrderBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+
+      const radios  = document.querySelectorAll('input[name="address_id"]');
+      const hasAddr = Array.from(radios).some(r => r.checked);
+
+      if (!hasAddr) {
+         addressWarning.style.display = "block";
+         setTimeout(() => addressWarning.style.opacity = 0, 2000);
+         setTimeout(() => {
+            addressWarning.style.display = "none";
+            addressWarning.style.opacity = 1;
+         }, 2500);
+         return;
+      }
+
+      const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+
+      if (selectedPayment &&
+          (selectedPayment.value === "cod" || selectedPayment.value === "wallet")) {
+         showConfirm();  // ✅ No Bootstrap dependency at all
+      } else {
+         orderForm.submit();
+      }
+   });
+
 });
 </script>
-
 {% endblock extra_scripts %}

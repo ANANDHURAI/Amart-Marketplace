@@ -9,11 +9,11 @@
         <div class="row">
             <div class="col-md-12">
                 <ul class="list-inline dashboard-menu text-center">
-                    <li><a href="{% url 'customer_dashboard' %}">Dashboard</a></li>
-                    <li><a href="{% url 'customer_orders' %}">Orders</a></li>
-                    <li><a href="{% url 'customer_address' %}">Address</a></li>
-                    <li><a href="{% url 'customer_profile' %}">Profile Details</a></li>
-                    <li><a class="active" href="{% url 'customer_wallet' %}">Wallet</a></li>
+                    <li><a href="{% url 'customer-dashboard' %}">Dashboard</a></li>
+                    <li><a href="{% url 'customer-orders' %}">Orders</a></li>
+                    <li><a href="{% url 'customer-addresses' %}">Address</a></li>
+                    <li><a href="{% url 'customer-profile' %}">Profile Details</a></li>
+                    <li><a class="active" href="{% url 'customer-wallet' %}">Wallet</a></li>
                 </ul>
 
                 <div class="dashboard-wrapper dashboard-user-profile">
@@ -53,13 +53,7 @@
                                     <td>{{ order_item.product.name }}</td>
                                     <td class="text-center">₹{{ order_item.inventory.price }}</td>
                                     <td class="text-center">{{ order_item.quantity }}</td>
-                                    <td class="text-center">
-                                        {% if order_item.order.payment_method != "COD" %}
-                                            ₹{% widthratio order_item.quantity 1 order_item.inventory.price %}
-                                        {% else %}
-                                            ₹0
-                                        {% endif %}
-                                    </td>
+                                    <td class="text-center">₹{{ order_item.actual_refund }}</td>                               
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -76,26 +70,23 @@
     </div>
 </section>
 
-<!-- Add Money Modal -->
-<div id="addMoneyModal" class="modal fade" role="dialog">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">Add Money to Wallet</h4>
-            </div>
-            <div class="modal-body">
-                <form id="paymentForm" method="POST" action="{% url 'customer_wallet' %}">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label>Enter Amount (₹)</label>
-                        <input type="number" class="form-control" name="amount" min="1" required>
-                    </div>
-                    <button type="submit" class="btn btn-main">Proceed to Pay</button>
-                </form>
-            </div>
-        </div>
-    </div>
+<!-- Add Money Modal (no Bootstrap dependency) -->
+<div id="addMoneyOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+     background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+   <div style="background:#fff; padding:30px; border-radius:8px; max-width:400px; width:90%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+         <h4 style="margin:0;">Add Money to Wallet</h4>
+         <span onclick="closeAddMoneyModal()" style="cursor:pointer; font-size:20px; line-height:1;">&times;</span>
+      </div>
+      <form id="paymentForm" method="POST" action="{% url 'customer-wallet' %}">
+         {% csrf_token %}
+         <div class="form-group">
+            <label>Enter Amount (₹)</label>
+            <input type="number" class="form-control" name="amount" min="1" required>
+         </div>
+         <button type="submit" class="btn btn-main">Proceed to Pay</button>
+      </form>
+   </div>
 </div>
 
 {% include 'home/includes/footer.html' %}
@@ -105,9 +96,20 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
 <script>
-function openAddMoneyModal() {
-    $('#addMoneyModal').modal('show');
-}
+   const overlay = document.getElementById("addMoneyOverlay");
+
+   function openAddMoneyModal() {
+      overlay.style.display = "flex";
+   }
+
+   function closeAddMoneyModal() {
+      overlay.style.display = "none";
+   }
+
+   // Close on backdrop click
+   overlay.addEventListener("click", function(e) {
+      if (e.target === overlay) closeAddMoneyModal();
+   });
 </script>
 
 {% if razorpay_order_id %}

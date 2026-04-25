@@ -20,7 +20,7 @@
                     <a href="#!" class="dropdown-toggle" data-toggle="dropdown">Account <i class="tf-ion-ios-arrow-down"></i></a>
                     <ul class="dropdown-menu">
                         {% if user.is_authenticated %}
-                            <li><a href="{% url 'customer_dashboard' %}">Dashboard</a></li>
+                            <li><a href="{% url 'customer-dashboard' %}">Dashboard</a></li>
                             <li><a href="{% url 'customer_logout' %}">Logout</a></li>
                         {% else %}
                             <li><a href="{% url 'customer_login' %}">Login</a></li>

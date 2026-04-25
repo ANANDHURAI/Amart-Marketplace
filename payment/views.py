@@ -84,7 +84,7 @@ def razorpay_paymenthandler(request):
             request.session.pop("wallet_amount", None)
 
             messages.success(request, f"₹{amount} added to wallet successfully.")
-            return redirect("customer_wallet")
+            return redirect("customer-wallet")
         
         if request.session.get("pay_now"):
             order_id = request.session.get("order_id")
@@ -100,12 +100,12 @@ def razorpay_paymenthandler(request):
             request.session.pop("order_id", None)
 
             messages.success(request, "Payment completed successfully for your COD order!")
-            return redirect("customer_orders")
+            return redirect("customer-orders")
 
         
         request.session["payment_successful"] = True
         request.session["payment_method"] = "razorpay"
-        return redirect("finalize_order")
+        return redirect("finalize-order")
 
     except razorpay.errors.SignatureVerificationError:
         messages.error(request, "Payment verification failed.")
@@ -124,7 +124,7 @@ def cash_on_delivery(request):
     """Mark upcoming order as COD in the session and finalize later."""
     request.session["payment_method"] = "cod"
     request.session["payment_successful"] = False
-    return redirect("finalize_order")
+    return redirect("finalize-order")
 
 
 
@@ -139,7 +139,7 @@ def handle_cod_payment(request, customer, total_amount):
 
     request.session["payment_method"] = "cod"
     request.session["payment_successful"] = False 
-    return redirect("finalize_order")
+    return redirect("finalize-order")
 
 
 
@@ -166,7 +166,7 @@ def handle_wallet_payment(request, customer, total_amount):
             wallet.save()
             request.session["payment_successful"] = True
             request.session["payment_method"] = "wallet"
-        return redirect("finalize_order")
+        return redirect("finalize-order")
     else:
         messages.error(request, "Insufficient wallet balance.")
     return redirect("payment_failed")
