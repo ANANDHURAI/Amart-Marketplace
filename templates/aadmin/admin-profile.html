@@ -2,90 +2,146 @@
 {% load static %}
 
 {% block content %}
-<div class="content-wrapper bg-light">
-    <div class="content p-4">
+<div class="content-wrapper" style="background-color: #f8f9fa; min-height: 100vh;">
+    <div class="content p-4 p-md-5">
         <div class="row justify-content-center">
-            <div class="col-lg-9">
-                <div class="card border-0 shadow-sm mb-4 overflow-hidden" style="border-radius: 20px;">
-                    <div class="card-header border-0 p-0" style="height: 120px; background: linear-gradient(90deg, #4c84ff 0%, #2c3e50 100%);"></div>
-                    <div class="card-body p-4 pt-0">
-                        <div class="d-flex align-items-end mb-4" style="margin-top: -60px;">
+            <div class="col-lg-10 col-xl-8">
+                <div class="card border-0 shadow-lg overflow-hidden" style="border-radius: 24px; background: #fff;">
+                    
+                    <div class="position-relative" style="height: 160px; background: linear-gradient(135deg, #4c84ff 0%, #6a11cb 100%);">
+                        <div class="position-absolute w-100 h-100" style="background: url('https://www.transparenttextures.com/patterns/cubes.png'); opacity: 0.1;"></div>
+                    </div>
+
+                    <div class="card-body p-4 p-md-5 pt-0">
+                        <div class="d-flex flex-column flex-md-row align-items-center align-items-md-end mb-5" style="margin-top: -80px;">
                             <div class="position-relative">
                                 {% if admin.profile_image %}
-                                    <img src="{{ admin.profile_image.url }}" class="rounded-circle border border-4 border-white shadow-sm" width="130" height="130" style="object-fit: cover; background: white;">
+                                    <img src="{{ admin.profile_image.url }}" class="rounded-circle border border-5 border-white shadow" width="160" height="160" style="object-fit: cover; background: #fff;">
                                 {% else %}
-                                    <img src="{% static 'admin/assets/img/default-user.png' %}" class="rounded-circle border border-4 border-white shadow-sm" width="130">
+                                    <img src="{% static 'admin/assets/img/default-user.png' %}" class="rounded-circle border border-5 border-white shadow" width="160" height="160" style="object-fit: cover; background: #eee;">
                                 {% endif %}
-                                <span class="position-absolute bottom-0 end-0 bg-success border border-white border-3 rounded-circle" style="width: 20px; height: 20px;" title="Online"></span>
+                                <div class="position-absolute shadow-sm" style="bottom: 15px; right: 15px; width: 22px; height: 22px; background: #2ecc71; border: 3px solid #fff; border-radius: 50%;" title="Status: Online"></div>
                             </div>
-                            <div class="ms-4 mb-2">
-                                <h3 class="fw-bold text-dark mb-0">{{ admin.first_name }} {{ admin.last_name }}</h3>
-                                <p class="text-muted small mb-0"><i class="mdi mdi-email-outline me-1"></i>{{ admin.email }}</p>
-                                <span class="badge bg-primary-soft text-primary mt-2 px-3 py-2">Master Administrator</span>
+                            
+                            <div class="ms-md-4 mt-3 mt-md-0 text-center text-md-start flex-grow-1">
+                                <h2 class="fw-bold text-dark mb-1" style="letter-spacing: -0.5px;">{{ admin.first_name }} {{ admin.last_name }}</h2>
+                                <p class="text-muted mb-0 d-flex align-items-center justify-content-center justify-content-md-start">
+                                    <i class="mdi mdi-email-fast-outline me-2 opacity-75"></i>{{ admin.email }}
+                                </p>
+                                <div class="mt-2 d-flex flex-wrap justify-content-center justify-content-md-start gap-2">
+                                    <span class="badge rounded-pill bg-primary-soft text-primary px-3 py-2 fw-bold small">MASTER ADMIN</span>
+                                    <span class="badge rounded-pill bg-light text-muted px-3 py-2 fw-medium border small">ID: #{{ admin.id|default:"001" }}</span>
+                                </div>
                             </div>
-                            <div class="ms-auto mb-2">
-                                <a href="{% url 'edit_admin_profile' %}" class="btn btn-dark px-4 py-2 shadow-sm" style="border-radius: 10px;">
-                                    <i class="mdi mdi-account-edit me-1"></i> Edit Profile
+
+                            <div class="mt-4 mt-md-0 ms-md-auto">
+                                <a href="{% url 'edit_admin_profile' %}" class="btn btn-primary px-4 py-2 fw-bold shadow-sm" style="border-radius: 12px; transition: all 0.3s;">
+                                    <i class="mdi mdi-pencil-box-outline me-1"></i> Edit Profile
                                 </a>
                             </div>
                         </div>
 
-                        <hr class="text-muted opacity-25">
+                        <div class="row g-4">
+                            <div class="col-12 mb-2">
+                                <h5 class="fw-bold text-dark border-start border-primary border-4 ps-3 py-1">Personal Details</h5>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="info-box p-4 rounded-4 shadow-none border h-100">
+                                    <p class="text-uppercase text-muted fw-bold mb-2 small" style="letter-spacing: 1px;">First Name</p>
+                                    <h6 class="text-dark fw-bold mb-0 font-size-lg">{{ admin.first_name }}</h6>
+                                </div>
+                            </div>
 
-                        <div class="row mt-4">
-                            <div class="col-md-4 mb-4">
-                                <div class="p-3 bg-light rounded-4 border-0">
-                                    <label class="text-uppercase text-muted fw-bold small mb-1 d-block">First Name</label>
-                                    <span class="text-dark fw-semibold">{{ admin.first_name }}</span>
+                            <div class="col-md-4">
+                                <div class="info-box p-4 rounded-4 shadow-none border h-100">
+                                    <p class="text-uppercase text-muted fw-bold mb-2 small" style="letter-spacing: 1px;">Last Name</p>
+                                    <h6 class="text-dark fw-bold mb-0 font-size-lg">{{ admin.last_name }}</h6>
                                 </div>
                             </div>
-                            <div class="col-md-4 mb-4">
-                                <div class="p-3 bg-light rounded-4 border-0">
-                                    <label class="text-uppercase text-muted fw-bold small mb-1 d-block">Last Name</label>
-                                    <span class="text-dark fw-semibold">{{ admin.last_name }}</span>
+
+                            <div class="col-md-4">
+                                <div class="info-box p-4 rounded-4 shadow-none border h-100">
+                                    <p class="text-uppercase text-muted fw-bold mb-2 small" style="letter-spacing: 1px;">Phone Number</p>
+                                    <h6 class="text-dark fw-bold mb-0 font-size-lg">{{ admin.mobile|default:"—" }}</h6>
                                 </div>
                             </div>
-                            <div class="col-md-4 mb-4">
-                                <div class="p-3 bg-light rounded-4 border-0">
-                                    <label class="text-uppercase text-muted fw-bold small mb-1 d-block">Mobile</label>
-                                    <span class="text-dark fw-semibold">{{ admin.mobile|default:"Not Provided" }}</span>
+
+                            <div class="col-md-6">
+                                <div class="info-box p-4 rounded-4 shadow-none border h-100">
+                                    <p class="text-uppercase text-muted fw-bold mb-2 small" style="letter-spacing: 1px;">Registered Email</p>
+                                    <h6 class="text-dark fw-bold mb-0 font-size-lg">{{ admin.email }}</h6>
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-4">
-                                <div class="p-3 bg-light rounded-4 border-0">
-                                    <label class="text-uppercase text-muted fw-bold small mb-1 d-block">Email Address</label>
-                                    <span class="text-dark fw-semibold">{{ admin.email }}</span>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-4">
-                                <div class="p-3 bg-light rounded-4 border-0">
-                                    <label class="text-uppercase text-muted fw-bold small mb-1 d-block">Member Since</label>
-                                    <span class="text-dark fw-semibold">{{ admin.date_joined|date:"d F Y" }}</span>
+
+                            <div class="col-md-6">
+                                <div class="info-box p-4 rounded-4 shadow-none border h-100 bg-light-soft">
+                                    <p class="text-uppercase text-muted fw-bold mb-2 small" style="letter-spacing: 1px;">Member Since</p>
+                                    <h6 class="text-dark fw-bold mb-0 font-size-lg">
+                                        <i class="mdi mdi-calendar-check text-primary me-2"></i>{{ admin.date_joined|date:"d F Y" }}
+                                    </h6>
                                 </div>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
 <style>
-    /* Modern UI Utility Classes */
-    .bg-primary-soft {
-        background-color: rgba(76, 132, 255, 0.1) !important;
+    /* Modern UI Custom Styles */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+    .content-wrapper {
+        font-family: 'Inter', sans-serif;
     }
+
+    .bg-primary-soft {
+        background-color: rgba(76, 132, 255, 0.12) !important;
+    }
+
+    .bg-light-soft {
+        background-color: #fafbfc;
+    }
+
     .text-primary {
         color: #4c84ff !important;
     }
-    .form-control:focus {
-        background-color: #fff !important;
-        box-shadow: 0 0 0 3px rgba(76, 132, 255, 0.15);
-        border: 1px solid #4c84ff !important;
+
+    .btn-primary {
+        background-color: #4c84ff;
+        border-color: #4c84ff;
     }
-    .rounded-4 { border-radius: 12px !important; }
-    
-    /* Profile Animations */
-    .btn-primary:hover { transform: translateY(-1px); transition: 0.2s; }
+
+    .btn-primary:hover {
+        background-color: #3d6acc;
+        border-color: #3d6acc;
+        transform: translateY(-2px);
+    }
+
+    .info-box {
+        background: #ffffff;
+        transition: all 0.3s ease;
+    }
+
+    .info-box:hover {
+        border-color: #4c84ff !important;
+        background: #fff;
+    }
+
+    .font-size-lg {
+        font-size: 1.05rem;
+    }
+
+    .rounded-4 {
+        border-radius: 16px !important;
+    }
+
+    .ms-4 {
+        margin-left: 1.5rem !important;
+    }
 </style>
 {% endblock %}

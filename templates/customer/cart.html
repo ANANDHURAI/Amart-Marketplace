@@ -128,7 +128,10 @@
                               <input type="text" name="product-quantity" class="qty-val" id="qty-{{ cart_item.id }}" value="{{ cart_item.quantity }}" readonly>
                             </form>
 
-                            <button type="button" class="qty-btn plus" data-id="{{ cart_item.id }}">+</button>
+                      
+                            <button type="button" class="qty-btn plus" 
+                                    data-id="{{ cart_item.id }}" 
+                                    data-stock="{{ cart_item.inventory.stock }}">+</button>                            
                           </div>
                         </td>
 
@@ -223,12 +226,19 @@
             var id = $(this).data('id');
             var input = $('#qty-' + id);
             var currentVal = parseInt(input.val());
+            var stock = parseInt($(this).data('stock'));  // ← add this
+            var maxAllowed = Math.min(10, stock); 
             
-            if (currentVal < 10) {
+            if (currentVal < maxAllowed) {
                 input.val(currentVal + 1);
-                $('#form-' + id).submit(); 
+                $('#form-' + id).submit();
             } else {
-                showLimitPopup();
+                // Customize message depending on which limit was hit
+                if (stock < 10) {
+                    $('#limit-toast').text('Only ' + stock + ' item(s) available in stock!').fadeIn(400).delay(2000).fadeOut(400);
+                } else {
+                    showLimitPopup();
+                }
             }
         });
 

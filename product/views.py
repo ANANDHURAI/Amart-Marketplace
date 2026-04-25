@@ -118,6 +118,9 @@ def update_cart_item(request, cart_item_id):
     size = request.POST.get("product-size")
     inventory = get_object_or_404(Inventory, product=cart_item.product, size=size)
 
+    if quantity < 1:                                         
+        messages.warning(request, "Quantity must be at least 1.")
+        return redirect("cart")
     
     if quantity > 10:
         messages.warning(request, "Maximum limit is 10 units.")

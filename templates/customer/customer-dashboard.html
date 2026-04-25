@@ -46,9 +46,14 @@
                                     <li><span>Full Name:</span>{{ customer.first_name }} {{ customer.last_name }}</li>
                                     <li><span>Country:</span>India</li>
                                     <li><span>Email:</span>{{ customer.email }}</li>
-                                    {% if customer.mobile %}
-                                        <li><span>Mobile:</span>+91 {{ customer.mobile }}</li>
-                                    {% endif %}
+                                    <li>
+                                        <span>Mobile:</span>
+                                        {% if customer.mobile %}
+                                            +91 {{ customer.mobile }}
+                                        {% else %}
+                                            <span style="color: #999;">Not added yet</span>
+                                        {% endif %}
+                                    </li>                                                                       
                                     <li><span>Date of Join:</span>{{ customer.date_joined|date:"d-m-Y" }}</li>
                                     <br>
                                     <a href="{% url "customer-profile" %}" class="btn btn-main btn-small">View Profile</a >
@@ -76,7 +81,14 @@
                                             <td>{{ customer.address.name }}</td>
                                             <td>{{ customer.address.address_text|linebreaksbr }}</td>
                                             <td><center>{{ customer.address.pincode }}</center></td>
-                                            <td><center>+91{{ customer.mobile }}</center></td>
+                                            <td style="text-align:center;">
+                                                {% if customer.mobile %}
+                                                    +91 {{ customer.mobile }}
+                                                {% else %}
+                                                    <span style="color:#999;">Not added</span>
+                                                {% endif %}
+                                            </td>                                            
+                                         
                                         </tr>
                                     </tbody>
                                 </table>

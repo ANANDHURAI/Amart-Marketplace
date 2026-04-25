@@ -1,63 +1,208 @@
-{% extends "aadmin/admin-base.html" %}
-
 {% load static %}
-
 {% block content %}
-<div class="container-fluid">
-  <div class="row justify-content-center col-12">
-    <div class="col-lg-4 col-md-6 col-sm-12">
-      <div class="card">
-        <div class="card-header bg-primary">
-          <div class="app-brand">
-            <a href="#">
-              <img style="width: 150px" src="{% static "images\logo-black1.png" %}" alt="logo">
-              <span class="brand-name">Amart Admin</span>
-            </a>
-          </div>
+<style>
+    /* Modern Font Import */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    /* Subtle Background Animation */
+    body::before {
+        content: "";
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        top: 10%;
+        left: 10%;
+        animation: float 15s infinite alternate;
+    }
+
+    @keyframes float {
+        from { transform: translate(0, 0); }
+        to { transform: translate(50px, 100px); }
+    }
+
+    .login-container {
+        width: 100%;
+        max-width: 420px;
+        z-index: 1;
+    }
+
+    .login-card {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 50px 40px;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        color: #fff;
+        animation: slideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .brand {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .brand img {
+        width: 80px;
+        height: auto;
+        filter: drop-shadow(0 5px 15px rgba(0,0,0,0.2));
+        margin-bottom: 15px;
+    }
+
+    .brand span {
+        display: block;
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: -0.5px;
+        background: linear-gradient(to right, #fff, #cbd5e1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 8px;
+        display: block;
+        color: #cbd5e1;
+    }
+
+    .form-control {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        border-radius: 12px;
+        padding: 14px 16px;
+        width: 100%;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+        font-size: 15px;
+    }
+
+    .form-control:focus {
+        outline: none;
+        background: rgba(255, 255, 255, 0.1);
+        border-color: #4c84ff;
+        box-shadow: 0 0 0 4px rgba(76, 132, 255, 0.2);
+    }
+
+    .btn-login {
+        width: 100%;
+        background: #fff;
+        color: #1e3c72;
+        border: none;
+        border-radius: 12px;
+        padding: 14px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 20px;
+    }
+
+    .btn-login:hover {
+        background: #f8fafc;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+
+    .btn-login:active {
+        transform: translateY(0);
+    }
+
+    .forgot-link {
+        color: #cbd5e1;
+        font-size: 13px;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .forgot-link:hover {
+        color: #fff;
+    }
+
+    .alert {
+        background: rgba(239, 68, 68, 0.2);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #fecaca;
+        padding: 12px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        text-align: center;
+    }
+</style>
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="brand">
+            <img src="{% static 'images/logo-white.png' %}" alt="Logo">
+            <span>Amart Admin</span>
         </div>
 
-        <div class="card-body p-4">
-          <h4 class="text-dark mb-5">Log In</h4>
-          
-          <form method="post">
-            {% csrf_token %}
-            <div class="row">
-              <div class="form-group col-md-12 mb-4">
-                {% if messages %}
-                  {% for message in messages %}
-                    <div id="login-message" class="alert alert-danger text-center">
-                      {{ message }}
-                    </div>
-                  {% endfor %}
-                {% endif %}
-                <input  name="email" type="email" class="form-control input-lg" id="email" aria-describedby="emailHelp" placeholder="Email">
-              </div>
-              <div class="form-group col-md-12 ">
-                <input  name="password" type="password" class="form-control input-lg" id="password" placeholder="Password">
-              </div>
-              <div class="col-md-12">
-                <div class="d-flex my-2 justify-content-between">
-                  <p><a class="text-blue" href="#">Forgot Your Password?</a></p>
+        <p style="text-align: center; color: #cbd5e1; margin-bottom: 30px;">Sign in to manage your store</p>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div id="login-message" class="alert">
+                    {{ message }}
                 </div>
+            {% endfor %}
+        {% endif %}
 
-                <button type="submit" class="btn btn-lg btn-primary btn-block mb-4">Log In</button>
-              </div>
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group mb-4">
+                <label class="form-label">Email Address</label>
+                <input name="email" type="email" class="form-control" placeholder="enter email" required>
             </div>
-          </form>
-        </div>
-      </div>
+
+            <div class="form-group mb-2">
+                <label class="form-label">Password</label>
+                <input name="password" type="password" class="form-control" placeholder="enter password" required>
+            </div>
+
+            
+            <button type="submit" class="btn-login">
+                Sign In
+            </button>
+        </form>
     </div>
-  </div>
 </div>
 
 <script>
-  setTimeout(function () {
-    const msg = document.getElementById("login-message");
-    if (msg) {
-      msg.style.transition = "opacity 0.4s ease";
-      msg.style.opacity = "0";
-      setTimeout(() => msg.remove(), 400);
-    }
-  }, 1500);
+    // Improved message auto-hide
+    window.addEventListener('DOMContentLoaded', (event) => {
+        const msg = document.getElementById("login-message");
+        if (msg) {
+            setTimeout(() => {
+                msg.style.transition = "opacity 0.6s ease, transform 0.6s ease";
+                msg.style.opacity = "0";
+                msg.style.transform = "scale(0.95)";
+                setTimeout(() => msg.remove(), 600);
+            }, 3000);
+        }
+    });
 </script>
-{% endblock content %}
+{% endblock %}
