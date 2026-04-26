@@ -1,198 +1,277 @@
 {% extends "aadmin/admin-base.html" %}
 {% load static %}
 
+{% block extra_styles %}
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:       #0f1117;
+  --ink2:      #3a3d4a;
+  --muted:     #8a8fa8;
+  --surface:   #ffffff;
+  --bg:        #f3f4f8;
+  --border:    #e4e6ef;
+  --accent:    #4f6ef7;
+  --accent2:   #7c3aed;
+  --green:     #16a34a;
+  --red:       #dc2626;
+  --yellow:    #d97706;
+  --blue:      #0284c7;
+  --radius:    14px;
+  --shadow:    0 4px 24px rgba(15,17,23,.07);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink)}
+
+.or-wrap{padding:36px 32px;max-width:1200px;margin:0 auto}
+
+/* HEADER */
+.or-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px}
+.or-title{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-.5px}
+.or-title span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.or-sub{font-size:13px;color:var(--muted);margin-top:3px}
+
+/* FILTER CARD */
+.or-filter-card{
+  background:var(--surface);border-radius:var(--radius);
+  box-shadow:var(--shadow);border:1px solid var(--border);
+  padding:20px 24px;margin-bottom:20px;
+}
+.or-filter-row{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.or-filter-group{display:flex;flex-direction:column;gap:6px;flex:1;min-width:180px}
+.or-filter-label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.or-input,.or-select{
+  padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;
+  font-family:'DM Sans',sans-serif;font-size:14px;
+  color:var(--ink);background:var(--surface);outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.or-input:focus,.or-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,110,247,.12)}
+.or-select{
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238a8fa8' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;
+}
+.btn-apply{
+  padding:10px 24px;border-radius:10px;border:none;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;
+  color:#fff;cursor:pointer;white-space:nowrap;
+  box-shadow:0 4px 14px rgba(79,110,247,.3);transition:transform .15s,box-shadow .15s;
+  align-self:flex-end;
+}
+.btn-apply:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(79,110,247,.4)}
+
+/* TABLE CARD */
+.or-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);overflow:hidden}
+.or-table{width:100%;border-collapse:collapse}
+.or-table thead tr{background:#f8f9fc;border-bottom:1.5px solid var(--border)}
+.or-table th{
+  font-family:'Syne',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  padding:14px 16px;text-align:left;white-space:nowrap;
+}
+.or-table th.center,.or-table td.center{text-align:center}
+.or-table tbody tr{border-bottom:1px solid var(--border);transition:background .12s}
+.or-table tbody tr:last-child{border-bottom:none}
+.or-table tbody tr:hover{background:#f8f9fc}
+.or-table td{padding:14px 16px;font-size:14px;color:var(--ink2);vertical-align:middle}
+
+/* PRODUCT CELL */
+.or-prod-link{font-weight:600;color:var(--accent);text-decoration:none;font-size:14px;display:block}
+.or-prod-link:hover{text-decoration:underline;color:var(--accent2)}
+.or-order-id{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* CUSTOMER */
+.or-customer{font-weight:500;color:var(--ink)}
+
+/* QTY / PRICE */
+.or-qty{display:inline-block;background:#f3f4f8;border-radius:6px;padding:3px 10px;font-weight:700;font-size:13px;color:var(--ink)}
+.or-price{font-weight:700;color:var(--ink);font-size:14px}
+
+/* STATUS BADGES */
+.st-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
+.st-badge::before{content:'●';font-size:8px}
+.st-pending  {background:#fef3c7;color:var(--yellow)}
+.st-confirmed{background:#e0f2fe;color:var(--blue)}
+.st-shipped  {background:#ede9fe;color:#6d28d9}
+.st-delivered{background:#f0fdf4;color:var(--green)}
+.st-cancelled{background:#fff1f1;color:var(--red)}
+.st-default  {background:#f3f4f8;color:var(--muted)}
+
+/* STATUS SELECT */
+.or-status-select{
+  padding:7px 30px 7px 12px;border-radius:8px;
+  border:1.5px solid var(--border);
+  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;
+  color:var(--ink2);background:var(--surface);outline:none;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath fill='%238a8fa8' d='M5 7L0 0h10z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+  cursor:pointer;transition:border-color .2s,box-shadow .2s;
+}
+.or-status-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,110,247,.12)}
+.or-status-select:hover{border-color:var(--accent)}
+
+/* EMPTY */
+.or-empty{padding:60px 20px;text-align:center}
+.or-empty i{font-size:48px;color:var(--border);display:block;margin-bottom:14px}
+.or-empty p{color:var(--muted);font-size:15px}
+
+/* PAGINATION */
+.or-pagination{display:flex;align-items:center;justify-content:center;gap:6px;padding:20px 16px 12px}
+.or-page-btn{
+  min-width:36px;height:36px;border-radius:8px;
+  border:1.5px solid var(--border);background:var(--surface);
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;
+  color:var(--ink2);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  text-decoration:none;padding:0 10px;transition:all .15s;
+}
+.or-page-btn:hover,.or-page-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);text-decoration:none}
+.or-page-btn.disabled{opacity:.4;pointer-events:none}
+</style>
+{% endblock %}
+
 {% block content %}
+<div class="or-wrap">
 
-<div class="container-fluid mt-4">
-
-    <!-- PAGE HEADER -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">Orders</h2>
+  <!-- HEADER -->
+  <div class="or-header">
+    <div>
+      <div class="or-title">Order <span>Management</span></div>
+      <div class="or-sub">Track and update all customer orders</div>
     </div>
+  </div>
 
-    <!-- SEARCH & FILTER -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <form method="get" class="row g-3 align-items-end">
-                <div class="col-md-5">
-                    <label class="form-label">Search Product</label>
-                    <input type="text"
-                           class="form-control"
-                           name="search"
-                           placeholder="Search by product name..."
-                           value="{{ search_query }}">
-                </div>
+  <!-- FILTER -->
+  <div class="or-filter-card">
+    <form method="get">
+      <div class="or-filter-row">
+        <div class="or-filter-group">
+          <span class="or-filter-label">Search Product</span>
+          <input type="text" class="or-input" name="search"
+            placeholder="Search by product name…" value="{{ search_query }}">
+        </div>
+        <div class="or-filter-group" style="max-width:220px">
+          <span class="or-filter-label">Filter by Status</span>
+          <select class="or-select" name="filter_option">
+            <option value="all"       {% if filter_option == "all"       %}selected{% endif %}>All Orders</option>
+            <option value="pending"   {% if filter_option == "pending"   %}selected{% endif %}>Pending</option>
+            <option value="confirmed" {% if filter_option == "confirmed" %}selected{% endif %}>Confirmed</option>
+            <option value="shipped"   {% if filter_option == "shipped"   %}selected{% endif %}>Shipped</option>
+            <option value="delivered" {% if filter_option == "delivered" %}selected{% endif %}>Delivered</option>
+            <option value="cancelled" {% if filter_option == "cancelled" %}selected{% endif %}>Cancelled</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-apply">
+          <i class="mdi mdi-filter-outline"></i> Apply
+        </button>
+      </div>
+    </form>
+  </div>
 
-                <div class="col-md-4">
-                    <label class="form-label">Filter by Status</label>
-                    <select class="form-control" name="filter_option">
-                        <option value="all" {% if filter_option == "all" %}selected{% endif %}>All</option>
-                        <option value="pending" {% if filter_option == "pending" %}selected{% endif %}>Pending</option>
-                        <option value="confirmed" {% if filter_option == "confirmed" %}selected{% endif %}>Confirmed</option>
-                        <option value="shipped" {% if filter_option == "shipped" %}selected{% endif %}>Shipped</option>
-                        <option value="delivered" {% if filter_option == "delivered" %}selected{% endif %}>Delivered</option>
-                        <option value="cancelled" {% if filter_option == "cancelled" %}selected{% endif %}>Cancelled</option>
-                    </select>
-                </div>
+  <!-- TABLE -->
+  <div class="or-card">
+    <table class="or-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Customer</th>
+          <th class="center">Qty</th>
+          <th class="center">Price</th>
+          <th class="center">Status</th>
+          <th class="center">Update</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order_item in order_items %}
+        <tr>
+          <!-- PRODUCT -->
+          <td>
+            <a href="{% url 'admin_order_detail' order_item.order.id %}" class="or-prod-link">
+              {{ order_item.product.name }}
+            </a>
+            <div class="or-order-id">Order #{{ order_item.order.id }}</div>
+          </td>
 
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary w-100">
-                        Apply
-                    </button>
-                </div>
+          <!-- CUSTOMER -->
+          <td><span class="or-customer">{{ order_item.order.customer }}</span></td>
+
+          <!-- QTY -->
+          <td class="center"><span class="or-qty">{{ order_item.quantity }}</span></td>
+
+          <!-- PRICE -->
+          <td class="center"><span class="or-price">₹{{ order_item.price }}</span></td>
+
+          <!-- STATUS BADGE -->
+          <td class="center">
+            <span class="st-badge
+              {% if order_item.status == 'pending'   %}st-pending
+              {% elif order_item.status == 'confirmed' %}st-confirmed
+              {% elif order_item.status == 'shipped'   %}st-shipped
+              {% elif order_item.status == 'delivered' %}st-delivered
+              {% elif order_item.status == 'cancelled' %}st-cancelled
+              {% else %}st-default{% endif %}">
+              {{ order_item.get_status_display }}
+            </span>
+          </td>
+
+          <!-- UPDATE STATUS -->
+          <td class="center">
+            <form method="post" action="{% url 'update_order_status' order_item.id %}">
+              {% csrf_token %}
+              <select name="new_status" class="or-status-select" onchange="this.form.submit()">
+                {% for status, label in order_item.STATUS_CHOICES %}
+                <option value="{{ status }}" {% if status == order_item.status %}selected{% endif %}>
+                  {{ label }}
+                </option>
+                {% endfor %}
+              </select>
             </form>
-        </div>
-    </div>
-
-    <!-- ORDER TABLE -->
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="order-table-head">
-                        <tr>
-                            <th>Product</th>
-                            <th>Customer</th>
-                            <th class="text-center">Qty</th>
-                            <th class="text-center">Price</th>
-                            <th class="text-center">Status</th>
-                            <th class="text-center">Update</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        {% for order_item in order_items %}
-                        <tr>
-                            <!-- PRODUCT (CLICKABLE) -->
-                            <td>
-                                <a href="{% url 'admin_order_detail' order_item.order.id %}"
-                                   class="fw-bold text-decoration-none text-primary">
-                                    {{ order_item.product.name }}
-                                </a>
-                                <br>
-                                <small class="text-muted">
-                                    Order #{{ order_item.order.id }}
-                                </small>
-                            </td>
-
-                            <!-- CUSTOMER -->
-                            <td>
-                                {{ order_item.order.customer }}
-                            </td>
-
-                            <!-- QUANTITY -->
-                            <td class="text-center">
-                                {{ order_item.quantity }}
-                            </td>
-
-                            <!-- PRICE -->
-                            <td class="text-center fw-semibold">
-                                ₹ {{ order_item.price }}
-                            </td>
-
-                            <!-- STATUS BADGE -->
-                            <td class="text-center">
-                                <span class="badge px-3 py-2
-                                    {% if order_item.status == 'pending' %}bg-warning
-                                    {% elif order_item.status == 'confirmed' %}bg-info
-                                    {% elif order_item.status == 'shipped' %}bg-primary
-                                    {% elif order_item.status == 'delivered' %}bg-success
-                                    {% elif order_item.status == 'cancelled' %}bg-danger
-                                    {% else %}bg-secondary{% endif %}">
-                                    {{ order_item.get_status_display }}
-                                </span>
-                            </td>
-
-                            <!-- UPDATE STATUS -->
-                            <td class="text-center">
-                                <form method="post"
-                                      action="{% url 'update_order_status' order_item.id %}">
-                                    {% csrf_token %}
-                                    <select name="new_status"
-                                            class="form-select form-select-sm"
-                                            onchange="this.form.submit()">
-                                        {% for status, label in order_item.STATUS_CHOICES %}
-                                        <option value="{{ status }}"
-                                            {% if status == order_item.status %}selected{% endif %}>
-                                            {{ label }}
-                                        </option>
-                                        {% endfor %}
-                                    </select>
-                                </form>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">
-                                No orders found
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-
-                </table>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6">
+            <div class="or-empty">
+              <i class="mdi mdi-clipboard-text-off-outline"></i>
+              <p>No orders found. Try adjusting your search or filter.</p>
             </div>
-        </div>
-    </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
 
     <!-- PAGINATION -->
     {% if order_items.paginator.num_pages > 1 %}
-    <nav class="mt-4">
-        <ul class="pagination justify-content-center">
+    <div class="or-pagination">
+      {% if order_items.has_previous %}
+        <a href="?page={{ order_items.previous_page_number }}&search={{ search_query }}&filter_option={{ filter_option }}" class="or-page-btn">
+          <i class="mdi mdi-chevron-left"></i>
+        </a>
+      {% else %}
+        <span class="or-page-btn disabled"><i class="mdi mdi-chevron-left"></i></span>
+      {% endif %}
 
-            {% if order_items.has_previous %}
-            <li class="page-item">
-                <a class="page-link"
-                   href="?page={{ order_items.previous_page_number }}&search={{ search_query }}&filter_option={{ filter_option }}">
-                    Previous
-                </a>
-            </li>
-            {% endif %}
+      {% for num in order_items.paginator.page_range %}
+        {% if num == order_items.number %}
+          <span class="or-page-btn active">{{ num }}</span>
+        {% else %}
+          <a href="?page={{ num }}&search={{ search_query }}&filter_option={{ filter_option }}" class="or-page-btn">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
 
-            {% for num in order_items.paginator.page_range %}
-            <li class="page-item {% if num == order_items.number %}active{% endif %}">
-                <a class="page-link"
-                   href="?page={{ num }}&search={{ search_query }}&filter_option={{ filter_option }}">
-                    {{ num }}
-                </a>
-            </li>
-            {% endfor %}
-
-            {% if order_items.has_next %}
-            <li class="page-item">
-                <a class="page-link"
-                   href="?page={{ order_items.next_page_number }}&search={{ search_query }}&filter_option={{ filter_option }}">
-                    Next
-                </a>
-            </li>
-            {% endif %}
-
-        </ul>
-    </nav>
+      {% if order_items.has_next %}
+        <a href="?page={{ order_items.next_page_number }}&search={{ search_query }}&filter_option={{ filter_option }}" class="or-page-btn">
+          <i class="mdi mdi-chevron-right"></i>
+        </a>
+      {% else %}
+        <span class="or-page-btn disabled"><i class="mdi mdi-chevron-right"></i></span>
+      {% endif %}
+    </div>
     {% endif %}
 
+  </div>
 </div>
-
-{% endblock %}
-
-{% block extra_styles %}
-<style>
-/* Force black header with white text */
-.order-table-head th {
-    background-color: #000 !important;
-    color: #fff !important;
-    border-color: #000 !important;
-}
-
-/* Hover row */
-.table-hover tbody tr:hover {
-    background-color: #f8f9fa;
-}
-
-/* Badge text size */
-.badge {
-    font-size: 0.85rem;
-}
-</style>
-
 {% endblock %}

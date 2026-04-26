@@ -18,7 +18,8 @@ import base64
 from uuid import uuid4
 from functools import wraps
 from django.urls import reverse
-
+from django.core.files.base import ContentFile
+from django.http import JsonResponse
 
 
 def admin_login_required(view_func):
@@ -289,25 +290,34 @@ def customer_approval(request, pk):
     return redirect("customer_list")
 
 
+
+
+
+ 
+
+
+def _flush_messages(request):
+    list(messages.get_messages(request))
+
+
 @admin_login_required
 def category_list(request):
-    """List categories with filter/search and product counts."""
     title = "Categories"
     current_page = "category_list"
-
+ 
     search_query = request.GET.get("search", "")
     filter_option = request.GET.get("filter_option", "listed_categories")
-
+ 
     if filter_option == "deleted_categories":
         categories = Category.all_objects.filter(is_deleted=True).order_by("name")
         request.session["selection"] = "deleted_categories"
     else:
         categories = Category.objects.all().order_by("name")
         request.session["selection"] = "listed_categories"
-
+ 
     if search_query:
         categories = categories.filter(name__icontains=search_query)
-
+ 
     counts_by_category_id = {
         row["main_category_id"]: row["count"]
         for row in Product.all_objects.values("main_category_id").annotate(
@@ -316,11 +326,11 @@ def category_list(request):
     }
     for category in categories:
         category.count = counts_by_category_id.get(category.id, 0)
-
+ 
     paginator = Paginator(categories, 5)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
-
+ 
     context = {
         "categories": page_obj,
         "title": title,
@@ -329,140 +339,151 @@ def category_list(request):
         "filter_option": filter_option,
     }
     return render(request, "aadmin/category-list.html", context)
-
-
-
-
-import base64
-from django.core.files.base import ContentFile
-
+ 
+ 
 @admin_login_required
 def add_category(request):
     title = "New Category"
     current_page = "add_category"
-
+ 
     if request.method == "POST":
         category_name = request.POST.get("category_name", "").strip()
         category_description = request.POST.get("category_description", "").strip()
         cropped_image = request.POST.get("cropped_image")
-
-
+ 
         if not category_name or len(category_name) < 3:
-            messages.error(request, "Category name must be at least 3 characters")
+            messages.error(request, "Category name must be at least 3 characters.")
             return redirect("add_category")
-
+ 
         if not category_name.replace(" ", "").isalpha():
-            messages.error(request, "Category name must contain only letters")
+            messages.error(request, "Category name must contain only letters and spaces.")
             return redirect("add_category")
-
-        if Category.objects.filter(name__iexact=category_name).exclude(
-                id=getattr(request, "category_id", None)
-            ).exists():
-            messages.error(request, "Category already exists")
+ 
+        if Category.objects.filter(name__iexact=category_name).exists():
+            messages.error(request, "A category with this name already exists.")
             return redirect("add_category")
-
-        
+ 
         if not cropped_image:
-            messages.error(request, "Please upload and crop an image")
+            messages.error(request, "Please upload and crop an image.")
             return redirect("add_category")
-
-     
+ 
         try:
-            format, imgstr = cropped_image.split(";base64,")
-            ext = format.split("/")[-1]
+            format_, imgstr = cropped_image.split(";base64,")
+            ext = format_.split("/")[-1]
             image_file = ContentFile(
                 base64.b64decode(imgstr),
-                name=f"{slugify(category_name)}.{ext}"
+                name=f"{slugify(category_name)}.{ext}",
             )
         except Exception:
-            messages.error(request, "Invalid image data")
+            messages.error(request, "Invalid image data. Please try again.")
             return redirect("add_category")
-
+ 
         Category.objects.create(
             name=category_name.title(),
             description=category_description,
             image=image_file,
             slug=slugify(category_name),
         )
-
-        messages.success(request, "Category added successfully")
+ 
+        messages.success(request, "Category added successfully!")
         return redirect("category_list")
 
+    _flush_messages(request)
+ 
     context = {"title": title, "current_page": current_page}
     return render(request, "aadmin/category-form.html", context)
-
-
-
-
+ 
 
 @admin_login_required
 def edit_category(request, slug):
-    title = f"{slug.capitalize()} | Edit Category"
-    category = Category.objects.get(slug=slug)
-    image_url = category.image.url if category.image else None
-
+    category = get_object_or_404(Category, slug=slug)
+    title = f"Edit · {category.name}"
+ 
     if request.method == "POST":
-        category_name = request.POST.get("category_name").title().strip()
-        category_description = request.POST.get("category_description").strip()
-        category_image = request.FILES.get("category_image")
-        new_slug = slugify(category_name)
-
-      
-        if (
-            category.name == category_name and
-            category.description == category_description and
-            not category_image
-        ):
-            messages.info(request, "No changes were made")
-            return redirect("edit_category", slug=slug)
-
+        category_name = request.POST.get("category_name", "").strip().title()
+        category_description = request.POST.get("category_description", "").strip()
+        cropped_image_data = request.POST.get("cropped_image", "")
+        category_image_file = request.FILES.get("category_image")
+ 
        
-        if Category.objects.filter(name=category_name).exclude(id=category.id).exists():
-            messages.error(request, "Category already exists")
+        if not category_name or len(category_name) < 3:
+            messages.error(request, "Category name must be at least 3 characters.")
             return redirect("edit_category", slug=slug)
-
-        
-        category.name = category_name
+ 
+        if not category_name.replace(" ", "").isalpha():
+            messages.error(request, "Category name must contain only letters and spaces.")
+            return redirect("edit_category", slug=slug)
+ 
+        if Category.objects.filter(name__iexact=category_name).exclude(id=category.id).exists():
+            messages.error(request, "Another category with this name already exists.")
+            return redirect("edit_category", slug=slug)
+ 
+        name_changed        = category.name != category_name
+        description_changed = category.description != category_description
+        image_changed       = bool(cropped_image_data or category_image_file)
+ 
+        if not name_changed and not description_changed and not image_changed:
+            messages.info(request, "No changes were made.")
+            return redirect("edit_category", slug=slug)
+ 
+       
+        category.name        = category_name
         category.description = category_description
-        category.slug = new_slug
-
-        if category_image:
-            category.image = category_image
-
+        category.slug        = slugify(category_name)
+ 
+        if cropped_image_data:
+           
+            try:
+                format_, imgstr = cropped_image_data.split(";base64,")
+                ext = format_.split("/")[-1]
+                category.image = ContentFile(
+                    base64.b64decode(imgstr),
+                    name=f"{slugify(category_name)}.{ext}",
+                )
+            except Exception:
+                messages.error(request, "Invalid image data. Image was not updated.")
+        elif category_image_file:
+            
+            category.image = category_image_file
+ 
         category.save()
-        messages.success(request, "Category updated successfully")
+        messages.success(request, "Category updated successfully!")
         return redirect("category_list")
-
+ 
+    _flush_messages(request)
+ 
     context = {
         "title": title,
         "category": category,
-        "image_url": image_url,
+        "current_page": "category_list",
     }
     return render(request, "aadmin/category-form.html", context)
-
-
-
+ 
+ 
 
 @admin_login_required
 def delete_category(request, slug):
     category = get_object_or_404(Category, slug=slug)
-    category.delete()  
+    category.delete()   # soft-delete via your custom manager
+    messages.success(request, f'"{category.name}" has been deleted.')
     return redirect("category_list")
+ 
 
 
 
 @admin_login_required
 def restore_category(request, slug):
     category = Category.all_objects.get(slug=slug)
-
     category.restore()
-
+ 
     Product.all_objects.filter(main_category=category).update(
         is_deleted=False,
-        deleted_at=None
+        deleted_at=None,
     )
-
+ 
+    messages.success(request, f'"{category.name}" has been restored.')
     return redirect("category_list")
+
 
 
 
@@ -631,10 +652,6 @@ def product_approval(request, pk):
     product.approved = not product.approved
     product.save()
     return redirect("product_list")
-
-
-
-
 
 
 @admin_login_required
@@ -1244,3 +1261,5 @@ def delete_inventory(request, inventory_id):
     inventory_item = get_object_or_404(Inventory, id=inventory_id)
     inventory_item.delete()
     return redirect("inventory_list")
+
+

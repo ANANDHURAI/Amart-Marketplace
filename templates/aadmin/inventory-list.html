@@ -1,208 +1,348 @@
 {% extends "aadmin/admin-base.html" %}
 {% load static %}
 
-{% block content %}
-<div class="content-wrapper bg-light">
-    <div class="content">
-        <div class="d-flex align-items-center justify-content-between mb-4">
-            <div>
-                <h2 class="font-weight-bold text-dark mb-1">Inventory Management</h2>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb bg-transparent p-0" style="font-size: 0.85rem;">
-                        <li class="breadcrumb-item"><a href="#" class="text-muted">Dashboard</a></li>
-                        <li class="breadcrumb-item active text-primary font-weight-bold">Inventory</li>
-                    </ol>
-                </nav>
-            </div>
-
-            <div class="d-flex align-items-center">
-                <div class="bg-white border rounded shadow-sm d-flex p-1 mr-3">
-                    <form method="get" class="form-inline">
-                        <input type="text" class="form-control form-control-sm border-0 bg-transparent" placeholder="Search products..." name="search" value="{{ search_query }}">
-                        <button class="btn btn-sm btn-light border-0" type="submit">
-                            <i class="mdi mdi-magnify"></i>
-                        </button>
-                    </form>
-                </div>
-
-                <a href="{% url 'add_inventory' %}" class="btn btn-primary shadow-sm px-4 py-2" style="border-radius: 8px; font-weight: 600;">
-                    <i class="mdi mdi-plus-box mr-1"></i> Add Inventory
-                </a>
-            </div>
-        </div>
-
-        <div class="card border-0 shadow-sm" style="border-radius: 15px; overflow: hidden;">
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table id="hoverable-data-table" class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th class="py-4 text-dark font-weight-bold border-0 pl-4">PRODUCT NAME</th>
-                                <th class="py-4 text-dark font-weight-bold border-0 text-center">SIZE</th>
-                                <th class="py-4 text-dark font-weight-bold border-0 text-center">PRICE</th>
-                                <th class="py-4 text-dark font-weight-bold border-0 text-center">STOCK</th>
-                                <th class="py-4 text-dark font-weight-bold border-0 text-center">STATUS</th>
-                                <th class="py-4 text-dark font-weight-bold border-0 text-center pr-4">ACTIONS</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white">
-                            {% for item in page_obj %}
-                            <tr>
-                                <td class="align-middle pl-4 font-weight-bold text-dark">
-                                    {{ item.product.name }}
-                                </td>
-                                <td class="align-middle text-center">
-                                    <span class="size-badge size-{{ item.get_size_display|slugify }}">
-                                        {{ item.get_size_display }}
-                                    </span>
-                                </td>
-                                <td class="align-middle text-center text-dark font-weight-bold">
-                                    ₹ {{ item.price }}
-                                </td>
-                                <td class="align-middle text-center">
-                                    <span class="stock-badge-uniform">{{ item.stock }}</span>
-                                </td>
-                                <td class="align-middle text-center">
-                                    {% if item.is_active %}
-                                        <span class="badge-success-soft"><i class="mdi mdi-check-circle mr-1"></i>Active</span>
-                                    {% else %}
-                                        <span class="badge-danger-soft"><i class="mdi mdi-close-circle mr-1"></i>Inactive</span>
-                                    {% endif %}
-                                </td>
-                                <td class="align-middle text-center pr-4">
-                                    <div class="btn-group shadow-sm" style="border-radius: 8px; overflow: hidden;">
-                                        <a href="{% url 'edit_inventory' item.id %}" class="btn btn-sm btn-white border-right" title="Edit">
-                                            <i class="mdi mdi-pencil text-warning"></i>
-                                        </a>
-                                        <a href="{% url 'inventory_status' item.id %}" class="btn btn-sm btn-white border-right" title="Toggle Status">
-                                            {% if item.is_active %}
-                                                <i class="mdi mdi-eye-off text-info"></i>
-                                            {% else %}
-                                                <i class="mdi mdi-eye text-primary"></i>
-                                            {% endif %}
-                                        </a>
-                                        <button type="button" class="btn btn-sm btn-white" onclick="confirmDelete('{{ item.id }}', '{{ item.product.name }}')" title="Delete">
-                                            <i class="mdi mdi-delete text-danger"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="6" class="text-center py-5 text-muted">
-                                    <i class="mdi mdi-archive-outline d-block mb-2" style="font-size: 3rem; opacity: 0.3;"></i>
-                                    No inventory items found.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="mt-4">
-            <nav aria-label="Page navigation">
-                <ul class="pagination pagination-rounded justify-content-center">
-                    {% if page_obj.has_previous %}
-                        <li class="page-item"><a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}"><i class="mdi mdi-chevron-double-left"></i></a></li>
-                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}"><i class="mdi mdi-chevron-left"></i></a></li>
-                    {% endif %}
-                    
-                    <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
-
-                    {% if page_obj.has_next %}
-                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}"><i class="mdi mdi-chevron-right"></i></a></li>
-                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}"><i class="mdi mdi-chevron-double-right"></i></a></li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </div>
-    </div>
-</div>
-{% endblock content %}
-
 {% block extra_styles %}
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <style>
-    body { background-color: #f8f9fa !important; }
-    
-    /* Table Header Visibility */
-    #hoverable-data-table thead th {
-        background-color: #ffffff !important;
-        color: #333333 !important;
-        font-size: 0.7rem;
-        letter-spacing: 0.05rem;
-        border-bottom: 2px solid #f1f1f1 !important;
-        text-transform: uppercase;
-    }
+:root {
+  --ink:       #0f1117;
+  --ink2:      #3a3d4a;
+  --muted:     #8a8fa8;
+  --surface:   #ffffff;
+  --bg:        #f3f4f8;
+  --border:    #e4e6ef;
+  --accent:    #4f6ef7;
+  --accent2:   #7c3aed;
+  --green:     #16a34a;
+  --red:       #dc2626;
+  --red-soft:  #fff1f1;
+  --green-soft:#f0fdf4;
+  --radius:    14px;
+  --shadow:    0 4px 24px rgba(15,17,23,.07);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink)}
 
-    /* Uniform Stock Badge */
-    .stock-badge-uniform {
-        background-color: #f1f3f9 !important;
-        color: #495057 !important;
-        padding: 5px 12px;
-        border-radius: 6px;
-        font-weight: 700;
-        display: inline-block;
-        border: 1px solid #e5e9f2;
-    }
+/* TOAST */
+.pm-toast-wrap{position:fixed;top:24px;right:24px;display:flex;flex-direction:column;gap:10px;z-index:10000}
+.pm-toast{
+  background:var(--surface);border-radius:12px;padding:14px 20px;
+  box-shadow:0 8px 32px rgba(15,17,23,.15);border-left:4px solid var(--accent);
+  font-size:14px;font-weight:500;color:var(--ink);
+  display:flex;align-items:center;gap:10px;min-width:280px;
+  animation:toastIn .3s ease;
+}
+.pm-toast.toast-error  {border-left-color:var(--red)}
+.pm-toast.toast-success{border-left-color:var(--green)}
+.pm-toast.toast-success .toast-icon{color:var(--green)}
+.pm-toast.toast-error   .toast-icon{color:var(--red)}
+.pm-toast .toast-icon{font-size:20px;flex-shrink:0}
+@keyframes toastIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+.pm-toast.fadeout{animation:toastOut .4s ease forwards}
+@keyframes toastOut{to{opacity:0;transform:translateX(30px)}}
 
-    /* Status Badges */
-    .badge-success-soft { background: #e6f4ea; color: #1e7e34; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-    .badge-danger-soft { background: #fce8e6; color: #d93025; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+/* PAGE */
+.iv-wrap{padding:36px 32px;max-width:1200px;margin:0 auto}
 
-    /* Button Group UI */
-    .btn-white { background: white; border: none; padding: 8px 12px; }
-    .btn-white:hover { background: #f8f9fa; }
-    
-    .pagination-rounded .page-link { border-radius: 50% !important; margin: 0 3px; border: none; background: white; color: #4c84ff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .pagination-rounded .page-item.active .page-link { background: #4c84ff; color: white; }
+/* HEADER */
+.iv-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:16px}
+.iv-title{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-.5px}
+.iv-title span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.iv-sub{font-size:13px;color:var(--muted);margin-top:3px}
 
-    /* Base style for all size badges */
-    .size-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        min-width: 60px;
-        border: 1px solid rgba(0,0,0,0.05);
-    }
+.btn-add{
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;
+  padding:11px 22px;border-radius:10px;text-decoration:none;border:none;cursor:pointer;
+  box-shadow:0 4px 14px rgba(79,110,247,.35);transition:transform .15s,box-shadow .15s;
+}
+.btn-add:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(79,110,247,.45);color:#fff;text-decoration:none}
 
-    /* Color Coding for Sizes */
-    .size-small { background-color: #e3f2fd; color: #1976d2; }       /* Blue */
-    .size-medium { background-color: #f3e5f5; color: #7b1fa2; }      /* Purple */
-    .size-large { background-color: #e8f5e9; color: #388e3c; }       /* Green */
-    .size-extra-large { background-color: #fff3e0; color: #f57c00; } /* Orange */
-    .size-double-extra-large { background-color: #ffebee; color: #d32f2f; } /* Red */
+/* SEARCH */
+.iv-bar{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.iv-search-wrap{position:relative;flex:1;max-width:380px}
+.iv-search-wrap .s-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:18px;pointer-events:none}
+.iv-search{
+  width:100%;padding:10px 14px 10px 40px;
+  border:1.5px solid var(--border);border-radius:10px;
+  font-family:'DM Sans',sans-serif;font-size:14px;
+  background:var(--surface);color:var(--ink);outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.iv-search:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,110,247,.12)}
+.btn-search{
+  padding:10px 18px;border-radius:10px;border:1.5px solid var(--border);
+  background:var(--surface);font-family:'DM Sans',sans-serif;font-size:13px;
+  font-weight:600;color:var(--accent);cursor:pointer;transition:all .15s;
+}
+.btn-search:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
 
-    /* Default for any other size */
-    .size-badge:not([class*="size-"]) {
-        background-color: #f8f9fa;
-        color: #6c757d;
-    }
+/* CARD TABLE */
+.iv-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);overflow:hidden}
+.iv-table{width:100%;border-collapse:collapse}
+.iv-table thead tr{background:#f8f9fc;border-bottom:1.5px solid var(--border)}
+.iv-table th{
+  font-family:'Syne',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  padding:14px 16px;text-align:left;white-space:nowrap;
+}
+.iv-table th.center,.iv-table td.center{text-align:center}
+.iv-table tbody tr{border-bottom:1px solid var(--border);transition:background .12s}
+.iv-table tbody tr:last-child{border-bottom:none}
+.iv-table tbody tr:hover{background:#f8f9fc}
+.iv-table td{padding:14px 16px;font-size:14px;color:var(--ink2);vertical-align:middle}
+
+.iv-pname{font-weight:600;color:var(--ink);font-size:14px}
+
+/* SIZE BADGES */
+.size-badge{
+  display:inline-block;padding:4px 12px;border-radius:6px;
+  font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;min-width:56px;text-align:center;
+}
+.size-s  {background:#e3f2fd;color:#1565c0}
+.size-m  {background:#f3e5f5;color:#6a1b9a}
+.size-l  {background:#e8f5e9;color:#2e7d32}
+.size-xl {background:#fff3e0;color:#e65100}
+.size-xxl{background:#ffebee;color:#c62828}
+.size-default{background:#f3f4f8;color:#555}
+
+/* PRICE */
+.price-val{font-weight:700;color:var(--ink);font-size:14px}
+
+/* STOCK */
+.stock-chip{
+  display:inline-block;background:#f3f4f8;border-radius:6px;
+  padding:4px 12px;font-weight:700;font-size:13px;color:var(--ink);
+  border:1px solid var(--border);
+}
+.stock-chip.low {background:#fff3e0;color:#e65100;border-color:#ffe0b2}
+.stock-chip.zero{background:var(--red-soft);color:var(--red);border-color:#fecaca}
+
+/* STATUS */
+.badge-active  {display:inline-flex;align-items:center;gap:5px;background:var(--green-soft);color:var(--green);font-size:12px;font-weight:600;padding:4px 11px;border-radius:20px}
+.badge-inactive{display:inline-flex;align-items:center;gap:5px;background:var(--red-soft);color:var(--red);font-size:12px;font-weight:600;padding:4px 11px;border-radius:20px}
+.badge-active::before,.badge-inactive::before{content:'●';font-size:8px}
+
+/* ACTION BUTTONS */
+.action-row{display:flex;align-items:center;justify-content:center;gap:7px}
+.btn-tbl{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:6px 13px;border-radius:8px;
+  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;
+  border:1.5px solid transparent;cursor:pointer;text-decoration:none;transition:all .15s;
+}
+.btn-tbl:hover{text-decoration:none}
+.btn-edit   {background:#f0f4ff;color:#3d5af1;border-color:rgba(61,90,241,.15)}
+.btn-edit:hover{background:#3d5af1;color:#fff}
+.btn-toggle {background:#f0fdf4;color:var(--green);border-color:rgba(22,163,74,.2)}
+.btn-toggle:hover{background:var(--green);color:#fff}
+.btn-toggle.off{background:var(--red-soft);color:var(--red);border-color:rgba(220,38,38,.2)}
+.btn-toggle.off:hover{background:var(--red);color:#fff}
+.btn-del{background:var(--red-soft);color:var(--red);border-color:rgba(220,38,38,.15)}
+.btn-del:hover{background:var(--red);color:#fff}
+
+/* PAGINATION */
+.iv-pagination{display:flex;align-items:center;justify-content:center;gap:6px;padding:20px 16px 12px}
+.iv-page-btn{
+  min-width:36px;height:36px;border-radius:8px;
+  border:1.5px solid var(--border);background:var(--surface);
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;
+  color:var(--ink2);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  text-decoration:none;padding:0 10px;transition:all .15s;
+}
+.iv-page-btn:hover,.iv-page-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);text-decoration:none}
+.iv-page-btn.disabled{opacity:.4;pointer-events:none}
+
+/* EMPTY */
+.iv-empty{padding:60px 20px;text-align:center}
+.iv-empty i{font-size:48px;color:var(--border);display:block;margin-bottom:14px}
+.iv-empty p{color:var(--muted);font-size:15px}
 </style>
-{% endblock extra_styles %}
+{% endblock %}
+
+{% block content %}
+
+<!-- TOASTS -->
+<div class="pm-toast-wrap">
+  {% for message in messages %}
+  <div class="pm-toast {% if 'error' in message.tags %}toast-error{% elif 'success' in message.tags %}toast-success{% endif %}" data-auto-close>
+    <i class="mdi {% if 'error' in message.tags %}mdi-alert-circle{% else %}mdi-check-circle{% endif %} toast-icon"></i>
+    <span>{{ message }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="iv-wrap">
+
+  <!-- HEADER -->
+  <div class="iv-header">
+    <div>
+      <div class="iv-title">Inventory <span>Management</span></div>
+      <div class="iv-sub">Manage product sizes, pricing and stock levels</div>
+    </div>
+    <a href="{% url 'add_inventory' %}" class="btn-add">
+      <i class="mdi mdi-plus"></i> Add Inventory
+    </a>
+  </div>
+
+  <!-- SEARCH -->
+  <form method="get">
+    <div class="iv-bar">
+      <div class="iv-search-wrap">
+        <i class="mdi mdi-magnify s-icon"></i>
+        <input class="iv-search" type="text" name="search" placeholder="Search product or size…" value="{{ search_query }}">
+      </div>
+      <button type="submit" class="btn-search"><i class="mdi mdi-magnify"></i> Search</button>
+    </div>
+  </form>
+
+  <!-- TABLE -->
+  <div class="iv-card">
+    <table class="iv-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th class="center">Size</th>
+          <th class="center">Price</th>
+          <th class="center">Stock</th>
+          <th class="center">Status</th>
+          <th class="center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in page_obj %}
+        <tr>
+          <td><div class="iv-pname">{{ item.product.name }}</div></td>
+
+          <td class="center">
+            {% with s=item.size|lower %}
+            <span class="size-badge
+              {% if s == 's' %}size-s
+              {% elif s == 'm' %}size-m
+              {% elif s == 'l' %}size-l
+              {% elif s == 'xl' %}size-xl
+              {% elif s == 'xxl' %}size-xxl
+              {% else %}size-default{% endif %}">
+              {{ item.get_size_display }}
+            </span>
+            {% endwith %}
+          </td>
+
+          <td class="center"><span class="price-val">₹{{ item.price }}</span></td>
+
+          <td class="center">
+            <span class="stock-chip {% if item.stock == 0 %}zero{% elif item.stock <= 5 %}low{% endif %}">
+              {{ item.stock }}
+            </span>
+          </td>
+
+          <td class="center">
+            {% if item.is_active %}
+              <span class="badge-active">Active</span>
+            {% else %}
+              <span class="badge-inactive">Inactive</span>
+            {% endif %}
+          </td>
+
+          <td class="center">
+            <div class="action-row">
+              <a href="{% url 'edit_inventory' item.id %}" class="btn-tbl btn-edit">
+                <i class="mdi mdi-pencil-outline"></i> Edit
+              </a>
+              <a href="{% url 'inventory_status' item.id %}" class="btn-tbl btn-toggle {% if not item.is_active %}off{% endif %}">
+                {% if item.is_active %}
+                  <i class="mdi mdi-eye-off-outline"></i> Disable
+                {% else %}
+                  <i class="mdi mdi-eye-outline"></i> Enable
+                {% endif %}
+              </a>
+              <button class="btn-tbl btn-del"
+                onclick="confirmDelete('{{ item.id }}', '{{ item.product.name }}')">
+                <i class="mdi mdi-trash-can-outline"></i> Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6">
+            <div class="iv-empty">
+              <i class="mdi mdi-archive-off-outline"></i>
+              <p>No inventory items found. Try a different search.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- PAGINATION -->
+    {% if page_obj.has_other_pages %}
+    <div class="iv-pagination">
+      {% if page_obj.has_previous %}
+        <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}" class="iv-page-btn"><i class="mdi mdi-chevron-double-left"></i></a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" class="iv-page-btn"><i class="mdi mdi-chevron-left"></i></a>
+      {% else %}
+        <span class="iv-page-btn disabled"><i class="mdi mdi-chevron-left"></i></span>
+      {% endif %}
+
+      {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+          <span class="iv-page-btn active">{{ num }}</span>
+        {% else %}
+          <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}" class="iv-page-btn">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" class="iv-page-btn"><i class="mdi mdi-chevron-right"></i></a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}" class="iv-page-btn"><i class="mdi mdi-chevron-double-right"></i></a>
+      {% else %}
+        <span class="iv-page-btn disabled"><i class="mdi mdi-chevron-right"></i></span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}
 
 {% block extra_scripts %}
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
 <script>
-    function confirmDelete(id, itemName) {
-        Swal.fire({
-            title: 'Delete Item?',
-            text: "Are you sure you want to remove " + itemName + " from inventory?",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#fe5455',
-            cancelButtonColor: '#333',
-            confirmButtonText: 'Yes, delete'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = `/aadmin/inventory/delete/${id}/`;
-            }
-        });
+// Toast auto-close 5.5s
+document.querySelectorAll('[data-auto-close]').forEach(t => {
+  setTimeout(() => { t.classList.add('fadeout'); setTimeout(() => t.remove(), 400); }, 5500);
+});
+
+// SweetAlert2 delete confirm
+function confirmDelete(id, name) {
+  Swal.fire({
+    title: 'Delete Item?',
+    html: `Remove <strong>${name}</strong> from inventory? This can't be undone.`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, delete',
+    cancelButtonText: 'Cancel',
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#6b7280',
+    borderRadius: '14px',
+    customClass: {
+      popup: 'swal-modern',
+      confirmButton: 'swal-btn-confirm',
+      cancelButton: 'swal-btn-cancel',
     }
+  }).then(r => {
+    if (r.isConfirmed) window.location.href = `/aadmin/inventory/${id}/delete/`;
+  });
+}
 </script>
-{% endblock extra_scripts %}
+<style>
+.swal2-popup{font-family:'DM Sans',sans-serif!important;border-radius:16px!important}
+.swal2-title{font-family:'Syne',sans-serif!important;font-size:20px!important}
+.swal2-confirm,.swal2-cancel{border-radius:9px!important;font-weight:600!important;padding:10px 24px!important}
+</style>
+{% endblock %}

@@ -2,94 +2,92 @@
 {% load static %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid py-4">
 
-    <!-- HEADER + FILTER -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="font-weight-bold mb-0">Sales Report</h2>
-            <small class="text-muted">
-                {{ start_date|date:"d M Y" }} – {{ end_date|date:"d M Y" }}
-            </small>
+            <h2 class="font-weight-bold mb-0 text-dark">Sales Report</h2>
+            <p class="text-muted mb-0">
+                <i class="far fa-calendar-alt mr-1"></i> {{ start_date|date:"d M Y" }} – {{ end_date|date:"d M Y" }}
+            </p>
         </div>
 
-        <form class="form-inline" method="post">
+        <form class="form-inline bg-white p-2 rounded shadow-sm border" method="post">
             {% csrf_token %}
-            <select class="form-control form-control-sm mr-2" name="filter_option">
+            <select class="form-control form-control-sm border-0 mr-2" name="filter_option" style="cursor: pointer;">
                 <option value="today" {% if request.session.selection == "today" %}selected{% endif %}>Today</option>
                 <option value="1_week" {% if request.session.selection == "1_week" %}selected{% endif %}>Last 7 Days</option>
                 <option value="1_month" {% if request.session.selection == "1_month" %}selected{% endif %}>Last 30 Days</option>
                 <option value="6_months" {% if request.session.selection == "6_months" %}selected{% endif %}>Last 6 Months</option>
                 <option value="1_year" {% if request.session.selection == "1_year" %}selected{% endif %}>Last 1 Year</option>
             </select>
-            <button class="btn btn-sm btn-dark">Apply</button>
+            <button class="btn btn-sm btn-primary px-3">Apply</button>
         </form>
     </div>
 
-    <!-- KPI CARDS -->
     <div class="row mb-4">
         <div class="col-md-4">
-            <div class="card stat-card">
+            <div class="card stat-card border-left-primary">
                 <p class="stat-title">Total Orders</p>
-                <h3>{{ overall_count }}</h3>
-                <small class="text-muted">Completed orders</small>
+                <h3 class="mb-0">{{ overall_count }}</h3>
+                <small class="text-success font-weight-bold">Completed</small>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card stat-card">
+            <div class="card stat-card border-left-success">
                 <p class="stat-title">Total Revenue</p>
-                <h3>₹ {{ overall_amount }}</h3>
-                <small class="text-muted">Gross sales</small>
+                <h3 class="mb-0">₹ {{ overall_amount }}</h3>
+                <small class="text-muted">Gross sales revenue</small>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card stat-card">
+            <div class="card stat-card border-left-info">
                 <p class="stat-title">Report Range</p>
-                <h6>{{ start_date|date:"d M Y" }} – {{ end_date|date:"d M Y" }}</h6>
-                <small class="text-muted">Selected period</small>
+                <h6 class="mb-1 text-truncate">{{ start_date|date:"d M Y" }} – {{ end_date|date:"d M Y" }}</h6>
+                <small class="text-muted">Filtered period</small>
             </div>
         </div>
     </div>
 
 
-    <!-- DOWNLOAD -->
     <div class="d-flex justify-content-end mb-3">
-        <button class="btn btn-outline-dark btn-sm" id="download-report">
-            ⬇ Download PDF
+        <button class="btn btn-dark btn-sm shadow-sm" id="download-report">
+            <i class="fas fa-file-pdf mr-1"></i> Download PDF Report
         </button>
     </div>
 
-    <!-- ERROR MESSAGES -->
     {% for message in messages %}
         {% if message.tags == "error" %}
-            <div class="alert alert-danger">{{ message }}</div>
+            <div class="alert alert-danger shadow-sm border-0">{{ message }}</div>
         {% endif %}
     {% endfor %}
 
-    <!-- REPORT -->
-    <div id="sales-report" class="card shadow-sm">
-        <div class="card-body">
+    <div id="sales-report" class="card border-0 shadow-sm overflow-hidden">
+        <div class="card-body p-5">
 
-            <div class="text-center mb-4">
-                <img src="{% static 'images/logo-no-background.png' %}" class="report-logo">
-                <h5 class="mt-3 mb-1">Sales Report</h5>
-                <small class="text-muted">
-                    {{ start_date|date:"d M Y" }} – {{ end_date|date:"d M Y" }}
-                </small>
+            <div class="row mb-5 align-items-center">
+                <div class="col-6">
+                    <img src="{% static 'images/logo-no-background.png' %}" class="report-logo mb-2">
+                    <h4 class="font-weight-bold text-uppercase tracking-wider">Sales Summary</h4>
+                </div>
+                <div class="col-6 text-right">
+                    <p class="mb-0 text-muted">Generated Date</p>
+                    <h6 class="font-weight-bold">{{ end_date|date:"d M Y" }}</h6>
+                </div>
             </div>
 
             <div class="table-responsive">
-                <table class="table table-hover report-table">
+                <table class="table table-striped report-table">
                     <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Date</th>
-                            <th>Product</th>
-                            <th>Customer</th>
-                            <th class="text-center">Qty</th>
-                            <th class="text-right">Unit Price</th>
+                        <tr class="bg-light">
+                            <th class="border-top-0">#</th>
+                            <th class="border-top-0">Date</th>
+                            <th class="border-top-0">Product</th>
+                            <th class="border-top-0">Customer</th>
+                            <th class="border-top-0 text-center">Qty</th>
+                            <th class="border-top-0 text-right">Unit Price</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -97,44 +95,48 @@
                         <tr>
                             <td>{{ forloop.counter }}</td>
                             <td>{{ item.order_created_at|date:"d M Y" }}</td>
-                            <td class="font-weight-500">{{ item.product.name }}</td>
+                            <td class="font-weight-bold text-dark">{{ item.product.name }}</td>
                             <td>{{ item.order.customer }}</td>
                             <td class="text-center">{{ item.quantity }}</td>
                             <td class="text-right">₹ {{ item.inventory.price }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No sales data available for this period.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
 
-            <!-- PAGINATION -->
-            <nav class="mt-4">
-                <ul class="pagination justify-content-end">
+            <nav class="mt-4 no-print">
+                <ul class="pagination justify-content-end mb-0">
                     {% if order_items.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ order_items.previous_page_number }}">‹</a>
+                            <a class="page-link shadow-none" href="?page={{ order_items.previous_page_number }}">‹</a>
                         </li>
                     {% endif %}
 
                     <li class="page-item active">
-                        <span class="page-link">{{ order_items.number }}</span>
+                        <span class="page-link shadow-none">{{ order_items.number }}</span>
                     </li>
 
                     {% if order_items.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ order_items.next_page_number }}">›</a>
+                            <a class="page-link shadow-none" href="?page={{ order_items.next_page_number }}">›</a>
                         </li>
                     {% endif %}
                 </ul>
             </nav>
 
-            <hr>
-
-            <div class="d-flex justify-content-between">
-                <p class="mb-0 text-muted">
-                    Generated on {{ end_date|date:"d M Y" }}
-                </p>
-                <strong>Amart Fashions</strong>
+            <div class="mt-5 pt-4 border-top">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-0 text-muted small">This is a system-generated report.</p>
+                        <p class="mb-0 font-weight-bold text-primary">Amart Fashions</p>
+                    </div>
+                    
+                </div>
             </div>
 
         </div>
@@ -142,53 +144,70 @@
 
 </div>
 {% endblock %}
+
 {% block extra_styles %}
 <style>
-.stat-card {
-    padding: 20px;
-    border-radius: 12px;
-    border: none;
-    background: #ffffff;
-    box-shadow: 0 4px 14px rgba(0,0,0,.04);
-}
+    .stat-card {
+        padding: 1.25rem;
+        border-radius: 10px;
+        border: none;
+        background: #ffffff;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+        transition: transform 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); }
+    
+    .border-left-primary { border-left: 4px solid #4e73df !important; }
+    .border-left-success { border-left: 4px solid #1cc88a !important; }
+    .border-left-info { border-left: 4px solid #36b9cc !important; }
 
-.stat-title {
-    font-size: 13px;
-    color: #6c757d;
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: .5px;
-}
+    .stat-title {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #4e73df;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05rem;
+    }
 
-.report-logo {
-    height: 60px;
-}
+    .report-logo { height: 50px; width: auto; object-fit: contain; }
 
-.report-table th {
-    font-size: 13px;
-    text-transform: uppercase;
-    color: #6c757d;
-    border-bottom: 1px solid #eee;
-}
+    .report-table th {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #5a5c69;
+        letter-spacing: 1px;
+        padding: 15px;
+    }
 
-.report-table td {
-    vertical-align: middle;
-}
-
-.font-weight-500 {
-    font-weight: 500;
-}
+    .report-table td { padding: 12px 15px; font-size: 14px; vertical-align: middle; }
+    
+    /* Utility class to hide elements in PDF */
+    .no-print { display: block; }
 </style>
 {% endblock %}
+
 {% block extra_scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 <script>
 document.getElementById("download-report").addEventListener("click", function () {
-    html2pdf().from(document.getElementById("sales-report")).set({
-        margin: 0.3,
+    const element = document.getElementById("sales-report");
+    
+    // Configure options to ignore the "no-print" class
+    const opt = {
+        margin: [0.5, 0.5],
         filename: "{{ pdf_name }}.pdf",
-        jsPDF: { format: "a4", orientation: "portrait" }
-    }).save();
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+            scale: 2, 
+            useCORS: true,
+            ignoreElements: (el) => el.classList.contains('no-print') // This removes pagination
+        },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save();
 });
 </script>
 {% endblock %}

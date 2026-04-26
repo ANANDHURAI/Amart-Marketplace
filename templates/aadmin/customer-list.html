@@ -2,88 +2,73 @@
 {% load static %}
 
 {% block content %}
-<div class="content-wrapper">
-    <div class="content">
-        <div class="breadcrumb-wrapper d-flex align-items-center justify-content-between mb-4">
+<div class="content-wrapper" style="background-color: #f8f9fa;"> 
+    <div class="content p-4">
+        
+        <div class="d-flex align-items-center justify-content-between mb-4">
             <div>
-                <h1>Customers</h1>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb p-0">
-                        <li class="breadcrumb-item">
-                            <a href="#"><span class="mdi mdi-home"></span></a>
-                        </li>
-                        <li class="breadcrumb-item">User Management</li>
-                        <li class="breadcrumb-item text-primary" aria-current="page">Customer List</li>
-                    </ol>
-                </nav>
+                <h2 class="font-weight-bold" style="color: #1a1a1a; margin-bottom: 5px;">Customer Directory</h2>
+                
             </div>
 
-            <div class="filter-section bg-white p-3 rounded shadow-sm border">
+            <div class="bg-white p-2 rounded shadow-sm border">
                 <form class="form-inline" method="post">
                     {% csrf_token %}
-                    <div class="form-group mb-0 mr-3">
-                        <label for="filter_option" class="mr-2 font-weight-bold">Filter Status:</label>
-                        <select class="form-control form-control-sm border-primary" name="filter_option" id="filter_option" style="min-width: 150px;">
-                            <option {% if request.session.selection == "all" %}selected{% endif %} value="all">All Customers</option>
-                            <option {% if request.session.selection == "ban" %}selected{% endif %} value="banned">Banned Customers</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-sm btn-primary px-4 shadow-sm">
-                        <span class="mdi mdi-filter-variant mr-1"></span> Apply
-                    </button>
+                    <select class="form-control border-0 custom-select-sm font-weight-600" name="filter_option" style="cursor:pointer;">
+                        <option {% if request.session.selection == "all" %}selected{% endif %} value="all">Status: All Active</option>
+                        <option {% if request.session.selection == "ban" %}selected{% endif %} value="banned">Status: Banned</option>
+                    </select>
+                    <button type="submit" class="btn btn-dark btn-sm ml-2 px-3 font-weight-bold">APPLY</button>
                 </form>
             </div>
         </div>
 
-        <div class="card card-default">
-            <div class="card-body">
-                <div class="hoverable-data-table">
-                    <table id="hoverable-data-table" class="table table-hover nowrap" style="width:100%">
-                        <thead class="bg-light">
+        <div class="card border-0 shadow-sm rounded-lg" style="overflow: hidden;">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="hoverable-data-table" class="table mb-0">
+                        <thead style="background-color: #fafafa; border-bottom: 2px solid #f1f1f1;">
                             <tr>
-                                <th>Email</th>
-                                <th>First Name</th>
-                                <th>Last Name</th>
-                                <th>Last Login</th>
-                                <th class="text-center">Status</th>
-                                <th class="text-center">Action</th>
+                                <th class="py-4 pl-4" style="color: #888; font-size: 11px; letter-spacing: 1px; border:none;">USER DETAILS</th>
+                                <th class="py-4" style="color: #888; font-size: 11px; letter-spacing: 1px; border:none;">FIRST NAME</th>
+                                <th class="py-4 text-center" style="color: #888; font-size: 11px; letter-spacing: 1px; border:none;">ACCOUNT STATUS</th>
+                                <th class="py-4 text-right pr-4" style="color: #888; font-size: 11px; letter-spacing: 1px; border:none;">ACTION</th>
                             </tr>
                         </thead>
-
                         <tbody>
                             {% for customer in customers %}
                             <tr>
-                                <td class="py-3">
-                                    <a href="#" class="font-weight-bold text-dark">{{ customer.email }}</a>
+                                <td class="align-middle py-3 pl-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-box mr-3">{{ customer.first_name|first }}</div>
+                                        <span class="font-weight-600" style="color: #2c3e50;">{{ customer.email }}</span>
+                                    </div>
                                 </td>
-                                <td>{{ customer.first_name }}</td>
-                                <td>{{ customer.last_name }}</td>
-                                <td>
-                                    <small class="text-muted">
-                                        <span class="mdi mdi-clock-outline mr-1"></span>{{ customer.last_login|date:"M d, Y H:i" }}
-                                    </small>
-                                </td>
-                                <td class="text-center">
+                                <td class="align-middle text-muted">{{ customer.first_name }}</td>
+                                <td class="align-middle text-center">
                                     {% if customer.is_active %}
-                                        <span class="badge badge-success px-3 py-2">
-                                            <span class="mdi mdi-check-circle mr-1"></span> Active
-                                        </span>
+                                        <span class="badge-status badge-active">Active</span>
                                     {% else %}
-                                        <span class="badge badge-danger px-3 py-2">
-                                            <span class="mdi mdi-close-circle mr-1"></span> Banned
-                                        </span>
+                                        <span class="badge-status badge-banned">Banned</span>
                                     {% endif %}
                                 </td>
-                                <td class="text-center">
-                                    {% if customer.is_active %}
-                                        <a href="{% url 'customer_approval' customer.id %}" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to ban this user?')">
-                                            <span class="mdi mdi-account-off mr-1"></span> Ban User
-                                        </a>
-                                    {% else %}
-                                        <a href="{% url 'customer_approval' customer.id %}" class="btn btn-outline-primary btn-sm">
-                                            <span class="mdi mdi-account-check mr-1"></span> Lift Ban
-                                        </a>
-                                    {% endif %}
+                                <td class="align-middle text-right pr-4">
+                                    <button type="button" 
+                                            class="btn-action {% if customer.is_active %}ban{% else %}lift{% endif %} border-0"
+                                            data-toggle="modal" 
+                                            data-target="#confirmModal"
+                                            data-url="{% url 'customer_approval' customer.id %}"
+                                            data-name="{{ customer.email }}"
+                                            data-action="{% if customer.is_active %}ban{% else %}activate{% endif %}">
+                                        <i class="mdi {% if customer.is_active %}mdi-account-off{% else %}mdi-account-check{% endif %}"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-5">
+                                    <i class="mdi mdi-account-search-outline d-block mb-3" style="font-size: 60px; color: #ddd;"></i>
+                                    <h5 class="text-dark font-weight-bold">No customers found</h5>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -94,38 +79,62 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="confirmModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+            <div class="modal-body text-center p-5">
+                <div id="modal-icon-container" class="mb-4">
+                    <i class="mdi mdi-alert-circle-outline" style="font-size: 70px; color: var(--accent);"></i>
+                </div>
+                <h3 class="font-weight-bold mb-2" id="modal-title">Confirm Action</h3>
+                <p class="text-muted mb-4" id="modal-text">Are you sure you want to perform this action?</p>
+                
+                <div class="d-flex justify-content-center">
+                    <button type="button" class="btn btn-light px-4 mr-2 font-weight-bold" data-dismiss="modal" style="border-radius: 8px;">CANCEL</button>
+                    <a href="#" id="confirm-action-btn" class="btn btn-dark px-4 font-weight-bold" style="border-radius: 8px;">CONFIRM</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock content %}
 
 {% block extra_scripts %}
-<script src='{% static "aadmin/plugins/data-tables/jquery.datatables.min.js" %}'></script>
-<script src='{% static "aadmin/plugins/data-tables/datatables.bootstrap4.min.js" %}'></script> 
-
 <script>
-  $(document).ready(function() {
-    // Check if the table is already initialized
-    if ($.fn.DataTable.isDataTable('#hoverable-data-table')) {
-      // If it is, destroy the old one so we can apply our custom settings
-      $('#hoverable-data-table').DataTable().destroy();
-    }
-
-    // Initialize the table with our custom settings
-    $('#hoverable-data-table').DataTable({
-      "responsive": true,
-      "dom": '<"row justify-content-between top-information"lf>rt<"row justify-content-between bottom-information"ip>',
-      "retrieve": true // This acts as a secondary safety measure
+    $('#confirmModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget); 
+        var url = button.data('url');
+        var name = button.data('name');
+        var action = button.data('action');
+        
+        var modal = $(this);
+        modal.find('#confirm-action-btn').attr('href', url);
+        modal.find('#modal-title').text(action === 'ban' ? 'Ban Customer' : 'Activate Customer');
+        modal.find('#modal-text').html('Are you sure you want to ' + action + ' <br><strong>' + name + '</strong>?');
+        
+        // Dynamic Icon Color
+        if(action === 'ban') {
+            modal.find('#modal-icon-container i').css('color', '#fa5252');
+            modal.find('#confirm-action-btn').removeClass('btn-dark').addClass('btn-danger');
+        } else {
+            modal.find('#modal-icon-container i').css('color', '#2e7d32');
+            modal.find('#confirm-action-btn').removeClass('btn-danger').addClass('btn-dark');
+        }
     });
-  });
 </script>
 {% endblock extra_scripts %}
 
 {% block extra_styles %}
-<link href="{% static "aadmin/plugins/data-tables/datatables.bootstrap4.min.css" %}" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/@mdi/font@latest/css/materialdesignicons.min.css" rel="stylesheet">
 <style>
-    .breadcrumb-wrapper h1 { font-size: 1.75rem; font-weight: 700; color: #333; }
-    .table thead th { border-top: none; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05rem; }
-    .card { border-radius: 0.75rem; border: none; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); }
-    .btn-sm { border-radius: 0.5rem; }
-    .badge { border-radius: 20px; font-weight: 500; }
+    :root { --accent: #c5a059; }
+    .avatar-box { width: 38px; height: 38px; background: #f1f1f1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+    .badge-status { padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .badge-active { background-color: #e8f5e9; color: #2e7d32; }
+    .badge-banned { background-color: #ffebee; color: #c62828; }
+    .btn-action { padding: 8px 12px; border-radius: 8px; transition: 0.3s; cursor: pointer; }
+    .btn-action.ban { background: #fff1f1; color: #fa5252; }
+    .btn-action.lift { background: #f0f3f5; color: #111; }
+    .btn-action:hover { transform: translateY(-2px); }
 </style>
 {% endblock extra_styles %}

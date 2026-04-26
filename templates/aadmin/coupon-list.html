@@ -2,236 +2,206 @@
 {% load static %}
 
 {% block content %}
-<div class="content-wrapper">
-    <div class="content">
-        <div class="breadcrumb-wrapper d-flex align-items-center justify-content-between mb-4">
-            <div>
-                <h1>Coupons</h1>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb p-0">
-                        <li class="breadcrumb-item">
-                            <a href="#"><span class="mdi mdi-home"></span></a>
-                        </li>
-                        <li class="breadcrumb-item">Marketing</li>
-                        <li class="breadcrumb-item text-primary" aria-current="page">Coupon Management</li>
-                    </ol>
-                </nav>
-            </div>
-
-            <div class="header-actions d-flex align-items-center">
-                <form class="form-inline bg-white p-2 rounded border shadow-sm mr-3" method="post">
-                    {% csrf_token %}
-                    <div class="form-group mb-0 mr-2">
-                        <select class="form-control form-control-sm border-0 bg-light" name="filter_option" id="filter_option">
-                            <option {% if request.session.selection == "all_coupons" %}selected{% endif %} value="all_coupons">All Coupons</option>
-                            <option {% if request.session.selection == "active_coupons" %}selected{% endif %} value="active_coupons">Active</option>
-                            <option {% if request.session.selection == "inactive_coupons" %}selected{% endif %} value="inactive_coupons">Inactive</option>
-                            <option {% if request.session.selection == "expired_coupons" %}selected{% endif %} value="expired_coupons">Expired</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-sm btn-primary px-3 shadow-sm">
-                        <i class="mdi mdi-filter-variant"></i>
-                    </button>
-                </form>
-
-                <a href="{% url 'add_coupon' %}" class="btn btn-sm btn-success px-4 shadow-sm" style="height: 38px; display: flex; align-items: center; border-radius: 8px;">
-                    <i class="mdi mdi-plus-circle mr-1"></i> Add Coupon
-                </a>
-            </div>
-        </div>
-
-        <div class="card card-default shadow-sm border-0" style="border-radius: 15px;">
-            <div class="card-body">
-                <div class="hoverable-data-table">
-                    <table id="hoverable-data-table" class="table table-hover nowrap" style="width:100%">
-                        <thead class="bg-light">
-                            <tr>
-                                {% comment %} <td class="py-3">
-                                    <span class="coupon-code-badge">
-                                        Code
-                                    </span>
-                                </td> {% endcomment %}
-                                <th class="py-3">code</th>
-                                <th class="text-center">Discount</th>
-                                <th class="text-center">Quantity Left</th>
-                                <th class="text-center">Status</th>
-                                <th class="text-center">Action</th>
-                            </tr>
-                        </thead>
-                        
-                        <tbody>
-                            {% if coupons %}
-                                {% for coupon in coupons %}
-                                <tr>
-                                    <td class="py-3">
-                                        <span class="badge badge-outline-primary font-weight-bold p-2" style="letter-spacing: 1px; border-style: dashed;">
-                                            {{ coupon.code }}
-                                        </span>
-                                    </td>
-                                    <td class="text-center font-weight-bold text-dark">₹ {{ coupon.discount }}</td>
-                                    <td class="text-center">
-                                        <span class="text-muted">{{ coupon.quantity }}</span>
-                                    </td>
-                                    <td class="text-center">
-                                        {% if coupon.is_active %}
-                                            <span class="badge-success-dark"><i class="mdi mdi-circle-medium"></i> ACTIVE</span>
-                                        {% else %}
-                                            <span class="badge-danger-dark"><i class="mdi mdi-circle-medium"></i> INACTIVE</span>
-                                        {% endif %}
-                                    </td>
-
-                                    <td class="text-center">
-                                        <div class="d-flex justify-content-center">
-                                            <a href="{% url 'edit_coupon' coupon.id %}" class="action-icon-btn mr-2 d-flex align-items-center justify-content-center">
-                                                <i class="mdi mdi-pencil text-warning"></i>
-                                            </a>
-                                            <button class="action-icon-btn d-flex align-items-center justify-content-center" data-toggle="modal" data-target="#deleteModal{{ coupon.id }}">
-                                                <i class="mdi mdi-delete text-danger"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-
-                                <div class="modal fade" id="deleteModal{{ coupon.id }}" tabindex="-1" role="dialog" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered" role="document">
-                                        <div class="modal-content border-0 shadow">
-                                            <div class="modal-header bg-danger text-white">
-                                                <h5 class="modal-title">Confirm Deletion</h5>
-                                                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                                                    <span aria-hidden="true">&times;</span>
-                                                </button>
-                                            </div>
-                                            <div class="modal-body text-center py-4">
-                                                <i class="mdi mdi-alert-circle-outline text-danger mb-3" style="font-size: 50px;"></i>
-                                                <h5>Delete Coupon <strong>{{ coupon.code }}</strong>?</h5>
-                                                <p class="text-muted mt-2">This action cannot be undone. Current stock: {{ coupon.quantity }}</p>
-                                            </div>
-                                            <div class="modal-footer bg-light justify-content-center">
-                                                <button type="button" class="btn btn-secondary btn-pill px-4" data-dismiss="modal">Cancel</button>
-                                                <a href="{% url 'delete_coupon' coupon.id %}" class="btn btn-danger btn-pill px-4">Confirm Delete</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            {% else %}
-                                <tr>
-                                    <td colspan="5" class="text-center py-5">
-                                        <div class="empty-state">
-                                            <i class="mdi mdi-ticket-percent-outline text-light" style="font-size: 60px;"></i>
-                                            <p class="text-muted mt-2">No coupons created yet.</p>
-                                            <a href="{% url 'add_coupon' %}" class="btn btn-primary btn-sm mt-2">Create First Coupon</a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="mt-4">
-            <nav aria-label="Page navigation">
-                <ul class="pagination pagination-rounded justify-content-center">
-                    {% if coupons.has_previous %}
-                        <li class="page-item"><a class="page-link" href="?page=1">&laquo;&laquo;</a></li>
-                        <li class="page-item"><a class="page-link" href="?page={{ coupons.previous_page_number }}">&laquo;</a></li>
-                    {% endif %}
-
-                    {% for num in coupons.paginator.page_range %}
-                        <li class="page-item {% if coupons.number == num %}active{% endif %}">
-                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                        </li>
-                    {% endfor %}
-
-                    {% if coupons.has_next %}
-                        <li class="page-item"><a class="page-link" href="?page={{ coupons.next_page_number }}">&raquo;</a></li>
-                        <li class="page-item"><a class="page-link" href="?page={{ coupons.paginator.num_pages }}">&raquo;&raquo;</a></li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </div>
-    </div>
-</div>
-{% endblock content %}
-
-{% block extra_styles %}
 <style>
-    /* Main Background and Card */
-    body {
-        background-color: #c8cedb !important; 
-    }
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
+:root {
+  --primary:#4361ee; --primary-light:#eef0fd;
+  --success:#0ead69; --success-light:#e6faf2;
+  --danger:#e63946;  --danger-light:#fef0f1;
+  --text:#1a1d2e; --muted:#8b90a7; --border:#eaedf5; --bg:#f7f8fc; --white:#fff;
+  --r:12px; --rs:8px; --shadow:0 2px 12px rgba(67,97,238,.06);
+}
+* { font-family:'DM Sans',sans-serif; }
 
-    .card-default {
-        background-color: #1e293b !important;
-        border: 1px solid #334155 !important;
-        border-radius: 16px !important;
-    }
+.pg-topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:22px; gap:12px; flex-wrap:wrap; }
+.pg-topbar h1 { font-size:22px; font-weight:600; color:var(--text); margin:0; }
+.pg-topbar h1 span { display:inline-block; width:8px; height:8px; background:var(--primary); border-radius:50%; margin-right:8px; vertical-align:middle; }
+.pg-controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 
-    /* Fixed Table Headings Visibility */
-    .hoverable-data-table thead {
-        background-color: #334155 !important; /* Force dark background for entire header row */
-    }
+.filter-select {
+  background:var(--white); border:1.5px solid var(--border); border-radius:var(--rs);
+  padding:8px 30px 8px 12px; font-size:13.5px; color:var(--text); outline:none; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b90a7' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 10px center;
+}
+.btn-add { display:inline-flex; align-items:center; gap:7px; background:var(--primary); color:var(--white); border:none; border-radius:var(--rs); padding:9px 18px; font-size:13.5px; font-weight:500; text-decoration:none; transition:background .2s,box-shadow .2s,transform .15s; }
+.btn-add:hover { background:#3451d1; color:var(--white); box-shadow:0 4px 14px rgba(67,97,238,.3); transform:translateY(-1px); text-decoration:none; }
 
-    #hoverable-data-table thead th {
-        background-color: #334155 !important; /* Ensure individual cells are dark */
-        color: #94a3b8 !important;            /* Muted slate blue for text */
-        border: none !important;
-        padding: 15px !important;
-        text-transform: uppercase;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 1px;
-    }
+.cat-card { background:var(--white); border-radius:var(--r); box-shadow:var(--shadow); border:1px solid var(--border); overflow:hidden; }
+.cat-table { width:100%; border-collapse:collapse; }
+.cat-table thead tr { background:var(--bg); border-bottom:1.5px solid var(--border); }
+.cat-table thead th { padding:12px 16px; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); }
+.cat-table tbody tr { border-bottom:1px solid var(--border); transition:background .15s; }
+.cat-table tbody tr:last-child { border-bottom:none; }
+.cat-table tbody tr:hover { background:#fafbff; }
+.cat-table tbody td { padding:14px 16px; font-size:14px; color:var(--text); vertical-align:middle; }
 
-    /* Remove any white backgrounds from header cells */
-    .hoverable-data-table thead tr th:first-child {
-        background-color: #334155 !important;
-    }
+.coupon-code { display:inline-block; padding:5px 12px; border:2px dashed var(--primary); border-radius:6px; color:var(--primary); font-weight:700; font-size:13px; letter-spacing:1.5px; background:var(--primary-light); }
 
-    /* Table Body Rows */
-    #hoverable-data-table tbody td {
-        color: #f1f5f9 !important; /* High contrast off-white text */
-        border-bottom: 1px solid #334155 !important;
-        background-color: transparent !important;
-        padding: 18px 15px !important;
-    }
+.badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:500; }
+.badge-active   { background:var(--success-light); color:#065f46; }
+.badge-inactive { background:var(--danger-light);  color:#991b1b; }
 
-    /* Coupon Code Design */
-    .coupon-code-badge {
-        background: rgba(76, 132, 255, 0.1) !important;
-        border: 2px dashed #60a5fa !important;
-        color: #60a5fa !important;
-        padding: 8px 12px;
-        border-radius: 6px;
-        font-weight: 800;
-        display: inline-block;
-    }
+.action-group { display:flex; align-items:center; justify-content:center; gap:6px; }
+.btn-action { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:6px; font-size:12.5px; font-weight:500; text-decoration:none; border:1.5px solid transparent; cursor:pointer; transition:all .18s; background:none; font-family:'DM Sans',sans-serif; }
+.btn-edit   { border-color:#e0a800; color:#b07d00; background:#fffbeb; }
+.btn-edit:hover { background:#fef3c7; color:#92650a; text-decoration:none; }
+.btn-delete { border-color:#fca5a5; color:var(--danger); background:var(--danger-light); }
+.btn-delete:hover { background:#fee2e2; color:#b91c1c; }
 
-    /* Row Hover Effect */
-    #hoverable-data-table tbody tr:hover td {
-        background-color: rgba(255, 255, 255, 0.03) !important;
-    }
+.empty-row td { text-align:center; padding:56px 20px; }
+.empty-icon { font-size:40px; color:var(--border); display:block; margin-bottom:12px; }
+.empty-text { font-size:14.5px; color:var(--muted); }
 
-    /* Fix for DataTables Warning showing in your image */
-    .dataTables_wrapper {
-        color: #94a3b8 !important;
-    }
+.cat-pagination { display:flex; justify-content:center; align-items:center; gap:6px; padding:18px 16px; border-top:1px solid var(--border); }
+.page-btn { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:var(--rs); border:1.5px solid var(--border); background:var(--white); color:var(--text); font-size:13px; text-decoration:none; transition:all .18s; }
+.page-btn:hover { border-color:var(--primary); color:var(--primary); text-decoration:none; }
+.page-current { padding:0 14px; height:34px; border-radius:var(--rs); background:var(--primary); color:var(--white); font-size:13px; font-weight:500; display:inline-flex; align-items:center; }
+
+/* Toast */
+.toast-container { position:fixed; top:20px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
+.toast { min-width:280px; max-width:360px; background:var(--white); border-radius:var(--rs); box-shadow:0 8px 30px rgba(0,0,0,.12); padding:14px 16px; display:flex; align-items:flex-start; gap:11px; pointer-events:all; border-left:3.5px solid var(--primary); animation:toastIn .3s cubic-bezier(.34,1.56,.64,1); position:relative; overflow:hidden; transition:opacity .4s,transform .4s; }
+.toast.toast-success { border-left-color:var(--success); }
+.toast.toast-error   { border-left-color:var(--danger);  }
+.toast-icon { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; }
+.toast-success .toast-icon { background:var(--success-light); color:var(--success); }
+.toast-error   .toast-icon { background:var(--danger-light);  color:var(--danger);  }
+.toast-body { flex:1; }
+.toast-title { font-size:13.5px; font-weight:600; color:var(--text); }
+.toast-msg   { font-size:12.5px; color:var(--muted); margin-top:2px; }
+.toast-close { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; }
+.toast-progress { position:absolute; bottom:0; left:0; height:3px; background:currentColor; opacity:.2; animation:progressShrink 3.5s linear forwards; }
+@keyframes toastIn { from{opacity:0;transform:translateX(30px) scale(.95)} to{opacity:1;transform:none} }
+@keyframes progressShrink { from{width:100%} to{width:0} }
+.toast.hiding { opacity:0; transform:translateX(20px); }
+
+/* Modal */
+.modal-overlay { position:fixed; inset:0; background:rgba(26,29,46,.45); backdrop-filter:blur(3px); z-index:10000; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .2s; }
+.modal-overlay.show { opacity:1; pointer-events:all; }
+.modal-box { background:var(--white); border-radius:16px; padding:28px; max-width:380px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,.15); transform:scale(.92) translateY(10px); transition:transform .25s cubic-bezier(.34,1.56,.64,1); }
+.modal-overlay.show .modal-box { transform:none; }
+.modal-icon-wrap { width:52px; height:52px; background:var(--danger-light); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:22px; color:var(--danger); }
+.modal-title { text-align:center; font-size:17px; font-weight:600; color:var(--text); margin-bottom:8px; }
+.modal-desc  { text-align:center; font-size:13.5px; color:var(--muted); line-height:1.55; margin-bottom:22px; }
+.modal-actions { display:flex; gap:10px; }
+.modal-btn { flex:1; padding:10px; border-radius:var(--rs); font-size:13.5px; font-weight:500; cursor:pointer; border:none; transition:all .18s; font-family:'DM Sans',sans-serif; }
+.modal-btn-cancel  { background:var(--bg); color:var(--muted); border:1.5px solid var(--border); }
+.modal-btn-cancel:hover { background:var(--border); color:var(--text); }
+.modal-btn-confirm { background:var(--danger); color:white; }
+.modal-btn-confirm:hover { background:#c0303b; }
 </style>
-{% endblock extra_styles %}
 
-{% block extra_scripts %}
+<div class="toast-container" id="toastContainer"></div>
+{% if messages %}<div id="dj-msgs" style="display:none">{% for m in messages %}<span data-tags="{{ m.tags }}" data-text="{{ m }}"></span>{% endfor %}</div>{% endif %}
+
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box">
+    <div class="modal-icon-wrap"><i class="mdi mdi-delete-outline"></i></div>
+    <div class="modal-title">Delete Coupon?</div>
+    <div class="modal-desc" id="modalDesc"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Cancel</button>
+      <a href="#" class="modal-btn modal-btn-confirm" id="modalConfirmBtn">Delete</a>
+    </div>
+  </div>
+</div>
+
+<div class="pg-topbar">
+  <h1><span></span>Coupons</h1>
+  <div class="pg-controls">
+    <form method="post" style="display:contents">
+      {% csrf_token %}
+      <select name="filter_option" class="filter-select" onchange="this.form.submit()">
+        <option {% if request.session.selection == "all_coupons"      %}selected{% endif %} value="all_coupons">All Coupons</option>
+        <option {% if request.session.selection == "active_coupons"   %}selected{% endif %} value="active_coupons">Active</option>
+        <option {% if request.session.selection == "inactive_coupons" %}selected{% endif %} value="inactive_coupons">Inactive</option>
+        <option {% if request.session.selection == "expired_coupons"  %}selected{% endif %} value="expired_coupons">Expired</option>
+      </select>
+    </form>
+    <a href="{% url 'add_coupon' %}" class="btn-add"><i class="mdi mdi-plus"></i> Add Coupon</a>
+  </div>
+</div>
+
+<div class="cat-card">
+  <table class="cat-table">
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th class="text-center">Discount</th>
+        <th class="text-center">Qty Left</th>
+        <th class="text-center">Min. Purchase</th>
+        <th class="text-center">Status</th>
+        <th class="text-center">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for coupon in coupons %}
+      <tr>
+        <td><span class="coupon-code">{{ coupon.code }}</span></td>
+        <td class="text-center font-weight-bold">₹{{ coupon.discount }}</td>
+        <td class="text-center" style="color:var(--muted)">{{ coupon.quantity }}</td>
+        <td class="text-center" style="color:var(--muted)">₹{{ coupon.minimum_purchase }}</td>
+        <td class="text-center">
+          {% if coupon.is_active %}
+            <span class="badge badge-active"><i class="mdi mdi-circle-medium"></i> Active</span>
+          {% else %}
+            <span class="badge badge-inactive"><i class="mdi mdi-circle-medium"></i> Inactive</span>
+          {% endif %}
+        </td>
+        <td class="text-center">
+          <div class="action-group">
+            <a href="{% url 'edit_coupon' coupon.id %}" class="btn-action btn-edit"><i class="mdi mdi-pencil-outline"></i> Edit</a>
+            <button class="btn-action btn-delete" onclick="openDeleteModal('{% url 'delete_coupon' coupon.id %}','{{ coupon.code }}',{{ coupon.quantity }})">
+              <i class="mdi mdi-delete-outline"></i> Delete
+            </button>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr class="empty-row">
+        <td colspan="6">
+          <i class="mdi mdi-ticket-percent-outline empty-icon"></i>
+          <p class="empty-text">No coupons found</p>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if coupons.paginator.num_pages > 1 %}
+  <div class="cat-pagination">
+    {% if coupons.has_previous %}<a class="page-btn" href="?page={{ coupons.previous_page_number }}"><i class="mdi mdi-chevron-left"></i></a>{% endif %}
+    <span class="page-current">{{ coupons.number }} / {{ coupons.paginator.num_pages }}</span>
+    {% if coupons.has_next %}<a class="page-btn" href="?page={{ coupons.next_page_number }}"><i class="mdi mdi-chevron-right"></i></a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
 <script>
-  $(document).ready(function() {
-    if ($.fn.DataTable.isDataTable('#hoverable-data-table')) {
-      $('#hoverable-data-table').DataTable().destroy();
-    }
-    $('#hoverable-data-table').DataTable({
-      "responsive": true,
-      "dom": '<"row justify-content-between top-information"f>rt<"row justify-content-between bottom-information"i>',
-      "pageLength": 10
-    });
-  });
+function showToast(msg, type) {
+  const cfg = {success:{icon:'mdi-check',title:'Success'}, error:{icon:'mdi-alert-circle',title:'Error'}};
+  const c = cfg[type] || {icon:'mdi-information',title:'Info'};
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.innerHTML = `<div class="toast-icon"><i class="mdi ${c.icon}"></i></div>
+    <div class="toast-body"><div class="toast-title">${c.title}</div><div class="toast-msg">${msg}</div></div>
+    <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+    <div class="toast-progress"></div>`;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => { t.classList.add('hiding'); setTimeout(() => t.remove(), 400); }, 3500);
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const box = document.getElementById('dj-msgs');
+  if (!box) return;
+  box.querySelectorAll('span').forEach(el => showToast(el.dataset.text, el.dataset.tags.includes('success') ? 'success' : 'error'));
+  box.remove();
+});
+function openDeleteModal(url, code, qty) {
+  document.getElementById('modalDesc').textContent = `"${code}" will be permanently deleted. Current quantity: ${qty}.`;
+  document.getElementById('modalConfirmBtn').href = url;
+  document.getElementById('confirmModal').classList.add('show');
+}
+function closeModal() { document.getElementById('confirmModal').classList.remove('show'); }
+document.getElementById('confirmModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
 </script>
-{% endblock extra_scripts %}
+{% endblock %}

@@ -1,58 +1,440 @@
 {% extends "aadmin/admin-base.html" %}
 {% load static %}
-{% block content %}
-
-<div class="card card-default col-lg-6 mx-auto">
-    <div class="card-header card-header-border-bottom">
-        <h2>{% if inventory %}Edit{% else %}Add New{% endif %} Inventory Item</h2>
-    </div>
-    <div class="card-body">
-        <form method="post" enctype="multipart/form-data" {% if inventory %}action="{% url 'edit_inventory' inventory.id %}"{% else %}action="{% url 'add_inventory' %}"{% endif %}>
-            {% csrf_token %}
-            <div class="form-group col-md-12">
-                <label>Product Name:</label>
-                <select name="product_id" class="form-control" required>
-                    <option disabled selected>Select Product</option>
-                    {% for product in products %}
-                        <option value="{{ product.id }}" {% if inventory and inventory.product.id == product.id %}selected{% endif %}>{{ product.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group col-md-12">
-                <label>Price:</label>
-                <input type="number" name="price" class="form-control" placeholder="Price" min="1" required value="{% if inventory %}{{ inventory.price }}{% endif %}">
-            </div>
-            <div class="form-group col-md-12">
-                <label>Size:</label>
-                <select name="size" class="form-control" required>
-                    <option disabled selected>Select Size</option>
-                    {% for code, size in sizes %}
-                        <option value="{{ code }}" {% if inventory and inventory.size == code %}selected{% endif %}>{{ size }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group col-md-12">
-                <label>Stock:</label>
-                <input type="number" name="stock" class="form-control" placeholder="Stock Quantity" min="0" required value="{% if inventory %}{{ inventory.stock }}{% endif %}">
-            </div>
-            <br>
-            <div class="form-footer pt-3 border-top">
-                {% for message in messages %}
-                    <div class="alert alert-danger text-center" role="alert">{{ message }}</div>
-                {% endfor %}
-                <button type="submit" class="btn btn-primary btn-default">Submit</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-{% endblock content %}
 
 {% block extra_styles %}
-{% endblock extra_styles %}
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --ink:       #0f1117;
+  --ink2:      #3a3d4a;
+  --muted:     #8a8fa8;
+  --surface:   #ffffff;
+  --bg:        #f3f4f8;
+  --border:    #e4e6ef;
+  --accent:    #4f6ef7;
+  --accent2:   #7c3aed;
+  --green:     #16a34a;
+  --red:       #dc2626;
+  --red-soft:  #fff1f1;
+  --green-soft:#f0fdf4;
+  --radius:    14px;
+  --shadow:    0 4px 24px rgba(15,17,23,.07);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink)}
+
+/* TOAST */
+.pm-toast-wrap{position:fixed;top:24px;right:24px;display:flex;flex-direction:column;gap:10px;z-index:10000}
+.pm-toast{
+  background:var(--surface);border-radius:12px;padding:14px 20px;
+  box-shadow:0 8px 32px rgba(15,17,23,.15);border-left:4px solid var(--accent);
+  font-size:14px;font-weight:500;color:var(--ink);
+  display:flex;align-items:center;gap:10px;min-width:280px;
+  animation:toastIn .3s ease;
+}
+.pm-toast.toast-error  {border-left-color:var(--red)}
+.pm-toast.toast-success{border-left-color:var(--green)}
+.pm-toast.toast-success .toast-icon{color:var(--green)}
+.pm-toast.toast-error   .toast-icon{color:var(--red)}
+.pm-toast .toast-icon{font-size:20px;flex-shrink:0}
+@keyframes toastIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+.pm-toast.fadeout{animation:toastOut .4s ease forwards}
+@keyframes toastOut{to{opacity:0;transform:translateX(30px)}}
+
+/* INLINE ALERT (inside form, for validation) */
+.form-alert{
+  display:flex;align-items:flex-start;gap:10px;
+  border-radius:10px;padding:12px 16px;margin-bottom:20px;
+  font-size:14px;font-weight:500;
+  animation:toastIn .25s ease;
+}
+.form-alert.alert-error  {background:var(--red-soft);color:var(--red);border:1.5px solid #fecaca}
+.form-alert.alert-success{background:var(--green-soft);color:var(--green);border:1.5px solid #bbf7d0}
+.form-alert i{font-size:18px;flex-shrink:0;margin-top:1px}
+
+/* PAGE */
+.if-wrap{padding:36px 32px;max-width:680px;margin:0 auto}
+
+/* BACK */
+.if-back{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:13px;font-weight:500;color:var(--muted);
+  text-decoration:none;margin-bottom:20px;transition:color .15s;
+}
+.if-back:hover{color:var(--accent);text-decoration:none}
+
+/* HEADER */
+.if-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px}
+.if-title span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.if-sub{font-size:14px;color:var(--muted);margin-bottom:24px}
+
+/* CARD */
+.if-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);padding:32px}
+
+/* SECTION */
+.if-section{
+  font-family:'Syne',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+  margin-bottom:18px;margin-top:28px;
+  display:flex;align-items:center;gap:8px;
+}
+.if-section::after{content:'';flex:1;height:1px;background:var(--border)}
+.if-section:first-child{margin-top:0}
+
+/* FIELDS */
+.if-group{margin-bottom:20px}
+.if-label{display:block;font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:6px}
+.if-hint {font-size:11px;color:var(--muted);margin-top:4px}
+
+.if-input,.if-select{
+  width:100%;padding:11px 14px;
+  border:1.5px solid var(--border);border-radius:10px;
+  font-family:'DM Sans',sans-serif;font-size:14px;
+  color:var(--ink);background:var(--surface);outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.if-input:focus,.if-select:focus{
+  border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,110,247,.12);
+}
+.if-input.error,.if-select.error{
+  border-color:var(--red);box-shadow:0 0 0 3px rgba(220,38,38,.1);
+}
+.if-select{
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238a8fa8' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;
+}
+
+/* PRICE / STOCK — with icon prefix */
+.if-input-wrap{position:relative}
+.if-input-prefix{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  font-size:14px;font-weight:600;color:var(--muted);pointer-events:none;
+}
+.if-input-wrap .if-input{padding-left:30px}
+
+/* SIZE VISUAL PICKER */
+.size-picker{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+.size-opt{display:none}
+.size-opt + label{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:62px;padding:9px 14px;border-radius:9px;
+  border:1.5px solid var(--border);
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;
+  color:var(--ink2);cursor:pointer;transition:all .15s;
+  user-select:none;
+}
+.size-opt:checked + label{
+  border-color:var(--accent);background:rgba(79,110,247,.1);color:var(--accent);
+  box-shadow:0 0 0 2px rgba(79,110,247,.2);
+}
+.size-opt + label:hover{border-color:var(--accent);color:var(--accent)}
+
+/* PRODUCT SEARCH SELECT */
+.product-select-wrap{position:relative}
+.product-search-input{
+  width:100%;padding:11px 14px 11px 42px;
+  border:1.5px solid var(--border);border-radius:10px;
+  font-family:'DM Sans',sans-serif;font-size:14px;
+  color:var(--ink);background:var(--surface);outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.product-search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,110,247,.12)}
+.product-search-icon{
+  position:absolute;left:13px;top:50%;transform:translateY(-50%);
+  color:var(--muted);font-size:18px;pointer-events:none;
+}
+.product-dropdown{
+  position:absolute;top:calc(100% + 6px);left:0;right:0;
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:10px;box-shadow:0 8px 24px rgba(15,17,23,.1);
+  max-height:220px;overflow-y:auto;z-index:100;display:none;
+}
+.product-dropdown.open{display:block}
+.product-option{
+  padding:10px 14px;font-size:14px;color:var(--ink2);cursor:pointer;transition:background .1s;
+}
+.product-option:hover,.product-option.highlighted{background:#f3f4f8;color:var(--accent);font-weight:500}
+.product-option.empty{color:var(--muted);cursor:default;font-style:italic}
+/* scrollbar */
+.product-dropdown::-webkit-scrollbar{width:5px}
+.product-dropdown::-webkit-scrollbar-track{background:transparent}
+.product-dropdown::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* STOCK HELPER */
+.stock-helper{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.stock-quick{
+  padding:5px 12px;border-radius:7px;
+  border:1.5px solid var(--border);background:var(--surface);
+  font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .15s;
+}
+.stock-quick:hover{border-color:var(--accent);color:var(--accent);background:rgba(79,110,247,.06)}
+
+/* FOOTER */
+.if-footer{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:28px;padding-top:24px;border-top:1px solid var(--border)}
+.btn-cancel{
+  padding:11px 24px;border-radius:10px;
+  border:1.5px solid var(--border);background:var(--surface);
+  font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;
+  color:var(--ink2);cursor:pointer;text-decoration:none;transition:all .15s;display:inline-block;
+}
+.btn-cancel:hover{background:var(--bg);text-decoration:none;color:var(--ink)}
+.btn-submit{
+  padding:11px 28px;border-radius:10px;border:none;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;
+  color:#fff;cursor:pointer;transition:all .15s;
+  box-shadow:0 4px 14px rgba(79,110,247,.35);
+  display:inline-flex;align-items:center;gap:8px;
+}
+.btn-submit:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(79,110,247,.45)}
+.btn-submit:disabled{opacity:.6;cursor:not-allowed;transform:none}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- TOASTS -->
+<div class="pm-toast-wrap">
+  {% for message in messages %}
+  <div class="pm-toast {% if 'error' in message.tags %}toast-error{% elif 'success' in message.tags %}toast-success{% endif %}" data-auto-close>
+    <i class="mdi {% if 'error' in message.tags %}mdi-alert-circle{% else %}mdi-check-circle{% endif %} toast-icon"></i>
+    <span>{{ message }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="if-wrap">
+
+  <!-- BACK -->
+  <a href="{% url 'inventory_list' %}" class="if-back">
+    <i class="mdi mdi-arrow-left"></i> Back to Inventory
+  </a>
+
+  <!-- HEADER -->
+  <div class="if-title">
+    {% if inventory %}<span>Edit</span> Inventory{% else %}<span>Add</span> Inventory{% endif %}
+  </div>
+  <div class="if-sub">
+    {% if inventory %}Update stock, price or size for {{ inventory.product.name }}{% else %}Add a new size &amp; stock entry for a product{% endif %}
+  </div>
+
+  <!-- CARD -->
+  <div class="if-card">
+
+    <!-- INLINE DJANGO MESSAGE ALERTS (inside card) -->
+    {% for message in messages %}
+    <div class="form-alert {% if 'error' in message.tags %}alert-error{% else %}alert-success{% endif %}" data-inline-alert>
+      <i class="mdi {% if 'error' in message.tags %}mdi-alert-circle-outline{% else %}mdi-check-circle-outline{% endif %}"></i>
+      <span>{{ message }}</span>
+    </div>
+    {% endfor %}
+
+    <form method="post"
+      {% if inventory %}action="{% url 'edit_inventory' inventory.id %}"
+      {% else %}action="{% url 'add_inventory' %}"{% endif %}
+      id="invForm" novalidate>
+      {% csrf_token %}
+
+      <!-- PRODUCT -->
+      <div class="if-section"><span>Product</span></div>
+
+      <div class="if-group">
+        <label class="if-label">Product Name</label>
+        <div class="product-select-wrap">
+          <i class="mdi mdi-magnify product-search-icon"></i>
+          <input type="text" id="productSearch" class="product-search-input" autocomplete="off"
+            placeholder="Search and select a product…"
+            value="{% if inventory %}{{ inventory.product.name }}{% endif %}">
+          <input type="hidden" name="product_id" id="productId"
+            value="{% if inventory %}{{ inventory.product.id }}{% endif %}">
+          <div class="product-dropdown" id="productDropdown">
+            {% for product in products %}
+            <div class="product-option" data-id="{{ product.id }}" data-name="{{ product.name }}">
+              {{ product.name }}
+            </div>
+            {% empty %}
+            <div class="product-option empty">No products found</div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="if-hint">Start typing to filter products</div>
+        <span class="if-hint" id="productErr" style="color:var(--red);display:none">Please select a product.</span>
+      </div>
+
+      <!-- DETAILS -->
+      <div class="if-section"><span>Details</span></div>
+
+      <!-- SIZE VISUAL PICKER -->
+      <div class="if-group">
+        <label class="if-label">Size</label>
+        <div class="size-picker" id="sizePicker">
+          {% for code, label in sizes %}
+          <input type="radio" name="size" id="size_{{ code }}" value="{{ code }}" class="size-opt"
+            {% if inventory and inventory.size == code %}checked{% endif %}>
+          <label for="size_{{ code }}">{{ label }}</label>
+          {% endfor %}
+        </div>
+        <span class="if-hint" id="sizeErr" style="color:var(--red);display:none">Please select a size.</span>
+      </div>
+
+      <!-- PRICE -->
+      <div class="if-group">
+        <label class="if-label">Price (₹)</label>
+        <div class="if-input-wrap">
+          <span class="if-input-prefix">₹</span>
+          <input type="number" name="price" id="priceInput" class="if-input"
+            placeholder="0.00" min="1" step="0.01"
+            value="{% if inventory %}{{ inventory.price }}{% endif %}">
+        </div>
+        <div class="if-hint">Must be greater than ₹0</div>
+        <span class="if-hint" id="priceErr" style="color:var(--red);display:none"></span>
+      </div>
+
+      <!-- STOCK -->
+      <div class="if-group">
+        <label class="if-label">Stock Quantity</label>
+        <input type="number" name="stock" id="stockInput" class="if-input"
+          placeholder="Enter quantity" min="0"
+          value="{% if inventory %}{{ inventory.stock }}{% endif %}">
+        <!-- quick-fill buttons -->
+        <div class="stock-helper">
+          <span style="font-size:12px;color:var(--muted);align-self:center">Quick fill:</span>
+          <button type="button" class="stock-quick" data-qty="10">+10</button>
+          <button type="button" class="stock-quick" data-qty="25">+25</button>
+          <button type="button" class="stock-quick" data-qty="50">+50</button>
+          <button type="button" class="stock-quick" data-qty="100">+100</button>
+        </div>
+        <span class="if-hint" id="stockErr" style="color:var(--red);display:none"></span>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="if-footer">
+        <a href="{% url 'inventory_list' %}" class="btn-cancel">Cancel</a>
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <i class="mdi mdi-check"></i>
+          {% if inventory %}Update Inventory{% else %}Add Inventory{% endif %}
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}
 
 {% block extra_scripts %}
 <script>
-    // Client-side validation or other JavaScript can be added here if needed
+// ── TOAST auto-close 5.5s ──────────────────────────────────────────────
+document.querySelectorAll('[data-auto-close],[data-inline-alert]').forEach(t => {
+  setTimeout(() => {
+    t.classList.add('fadeout');
+    setTimeout(() => t.remove(), 400);
+  }, 5500);
+});
+
+// ── PRODUCT SEARCH DROPDOWN ────────────────────────────────────────────
+const searchInput = document.getElementById('productSearch');
+const productIdInput = document.getElementById('productId');
+const dropdown = document.getElementById('productDropdown');
+const allOptions = Array.from(dropdown.querySelectorAll('.product-option[data-id]'));
+
+searchInput.addEventListener('focus', () => dropdown.classList.add('open'));
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.toLowerCase();
+  let anyVisible = false;
+  allOptions.forEach(opt => {
+    const match = opt.dataset.name.toLowerCase().includes(q);
+    opt.style.display = match ? '' : 'none';
+    if (match) anyVisible = true;
+  });
+  // clear selection if user edits
+  productIdInput.value = '';
+  dropdown.classList.add('open');
+});
+
+allOptions.forEach(opt => {
+  opt.addEventListener('click', () => {
+    searchInput.value = opt.dataset.name;
+    productIdInput.value = opt.dataset.id;
+    dropdown.classList.remove('open');
+    document.getElementById('productErr').style.display = 'none';
+    searchInput.classList.remove('error');
+  });
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.product-select-wrap')) dropdown.classList.remove('open');
+});
+
+// ── STOCK QUICK FILL ──────────────────────────────────────────────────
+const stockInput = document.getElementById('stockInput');
+document.querySelectorAll('.stock-quick').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const current = parseInt(stockInput.value) || 0;
+    stockInput.value = current + parseInt(btn.dataset.qty);
+    stockInput.classList.remove('error');
+    document.getElementById('stockErr').style.display = 'none';
+  });
+});
+
+// ── CLIENT-SIDE VALIDATION ────────────────────────────────────────────
+document.getElementById('invForm').addEventListener('submit', function (e) {
+  let valid = true;
+
+  // product
+  if (!productIdInput.value) {
+    document.getElementById('productErr').style.display = 'block';
+    searchInput.classList.add('error');
+    valid = false;
+  }
+
+  // size
+  const sizeChosen = document.querySelector('input[name="size"]:checked');
+  if (!sizeChosen) {
+    document.getElementById('sizeErr').style.display = 'block';
+    valid = false;
+  } else {
+    document.getElementById('sizeErr').style.display = 'none';
+  }
+
+  // price
+  const price = parseFloat(document.getElementById('priceInput').value);
+  const priceErr = document.getElementById('priceErr');
+  if (!price || price < 1) {
+    priceErr.textContent = 'Price must be at least ₹1.';
+    priceErr.style.display = 'block';
+    document.getElementById('priceInput').classList.add('error');
+    valid = false;
+  } else {
+    priceErr.style.display = 'none';
+    document.getElementById('priceInput').classList.remove('error');
+  }
+
+  // stock
+  const stock = parseInt(document.getElementById('stockInput').value);
+  const stockErr = document.getElementById('stockErr');
+  if (isNaN(stock) || stock < 0) {
+    stockErr.textContent = 'Stock cannot be negative.';
+    stockErr.style.display = 'block';
+    document.getElementById('stockInput').classList.add('error');
+    valid = false;
+  } else {
+    stockErr.style.display = 'none';
+    document.getElementById('stockInput').classList.remove('error');
+  }
+
+  if (!valid) e.preventDefault();
+});
+
+// clear errors on input change
+['priceInput','stockInput'].forEach(id => {
+  document.getElementById(id).addEventListener('input', function () {
+    this.classList.remove('error');
+    const errEl = document.getElementById(id === 'priceInput' ? 'priceErr' : 'stockErr');
+    errEl.style.display = 'none';
+  });
+});
 </script>
-{% endblock extra_scripts %}
+{% endblock %}

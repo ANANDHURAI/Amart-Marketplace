@@ -2,137 +2,155 @@
 {% load static %}
 
 {% block content %}
-<div class="content-wrapper bg-light">
-    <div class="content">
-        <div class="d-flex align-items-center justify-content-between mb-4">
-            <div>
-                <h2 class="font-weight-bold text-dark mb-1">Category Offers</h2>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb bg-transparent p-0" style="font-size: 0.85rem;">
-                        <li class="breadcrumb-item"><a href="#" class="text-muted">Marketing</a></li>
-                        <li class="breadcrumb-item active text-primary font-weight-bold">Offers</li>
-                    </ol>
-                </nav>
-            </div>
-
-            <div class="d-flex align-items-center">
-                <div class="bg-white border rounded shadow-sm d-flex p-1 mr-3">
-                    <form class="form-inline border-right pr-2 mr-2" method="post">
-                        {% csrf_token %}
-                        <select class="form-control form-control-sm border-0 bg-transparent" name="filter_option">
-                            <option {% if request.session.selection == "all_offers" %}selected{% endif %} value="all_offers">All Status</option>
-                            <option {% if request.session.selection == "active_offers" %}selected{% endif %} value="active_offers">Active</option>
-                            <option {% if request.session.selection == "inactive_offers" %}selected{% endif %} value="inactive_offers">Inactive</option>
-                        </select>
-                        <button type="submit" class="btn btn-sm btn-light border-0"><i class="mdi mdi-filter-variant"></i></button>
-                    </form>
-
-                    <form class="form-inline" method="get">
-                        <input type="text" class="form-control form-control-sm border-0 bg-transparent" name="search" placeholder="Search categories..." value="{{ search_query }}">
-                        <button type="submit" class="btn btn-sm btn-light border-0"><i class="mdi mdi-magnify"></i></button>
-                    </form>
-                </div>
-
-                <a href="{% url 'add_offer' %}" class="btn btn-primary shadow-sm px-4" style="border-radius: 8px; font-weight: 600;">
-                    <i class="mdi mdi-plus-circle-outline mr-1"></i> Add Offer
-                </a>
-            </div>
-        </div>
-
-        <div class="card border-0 shadow-sm" style="border-radius: 15px; overflow: hidden;">
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0" id="hoverable-data-table">
-                        <thead class="bg-white border-bottom">
-                            <tr>
-                                <th class="py-4 text-dark font-weight-bold border-0 pl-4">CATEGORY</th>
-                                <th class="py-4 text-dark font-weight-bold border-0 text-center">DISCOUNT</th>
-                                <th class="py-4 text-dark font-weight-bold border-0 text-center">STATUS</th>
-                                <th class="py-4 text-dark font-weight-bold border-0 text-center pr-4">ACTIONS</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white">
-                            {% if offers %}
-                                {% for offer in offers %}
-                                <tr style="transition: 0.3s;">
-                                    <td class="align-middle pl-4">
-                                        <div class="d-flex align-items-center">
-                                            {% if offer.category.image %}
-                                                <img src="{{ offer.category.image.url }}" class="rounded mr-3 shadow-sm" style="width: 45px; height: 45px; object-fit: cover; border: 1px solid #eee;">
-                                            {% endif %}
-                                            <span class="text-dark font-weight-bold">{{ offer.category.name }}</span>
-                                        </div>
-                                    </td>
-                                    <td class="align-middle text-center">
-                                        <span class="badge badge-pill badge-primary-soft text-primary font-weight-bold px-3 py-2">
-                                            {{ offer.discount }}% OFF
-                                        </span>
-                                    </td>
-                                    <td class="align-middle text-center">
-                                        {% if offer.is_active %}
-                                            <span class="text-success small font-weight-bold"><i class="mdi mdi-circle mr-1" style="font-size: 8px;"></i> ACTIVE</span>
-                                        {% else %}
-                                            <span class="text-danger small font-weight-bold"><i class="mdi mdi-circle mr-1" style="font-size: 8px;"></i> INACTIVE</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="align-middle text-center pr-4">
-                                        <a href="{% url 'edit_offer' offer.id %}" class="btn btn-sm btn-outline-warning border-0 mr-1" title="Edit">
-                                            <i class="mdi mdi-pencil-box-outline" style="font-size: 1.2rem;"></i>
-                                        </a>
-                                        <button class="btn btn-sm btn-outline-danger border-0" data-toggle="modal" data-target="#deleteModal{{ offer.id }}" title="Delete">
-                                            <i class="mdi mdi-delete-outline" style="font-size: 1.2rem;"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            {% else %}
-                                <tr>
-                                    <td colspan="4" class="text-center py-5 text-muted">
-                                        <i class="mdi mdi-tag-off-outline d-block mb-2" style="font-size: 3rem; opacity: 0.3;"></i>
-                                        No active offers found.
-                                    </td>
-                                </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock content %}
-
-{% block extra_styles %}
 <style>
-    /* Light UI Fixes */
-    body { background-color: #f8f9fa !important; }
-    
-    /* Ensure Header Text is DARK on WHITE */
-    #hoverable-data-table thead th {
-        background-color: #ffffff !important;
-        color: #333333 !important; /* Force black/dark text */
-        font-size: 0.75rem;
-        letter-spacing: 0.05em;
-        border-bottom: 2px solid #f1f1f1 !important;
-    }
-
-    /* Soft Badge for Discounts */
-    .badge-primary-soft {
-        background-color: rgba(76, 132, 255, 0.1);
-        color: #4c84ff !important;
-        border: 1px solid rgba(76, 132, 255, 0.2);
-    }
-
-    /* Hover effect */
-    .table tbody tr:hover {
-        background-color: #fcfdfe !important;
-        box-shadow: inset 4px 0 0 #4c84ff;
-    }
-
-    /* Breadcrumb visibility */
-    .breadcrumb-item + .breadcrumb-item::before { color: #ccc; }
-    
-    /* Button cleanup */
-    .btn-outline-warning:hover, .btn-outline-danger:hover { background: none; transform: scale(1.1); }
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
+:root{--primary:#4361ee;--primary-light:#eef0fd;--success:#0ead69;--success-light:#e6faf2;--danger:#e63946;--danger-light:#fef0f1;--text:#1a1d2e;--muted:#8b90a7;--border:#eaedf5;--bg:#f7f8fc;--white:#fff;}
+*{font-family:'DM Sans',sans-serif;}
+.top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:22px;}
+.top h1{font-size:21px;font-weight:600;color:var(--text);margin:0;}
+.controls{display:flex;gap:10px;align-items:center;}
+.search-wrap{position:relative;}
+.search-wrap input{background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:8px 13px 8px 34px;font-size:13.5px;color:var(--text);outline:none;width:190px;transition:.2s;}
+.search-wrap input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(67,97,238,.08);}
+.search-wrap i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px;}
+select.f-select{background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:8px 28px 8px 12px;font-size:13.5px;color:var(--text);outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b90a7' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;cursor:pointer;}
+.btn-add{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13.5px;font-weight:500;text-decoration:none;transition:.2s;}
+.btn-add:hover{background:#3451d1;color:#fff;text-decoration:none;box-shadow:0 4px 14px rgba(67,97,238,.28);}
+.card{background:var(--white);border-radius:12px;border:1px solid var(--border);box-shadow:0 2px 12px rgba(67,97,238,.06);overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:var(--white);border-bottom:1.5px solid var(--border);}
+thead th{padding:11px 16px;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#fafbff;}
+tbody td{padding:13px 16px;font-size:14px;color:var(--text);vertical-align:middle;}
+.cat-img{width:42px;height:42px;object-fit:cover;border-radius:8px;border:1.5px solid var(--border);margin-right:11px;flex-shrink:0;}
+.cat-cell{display:flex;align-items:center;}
+.discount-pill{display:inline-block;background:var(--primary-light);color:var(--primary);border:1.5px solid #c5ccf8;border-radius:20px;padding:3px 11px;font-size:13px;font-weight:600;}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:500;}
+.badge-active{background:var(--success-light);color:#065f46;}
+.badge-inactive{background:var(--danger-light);color:#991b1b;}
+.btn-act{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:6px;font-size:12.5px;font-weight:500;text-decoration:none;border:1.5px solid transparent;cursor:pointer;background:none;transition:.18s;}
+.btn-edit{border-color:#e0a800;color:#b07d00;background:#fffbeb;}
+.btn-edit:hover{background:#fef3c7;text-decoration:none;color:#92650a;}
+.btn-del{border-color:#fca5a5;color:var(--danger);background:var(--danger-light);}
+.btn-del:hover{background:#fee2e2;text-decoration:none;color:#b91c1c;}
+.empty{text-align:center;padding:52px 20px;color:var(--muted);}
+.empty i{font-size:38px;color:var(--border);display:block;margin-bottom:10px;}
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(26,29,46,.45);backdrop-filter:blur(3px);z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.overlay.show{opacity:1;pointer-events:all;}
+.mbox{background:var(--white);border-radius:14px;padding:26px 24px 22px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.14);transform:scale(.93);transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
+.overlay.show .mbox{transform:scale(1);}
+.micon{width:50px;height:50px;background:var(--danger-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:22px;color:var(--danger);}
+.mbox h3{text-align:center;font-size:16px;font-weight:600;margin-bottom:6px;}
+.mbox p{text-align:center;font-size:13px;color:var(--muted);margin-bottom:20px;}
+.mfooter{display:flex;gap:10px;}
+.mbtn{flex:1;padding:10px;border-radius:8px;font-size:13.5px;font-weight:500;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:.18s;}
+.mbtn-cancel{background:var(--bg);color:var(--muted);border:1.5px solid var(--border);}
+.mbtn-cancel:hover{background:var(--border);}
+.mbtn-del{background:var(--danger);color:#fff;}
+.mbtn-del:hover{background:#c0303b;}
+/* toast */
+.tc{position:fixed;top:20px;right:22px;z-index:10000;display:flex;flex-direction:column;gap:9px;pointer-events:none;}
+.toast{min-width:270px;background:var(--white);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.11);padding:13px 15px;display:flex;align-items:flex-start;gap:10px;pointer-events:all;border-left:3.5px solid var(--primary);animation:tIn .3s cubic-bezier(.34,1.56,.64,1);transition:opacity .4s,transform .4s;position:relative;overflow:hidden;}
+.toast.ts{border-left-color:#0ead69;}.toast.te{border-left-color:var(--danger);}
+.tico{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.ts .tico{background:#e6faf2;color:#0ead69;}.te .tico{background:var(--danger-light);color:var(--danger);}
+.ttitle{font-size:13px;font-weight:600;color:var(--text);}.tmsg{font-size:12px;color:var(--muted);margin-top:1px;}
+.tclose{background:none;border:none;color:var(--muted);cursor:pointer;margin-left:auto;font-size:14px;}
+.tprog{position:absolute;bottom:0;left:0;height:3px;background:currentColor;opacity:.2;animation:prog 7s linear forwards;}
+.toast.hiding{opacity:0;transform:translateX(18px);}
+@keyframes tIn{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes prog{from{width:100%}to{width:0}}
 </style>
-{% endblock extra_styles %}
+
+<div class="tc" id="tc"></div>
+{% if messages %}<div id="dm" style="display:none">{% for m in messages %}<span data-tags="{{ m.tags }}" data-text="{{ m }}"></span>{% endfor %}</div>{% endif %}
+
+<div class="overlay" id="delModal">
+  <div class="mbox">
+    <div class="micon"><i class="mdi mdi-delete-outline"></i></div>
+    <h3>Delete Offer?</h3>
+    <p id="mDesc">This action cannot be undone.</p>
+    <div class="mfooter">
+      <button class="mbtn mbtn-cancel" onclick="closeModal()">Cancel</button>
+      <a href="#" id="mConfirm" class="mbtn mbtn-del">Delete</a>
+    </div>
+  </div>
+</div>
+
+<div class="top">
+  <h1>Category Offers</h1>
+  <div class="controls">
+    <form method="post" style="display:contents">{% csrf_token %}
+      <select name="filter_option" class="f-select" onchange="this.form.submit()">
+        <option value="all_offers" {% if request.session.selection == "all_offers" %}selected{% endif %}>All</option>
+        <option value="active_offers" {% if request.session.selection == "active_offers" %}selected{% endif %}>Active</option>
+        <option value="inactive_offers" {% if request.session.selection == "inactive_offers" %}selected{% endif %}>Inactive</option>
+      </select>
+    </form>
+    <form method="get" style="display:contents">
+      <div class="search-wrap">
+        <i class="mdi mdi-magnify"></i>
+        <input type="text" name="search" placeholder="Search categories…" value="{{ search_query }}" onchange="this.form.submit()">
+      </div>
+    </form>
+    <a href="{% url 'add_offer' %}" class="btn-add"><i class="mdi mdi-plus"></i> Add Offer</a>
+  </div>
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr>
+      <th>Category</th><th class="text-center">Discount</th>
+      <th class="text-center">Status</th><th class="text-center">Actions</th>
+    </tr></thead>
+    <tbody>
+    {% for offer in offers %}
+    <tr>
+      <td>
+        <div class="cat-cell">
+          {% if offer.category.image %}<img src="{{ offer.category.image.url }}" class="cat-img">{% endif %}
+          <strong>{{ offer.category.name }}</strong>
+        </div>
+      </td>
+      <td class="text-center"><span class="discount-pill">{{ offer.discount }}% OFF</span></td>
+      <td class="text-center">
+        {% if offer.is_active %}<span class="badge badge-active">Active</span>
+        {% else %}<span class="badge badge-inactive">Inactive</span>{% endif %}
+      </td>
+      <td class="text-center">
+        <div style="display:flex;justify-content:center;gap:6px;">
+          <a href="{% url 'edit_offer' offer.id %}" class="btn-act btn-edit"><i class="mdi mdi-pencil-outline"></i> Edit</a>
+          <a href="#" class="btn-act btn-del" onclick="openDel('{% url 'delete_offer' offer.id %}','{{ offer.category.name }}');return false"><i class="mdi mdi-delete-outline"></i> Delete</a>
+        </div>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4" class="empty"><i class="mdi mdi-tag-off-outline"></i>No offers found</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+function showToast(msg,type){
+  const t=document.createElement('div');t.className=`toast t${type[0]}`;
+  t.innerHTML=`<div class="tico"><i class="mdi mdi-${type==='success'?'check':'alert-circle'}"></i></div><div><div class="ttitle">${type==='success'?'Success':'Error'}</div><div class="tmsg">${msg}</div></div><button class="tclose" onclick="dim(this.parentElement)">&times;</button><div class="tprog"></div>`;
+  document.getElementById('tc').appendChild(t);setTimeout(()=>dim(t),5000);
+}
+function dim(t){if(!t||t.classList.contains('hiding'))return;t.classList.add('hiding');setTimeout(()=>t.remove(),400);}
+document.addEventListener('DOMContentLoaded',()=>{
+  const d=document.getElementById('dm');
+  if(d){d.querySelectorAll('span').forEach(s=>showToast(s.dataset.text,s.dataset.tags.includes('success')?'success':'error'));d.remove();}
+});
+function openDel(url,name){
+  document.getElementById('mDesc').textContent=`Offer for "${name}" will be permanently deleted.`;
+  document.getElementById('mConfirm').href=url;
+  document.getElementById('delModal').classList.add('show');
+}
+function closeModal(){document.getElementById('delModal').classList.remove('show');}
+document.getElementById('delModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+</script>
+{% endblock %}

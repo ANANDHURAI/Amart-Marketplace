@@ -184,3 +184,4 @@ CSRF_COOKIE_SAMESITE = 'None'
 
 
 MEDIA_URL = '/media/'
+ 
