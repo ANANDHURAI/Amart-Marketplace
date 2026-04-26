@@ -1,194 +1,99 @@
 {% extends "home/base.html" %}
 {% load static %}
 
-{% block content %}
+{% block extra_styles %}
 <style>
-/* PAGE CENTERING */
-.otp-wrapper{
-    min-height: 100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    background:#f8f9fa;
-}
-
-/* CARD */
-.otp-card{
-    background:#fff;
-    padding:40px 35px;
-    border-radius:12px;
-    box-shadow:0 10px 30px rgba(0,0,0,0.08);
-    text-align:center;
-    max-width:420px;
-    width:100%;
-}
-
-/* OTP BOXES */
-.otp-boxes{
-    display:flex;
-    justify-content:center;
-    gap:12px;
-    margin:25px 0;
-}
-
-.otp-boxes input{
-    width:55px;
-    height:60px;
-    border:2px solid #ddd;
-    border-radius:10px;
-    font-size:22px;
-    text-align:center;
-    outline:none;
-    transition:0.2s ease;
-}
-
-.otp-boxes input:focus{
-    border-color:#000;
-    box-shadow:0 0 0 2px rgba(0,0,0,0.05);
-}
-
-/* TIMER */
-.timer-text{
-    font-weight:500;
-    color:#666;
-}
-
-/* BUTTON */
-.verify-btn{
-    width:100%;
-    padding:14px;
-    border:none;
-    background:#000;
-    color:#fff;
-    border-radius:8px;
-    font-weight:600;
-    letter-spacing:1px;
-    margin-top:15px;
-}
-
-.verify-btn:disabled{
-    background:#ccc;
-}
-
-/* ERROR MESSAGE */
-.error-box{
-    background:#ffe5e5;
-    color:#d60000;
-    padding:10px;
-    border-radius:6px;
-    margin-bottom:15px;
-    font-size:14px;
-}
+    .auth-split-container { display: flex; min-height: 100vh; align-items: stretch; background: #fff; }
+    .auth-form-side { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; }
+    .auth-image-side { 
+        flex: 1.2; 
+        background-image: url('https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?q=80&w=2070&auto=format&fit=crop'); 
+        background-size: cover; 
+        background-position: center; 
+    }
+    .otp-inputs { display: flex; justify-content: center; gap: 8px; margin: 30px 0; }
+    .otp-inputs input {
+        width: 45px; height: 55px; text-align: center; font-size: 20px; font-weight: 600;
+        border: 1px solid #ddd; background: #fff;
+    }
+    .otp-inputs input:focus { border-color: var(--accent); outline: none; }
+    .timer-display { font-size: 0.8rem; letter-spacing: 1px; color: #888; text-transform: uppercase; }
+    @media (max-width: 992px) { .auth-image-side { display: none; } }
 </style>
+{% endblock %}
 
-<div class="otp-wrapper">
-  <div class="otp-card">
+{% block content %}
+<div class="auth-split-container">
+    <div class="auth-form-side">
+        <div class="auth-card text-center reveal active">
+            <div class="auth-header">
+                <h2>Verify Code</h2>
+                <p>We've sent a code to your email address</p>
+            </div>
 
-    <img src="{% static 'images/logo-no-background.png' %}" width="130">
+            {% if messages %}
+                {% for message in messages %}<div class="alert alert-danger">{{ message }}</div>{% endfor %}
+            {% endif %}
 
-    <h3 class="mt-3">OTP Verification</h3>
-    <p>Please enter the 6-digit code sent to your email</p>
+            <form method="post" id="otpForm">
+                {% csrf_token %}
+                <input type="hidden" name="otp" id="fullOtp">
 
-    {% if messages %}
-        {% for message in messages %}
-            <div class="error-box">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
+                <div class="otp-inputs">
+                    <input type="text" maxlength="1" autofocus>
+                    <input type="text" maxlength="1">
+                    <input type="text" maxlength="1">
+                    <input type="text" maxlength="1">
+                    <input type="text" maxlength="1">
+                    <input type="text" maxlength="1">
+                </div>
 
-    <form method="post" id="otpForm">
-      {% csrf_token %}
-      <input type="hidden" name="otp" id="fullOtp">
+                <div class="mb-4">
+                    <div class="timer-display" id="timerText">OTP Expires in: <span id="countdown" style="color: var(--primary);">{{ time_left }}</span>s</div>
+                    <div id="resendSection" style="display:none;" class="auth-links mt-0">
+                        <a href="{% url 'resend_otp' %}" style="color: var(--accent);">RESEND CODE</a>
+                    </div>
+                </div>
 
-      <div class="otp-boxes">
-        <input type="text" maxlength="1">
-        <input type="text" maxlength="1">
-        <input type="text" maxlength="1">
-        <input type="text" maxlength="1">
-        <input type="text" maxlength="1">
-        <input type="text" maxlength="1">
-      </div>
-
-      <div class="timer-text" id="timerText">
-        OTP expires in <span id="countdown">{{ time_left }}</span>s
-      </div>
-
-      <div id="resendSection" style="display:none;">
-        <a href="{% url 'resend_otp' %}">Resend OTP</a>
-      </div>
-
-      <button type="submit" class="verify-btn" id="verifyBtn" disabled>
-        VERIFY OTP
-      </button>
-    </form>
-
-  </div>
+                <button type="submit" class="btn-main" id="verifyBtn" disabled>VERIFY ACCOUNT</button>
+            </form>
+        </div>
+    </div>
+    <div class="auth-image-side"></div>
 </div>
 {% endblock %}
 
-
 {% block extra_scripts %}
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-
-  const inputs = document.querySelectorAll(".otp-boxes input");
-  const hiddenOtp = document.getElementById("fullOtp");
-  const verifyBtn = document.getElementById("verifyBtn");
-
-  inputs[0].focus();
-
-  inputs.forEach((input, index) => {
-
-    input.addEventListener("input", () => {
-      input.value = input.value.replace(/[^0-9]/g,'');
-
-      if(input.value && index < inputs.length - 1){
-        inputs[index+1].focus();
-      }
-
-      updateOTP();
+    // Include the same JavaScript logic I provided earlier for OTP handling here
+    document.addEventListener("DOMContentLoaded", function () {
+        const inputs = document.querySelectorAll(".otp-inputs input");
+        const hiddenOtp = document.getElementById("fullOtp");
+        const verifyBtn = document.getElementById("verifyBtn");
+        inputs.forEach((input, index) => {
+            input.addEventListener("input", (e) => {
+                if (e.inputType === "deleteContentBackward") return;
+                if (input.value && index < inputs.length - 1) inputs[index + 1].focus();
+                updateOTP();
+            });
+            input.addEventListener("keydown", (e) => {
+                if (e.key === "Backspace" && !input.value && index > 0) inputs[index - 1].focus();
+            });
+        });
+        function updateOTP() {
+            const otp = Array.from(inputs).map(i => i.value).join("");
+            hiddenOtp.value = otp;
+            verifyBtn.disabled = otp.length !== 6;
+        }
+        let timeLeft = parseInt("{{ time_left|default:0 }}");
+        const timer = setInterval(() => {
+            if (--timeLeft <= 0) {
+                clearInterval(timer);
+                document.getElementById("timerText").style.display = "none";
+                document.getElementById("resendSection").style.display = "block";
+            }
+            document.getElementById("countdown").innerText = timeLeft;
+        }, 1000);
     });
-
-    input.addEventListener("keydown", (e) => {
-      if(e.key === "Backspace" && !input.value && index > 0){
-        inputs[index-1].focus();
-      }
-    });
-  });
-
-  function updateOTP(){
-    const otp = Array.from(inputs).map(i => i.value).join("");
-    hiddenOtp.value = otp;
-    verifyBtn.disabled = otp.length !== 6;
-  }
-
-
-  let timeLeft = parseInt("{{ time_left|default:0 }}");
-  const countdown = document.getElementById("countdown");
-  const timerText = document.getElementById("timerText");
-  const resendSection = document.getElementById("resendSection");
-
-  const timer = setInterval(() => {
-    timeLeft--;
-
-    if(timeLeft <= 0){
-      clearInterval(timer);
-      timerText.style.display = "none";
-      resendSection.style.display = "block";
-      return;
-    }
-
-    countdown.innerText = timeLeft;
-
-  }, 1000);
-
-  const errorBox = document.querySelector(".error-box");
-  if(errorBox){
-    setTimeout(() => {
-      errorBox.style.opacity = "0";
-      setTimeout(()=> errorBox.remove(), 400);
-    }, 3000);
-  }
-
-});
 </script>
 {% endblock %}

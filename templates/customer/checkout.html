@@ -783,11 +783,26 @@ document.addEventListener("DOMContentLoaded", function () {
   function hideConfirm() { overlay.style.display = "none"; }
 
   overlay.addEventListener("click", function(e) {
-    if (e.target === overlay) hideConfirm();
-  });
+      if (e.target === overlay) hideConfirm();
+    });
 
-  cancelBtn.addEventListener("click", hideConfirm);
-  confirmBtn.addEventListener("click", function () { hideConfirm(); orderForm.submit(); });
+    cancelBtn.addEventListener("click", hideConfirm);
+    confirmBtn.addEventListener("click", function () {
+
+    // Disable button + show loading text
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = "Processing...";
+
+    // Optional: reduce opacity for UX feel
+    confirmBtn.style.opacity = "0.7";
+    confirmBtn.style.cursor = "not-allowed";
+
+    // Small delay (2.5 sec feel)
+    setTimeout(function () {
+      hideConfirm();
+      orderForm.submit();
+    }, 2500);
+  });
 
   placeOrderBtn.addEventListener("click", function (e) {
     e.preventDefault();

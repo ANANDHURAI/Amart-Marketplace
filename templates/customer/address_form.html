@@ -64,6 +64,7 @@
                     <div class="checkout-country-code clearfix">
                         <input type="text"
                             name="pincode"
+                            placeholder="000000"
                             pattern="^[1-9]\d{5}$"
                             maxlength="6"
                             value="{{ address.pincode }}"        
@@ -73,6 +74,7 @@
                         <!-- Mobile — add value -->
                         <input type="text"
                             name="mobile"
+                            placeholder="+91"
                             pattern="^[6-9]\d{9}$"
                             maxlength="10"
                             value="{{ address.mobile }}"         
