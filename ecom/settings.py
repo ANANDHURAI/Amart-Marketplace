@@ -25,6 +25,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://*.compute.amazonaws.com",
     "http://amart.fun",
     "https://amart-e-commerce-website.onrender.com",
+    "http://56.228.31.25"
 ]
 
 
@@ -141,7 +142,7 @@ RAZOR_KEY_ID = os.environ.get("RAZOR_KEY_ID")
 RAZOR_KEY_SECRET = os.environ.get("RAZOR_KEY_SECRET")
 
 # To allow RazorPay Pop-up to restrict comment the below line.
-SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 
 
 
@@ -177,10 +178,10 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
 
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SAMESITE = 'None' 
-CSRF_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 
 MEDIA_URL = '/media/'
