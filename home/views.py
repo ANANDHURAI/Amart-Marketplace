@@ -43,7 +43,7 @@ def _enrich_products_with_display_data(products, request):
 
 def home(request):
     """
-    Landing page: featured products (max 9) and categories.
+    Landing page: featured products and categories.
 
     Uses prefetch for product_images and inventory_sizes; single batch query
     for favourite flags when the user is authenticated.
@@ -56,9 +56,12 @@ def home(request):
             inventory_sizes__stock__gt=0,
         )
         .distinct()
-        .prefetch_related("product_images", "inventory_sizes")[:9]
+        .prefetch_related("product_images", "inventory_sizes")
+        .order_by('-id')[:8]
     )
+    
     _enrich_products_with_display_data(products, request)
+    
     categories = Category.objects.filter(is_deleted=False)
 
     return render(request, "home/home.html", {
@@ -66,8 +69,6 @@ def home(request):
         "categories": categories,
         "title": "Home",
     })
-
-
 
 
 

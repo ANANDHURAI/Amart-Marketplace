@@ -162,23 +162,37 @@
     font-size: clamp(2.2rem, 4vw, 3.6rem); font-weight: 300; line-height: 1.1;
   }
 
-  /* ─── Categories ─────────────────────────── */
+  /* ─── Categories (SLIDER VERSION) ────────── */
   .categories-section { padding: 8rem 4vw; background: var(--cream); }
-  .categories-header { margin-bottom: 4rem; }
-  .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+  .categories-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: flex-end; 
+    margin-bottom: 4rem; 
+  }
+  
+  .cat-slider-wrapper { position: relative; overflow: visible; }
+  
+  .cat-grid { 
+    display: flex; 
+    gap: 20px; 
+    overflow-x: auto; 
+    scroll-behavior: smooth; 
+    scrollbar-width: none; /* Firefox */
+    padding: 10px 0;
+  }
+  .cat-grid::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+
   .cat-item {
+    flex: 0 0 calc(25% - 15px); /* Exactly 4 items */
+    min-width: 280px;
     position: relative;
     overflow: hidden;
-    cursor: default;
-    pointer-events: none;
-    aspect-ratio: 4/5; /* smaller, more compact */
-    max-height: 420px; /* prevents oversized stretch */
+    aspect-ratio: 4/5;
+    background: #eee;
+    text-decoration: none;
   }
 
-  .cat-item:first-child {
-    aspect-ratio: 4/5; /* keep consistent */
-    max-height: 420px;
-  }
   .cat-img {
     width: 100%; height: 100%; object-fit: cover;
     transition: transform 0.9s cubic-bezier(.17,.67,.35,1);
@@ -186,28 +200,29 @@
   .cat-item:hover .cat-img { transform: scale(1.07); }
   .cat-overlay {
     position: absolute; inset: 0;
-    background: linear-gradient(to top, rgba(10,10,10,0.7) 0%, transparent 55%);
+    background: linear-gradient(to top, rgba(10,10,10,0.6) 0%, transparent 60%);
     display: flex; flex-direction: column; justify-content: flex-end;
     padding: 2rem;
   }
   .cat-name {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 2rem; font-weight: 300; color: #fff; line-height: 1;
-    transform: translateY(8px); transition: transform 0.4s;
+    font-size: 1.8rem; font-weight: 300; color: #fff; line-height: 1;
+    transition: transform 0.4s;
   }
-  .cat-item:hover .cat-name { transform: translateY(0); }
-  .cat-desc {
-    font-size: 12px; color: rgba(255,255,255,0.65); margin-top: 6px;
-    opacity: 0; transform: translateY(10px); transition: all 0.4s 0.05s;
+
+  /* Slider Controls */
+  .slider-nav { display: flex; gap: 12px; }
+  .nav-btn {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.1);
+    background: white;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: var(--ink);
   }
-  .cat-item:hover .cat-desc { opacity: 1; transform: translateY(0); }
-  .cat-link {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
-    color: var(--gold); text-decoration: none; margin-top: 12px;
-    opacity: 0; transform: translateY(10px); transition: all 0.4s 0.1s;
-  }
-  .cat-item:hover .cat-link { opacity: 1; transform: translateY(0); }
+  .nav-btn:hover { background: var(--ink); color: #fff; }
 
   /* ─── Featured Products ───────────────────── */
   .products-section { padding: 8rem 4vw; background: var(--surface); }
@@ -311,9 +326,13 @@
   }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-  @media(max-width: 900px) {
+  @media(max-width: 1100px) {
+    .cat-item { flex: 0 0 calc(50% - 10px); }
+  }
+
+  @media(max-width: 768px) {
     .products-grid { grid-template-columns: repeat(2, 1fr); }
-    .cat-grid { grid-template-columns: 1fr; }
+    .cat-item { flex: 0 0 85%; }
     .promise-strip { grid-template-columns: repeat(2, 1fr); }
     .footer-grid { grid-template-columns: 1fr; gap: 2rem; }
     .nav-links { display: none; }
@@ -328,12 +347,11 @@
 
 {% include 'home/includes/navigation.html' %}
 
-<!-- HERO -->
 <section class="hero">
   <div class="hero-bg"></div>
   <div class="hero-overlay"></div>
   <div class="hero-content">
-    <p class="hero-eyebrow">New Collection — 2025</p>
+    <p class="hero-eyebrow">New Collection — 2026</p>
     <h1 class="hero-title">Wear What <em>Moves</em> You</h1>
     <p class="hero-sub">Discover the perfect blend of nature's beauty and modern elegance in every piece we craft.</p>
     <a href="{% url 'shop' %}" class="hero-cta">
@@ -347,7 +365,6 @@
   </div>
 </section>
 
-<!-- MARQUEE -->
 <div class="marquee-strip">
   <div class="marquee-inner">
     {% for _ in "12345678" %}
@@ -359,32 +376,42 @@
   </div>
 </div>
 
-<!-- CATEGORIES -->
 <section class="categories-section">
   <div class="categories-header">
-    <p class="section-label">Curated Collections</p>
-    <h2 class="section-title">Shop by Category</h2>
-  </div>
-  <div class="cat-grid">
-    {% for category in categories %}
-    <div class="cat-item stagger-child">
-      <img class="cat-img" src="{{ category.image.url }}" alt="{{ category.name }}">
-      <div class="cat-overlay">
-        <h3 class="cat-name">{{ category.name }}</h3>
-        <p class="cat-desc">{{ category.description }}</p>
-        <a href="#!" class="cat-link">Browse Now <span>→</span></a>
-      </div>
+    <div>
+      <p class="section-label">Curated Collections</p>
+      <h2 class="section-title">Shop by Category</h2>
     </div>
-    {% endfor %}
+
+    <div class="slider-nav">
+      <button class="nav-btn" onclick="slideCategories('left')" aria-label="Previous">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <button class="nav-btn" onclick="slideCategories('right')" aria-label="Next">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="cat-slider-wrapper">
+    <div class="cat-grid" id="catSlider">
+      {% for category in categories %}
+      <a href="{% url 'shop' %}?category={{ category.id }}" class="cat-item stagger-child">
+        <img class="cat-img" src="{{ category.image.url }}" alt="{{ category.name }}">
+        <div class="cat-overlay">
+          <h3 class="cat-name">{{ category.name }}</h3>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
   </div>
 </section>
 
-<!-- FEATURED PRODUCTS -->
 <section class="products-section">
   <div class="products-header">
     <div>
-      <p class="section-label">Hand-Picked for You</p>
-      <h2 class="section-title">Featured Products</h2>
+      <p class="section-label">Just Landed</p>
+      <h2 class="section-title">New Arrivals</h2>
     </div>
     <a href="{% url 'shop' %}" class="view-all">View All →</a>
   </div>
@@ -393,7 +420,7 @@
     <div class="prod-card stagger-child" style="transition-delay: {{ forloop.counter0 }}00ms;">
       <div class="prod-thumb">
         <img src="{% if product.primary_image %}{{ product.primary_image.image.url }}{% else %}{% static 'images/no-image.png' %}{% endif %}" alt="{{ product.name }}">
-        {% if forloop.counter <= 2 %}<span class="prod-badge">New</span>{% endif %}
+        <span class="prod-badge">New</span>
         <div class="prod-actions">
           <a href="{% url 'add-to-favourite' product.id %}" class="prod-action">♡ Wish</a>
           <a href="#!" data-toggle="modal" data-target="#add-to-cart-modal-{{ product.id }}" class="prod-action">Add to Cart</a>
@@ -409,7 +436,6 @@
   </div>
 </section>
 
-<!-- PROMISE STRIP -->
 <div class="promise-strip">
   <div class="stagger-child">
     <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/></svg>
@@ -475,6 +501,19 @@
   }
   window.addEventListener('scroll', checkInView, { passive: true });
   checkInView();
+
+  // CATEGORY SLIDER LOGIC
+  window.slideCategories = function(direction) {
+    const slider = document.getElementById('catSlider');
+    const itemWidth = slider.querySelector('.cat-item').offsetWidth + 20; // Width + gap
+    const moveDistance = itemWidth * 4; // Slide by 4 items
+
+    if (direction === 'left') {
+        slider.scrollBy({ left: -moveDistance, behavior: 'smooth' });
+    } else {
+        slider.scrollBy({ left: moveDistance, behavior: 'smooth' });
+    }
+  };
 })();
 </script>
 {% endblock %}
