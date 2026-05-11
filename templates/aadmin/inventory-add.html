@@ -282,31 +282,69 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink)}
       <!-- PRICE -->
       <div class="if-group">
         <label class="if-label">Price (₹)</label>
+
         <div class="if-input-wrap">
           <span class="if-input-prefix">₹</span>
-          <input type="number" name="price" id="priceInput" class="if-input"
-            placeholder="0.00" min="1" step="0.01"
-            value="{% if inventory %}{{ inventory.price }}{% endif %}">
+
+          <input
+            type="number"
+            name="price"
+            id="priceInput"
+            class="if-input"
+            placeholder="0"
+            min="1"
+            step="1"
+            inputmode="numeric"
+            oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+            value="{% if inventory %}{{ inventory.price }}{% endif %}"
+          >
         </div>
-        <div class="if-hint">Must be greater than ₹0</div>
-        <span class="if-hint" id="priceErr" style="color:var(--red);display:none"></span>
+
+        <div class="if-hint">
+          Only whole numbers are allowed
+        </div>
+
+        <span
+          class="if-hint"
+          id="priceErr"
+          style="color:var(--red);display:none">
+        </span>
       </div>
 
       <!-- STOCK -->
       <div class="if-group">
         <label class="if-label">Stock Quantity</label>
-        <input type="number" name="stock" id="stockInput" class="if-input"
-          placeholder="Enter quantity" min="0"
-          value="{% if inventory %}{{ inventory.stock }}{% endif %}">
+
+        <input
+          type="number"
+          name="stock"
+          id="stockInput"
+          class="if-input"
+          placeholder="Enter quantity"
+          min="0"
+          step="1"
+          inputmode="numeric"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+          value="{% if inventory %}{{ inventory.stock }}{% endif %}"
+        >
+
         <!-- quick-fill buttons -->
         <div class="stock-helper">
-          <span style="font-size:12px;color:var(--muted);align-self:center">Quick fill:</span>
+          <span style="font-size:12px;color:var(--muted);align-self:center">
+            Quick fill:
+          </span>
+
           <button type="button" class="stock-quick" data-qty="10">+10</button>
           <button type="button" class="stock-quick" data-qty="25">+25</button>
           <button type="button" class="stock-quick" data-qty="50">+50</button>
           <button type="button" class="stock-quick" data-qty="100">+100</button>
         </div>
-        <span class="if-hint" id="stockErr" style="color:var(--red);display:none"></span>
+
+        <span
+          class="if-hint"
+          id="stockErr"
+          style="color:var(--red);display:none">
+        </span>
       </div>
 
       <!-- FOOTER -->
@@ -380,7 +418,9 @@ document.querySelectorAll('.stock-quick').forEach(btn => {
 });
 
 // ── CLIENT-SIDE VALIDATION ────────────────────────────────────────────
+// ── CLIENT-SIDE VALIDATION ────────────────────────────────────────────
 document.getElementById('invForm').addEventListener('submit', function (e) {
+
   let valid = true;
 
   // product
@@ -392,6 +432,7 @@ document.getElementById('invForm').addEventListener('submit', function (e) {
 
   // size
   const sizeChosen = document.querySelector('input[name="size"]:checked');
+
   if (!sizeChosen) {
     document.getElementById('sizeErr').style.display = 'block';
     valid = false;
@@ -399,33 +440,67 @@ document.getElementById('invForm').addEventListener('submit', function (e) {
     document.getElementById('sizeErr').style.display = 'none';
   }
 
-  // price
-  const price = parseFloat(document.getElementById('priceInput').value);
+  // PRICE VALIDATION
+  const priceInput = document.getElementById('priceInput');
+  const priceValue = priceInput.value.trim();
+  const price = Number(priceValue);
   const priceErr = document.getElementById('priceErr');
-  if (!price || price < 1) {
-    priceErr.textContent = 'Price must be at least ₹1.';
-    priceErr.style.display = 'block';
-    document.getElementById('priceInput').classList.add('error');
-    valid = false;
+
+  if (
+      priceValue === '' ||
+      isNaN(price) ||
+      price < 1 ||
+      !Number.isInteger(price)
+  ) {
+
+      priceErr.textContent =
+        'Price must be a valid whole number greater than ₹0.';
+
+      priceErr.style.display = 'block';
+
+      priceInput.classList.add('error');
+
+      valid = false;
+
   } else {
-    priceErr.style.display = 'none';
-    document.getElementById('priceInput').classList.remove('error');
+
+      priceErr.style.display = 'none';
+
+      priceInput.classList.remove('error');
   }
 
-  // stock
-  const stock = parseInt(document.getElementById('stockInput').value);
+  // STOCK VALIDATION
+  const stockInput = document.getElementById('stockInput');
+  const stockValue = stockInput.value.trim();
+  const stock = Number(stockValue);
   const stockErr = document.getElementById('stockErr');
-  if (isNaN(stock) || stock < 0) {
-    stockErr.textContent = 'Stock cannot be negative.';
-    stockErr.style.display = 'block';
-    document.getElementById('stockInput').classList.add('error');
-    valid = false;
+
+  if (
+      stockValue === '' ||
+      isNaN(stock) ||
+      stock < 0 ||
+      !Number.isInteger(stock)
+  ) {
+
+      stockErr.textContent =
+        'Stock must be a valid whole number.';
+
+      stockErr.style.display = 'block';
+
+      stockInput.classList.add('error');
+
+      valid = false;
+
   } else {
-    stockErr.style.display = 'none';
-    document.getElementById('stockInput').classList.remove('error');
+
+      stockErr.style.display = 'none';
+
+      stockInput.classList.remove('error');
   }
 
-  if (!valid) e.preventDefault();
+  if (!valid) {
+    e.preventDefault();
+  }
 });
 
 // clear errors on input change
