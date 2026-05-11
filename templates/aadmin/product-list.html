@@ -14,6 +14,38 @@
             </a>
         </div>
 
+        <div class="d-flex justify-content-between align-items-center mb-3">
+
+            <form method="get" class="d-flex" style="gap:10px;">
+
+                <select name="filter" class="form-control" onchange="this.form.submit()">
+
+                    <option value="available_products"
+                        {% if filter_option == "available_products" %}selected{% endif %}>
+                        Available Products
+                    </option>
+
+                    <option value="deleted_products"
+                        {% if filter_option == "deleted_products" %}selected{% endif %}>
+                        Deleted Products
+                    </option>
+
+                </select>
+
+                <input type="text"
+                    name="search"
+                    value="{{ search_query }}"
+                    class="form-control"
+                    placeholder="Search products">
+
+                <button class="btn btn-primary">
+                    Search
+                </button>
+
+            </form>
+
+        </div>
+
         <!-- TABLE -->
         <div class="card shadow-sm">
             <div class="card-body p-0">
@@ -65,27 +97,55 @@
 
                                 <!-- STATUS -->
                                 <td class="text-center">
-                                    {% if product.approved %}
-                                        <a href="{% url 'product_approval' product.id %}" class="btn btn-sm btn-danger">Unlist</a>
+
+                                    {% if not product.is_deleted %}
+
+                                        {% if product.approved %}
+                                            <a href="{% url 'product_approval' product.id %}"
+                                            class="btn btn-sm btn-danger">
+                                            Unlist
+                                            </a>
+                                        {% else %}
+                                            <a href="{% url 'product_approval' product.id %}"
+                                            class="btn btn-sm btn-primary">
+                                            List
+                                            </a>
+                                        {% endif %}
+
                                     {% else %}
-                                        <a href="{% url 'product_approval' product.id %}" class="btn btn-sm btn-primary">List</a>
+
+                                        <span class="badge badge-secondary px-3 py-2">
+                                            Deleted
+                                        </span>
+
                                     {% endif %}
+
                                 </td>
 
                                 <!-- ACTIONS -->
                                 <td class="text-center">
 
-                                    <!-- EDIT -->
-                                    <a href="{% url 'edit_product' product.id %}" class="btn btn-sm btn-info">
-                                        Edit
-                                    </a>
+                                    {% if product.is_deleted %}
 
-                                    <!-- DELETE -->
-                                    <button 
-                                        class="btn btn-sm btn-danger delete-btn"
-                                        data-url="{% url 'delete_product' product.id %}">
-                                        Delete
-                                    </button>
+                                        <a href="{% url 'restore_product' product.id %}"
+                                        class="btn btn-sm btn-success">
+                                            Restore
+                                        </a>
+
+                                    {% else %}
+
+                                        <a href="{% url 'edit_product' product.id %}"
+                                        class="btn btn-sm btn-info">
+                                            Edit
+                                        </a>
+
+                                        <button
+                                            class="btn btn-sm btn-danger delete-btn"
+                                            data-url="{% url 'delete_product' product.id %}">
+                                            Delete
+                                        </button>
+
+                                    {% endif %}
 
                                 </td>
 
@@ -100,6 +160,45 @@
 
     </div>
 </div>
+
+{% if products.has_other_pages %}
+    <div class="d-flex justify-content-center align-items-center flex-wrap mt-4" style="gap:8px;">
+
+        {% if products.has_previous %}
+            <a href="?page={{ products.previous_page_number }}&filter={{ filter_option }}&search={{ search_query }}"
+            class="btn btn-sm btn-light border">
+                Previous
+            </a>
+        {% endif %}
+
+        {% for num in products.paginator.page_range %}
+
+            {% if products.number == num %}
+
+                <span class="btn btn-sm btn-primary">
+                    {{ num }}
+                </span>
+
+            {% else %}
+
+                <a href="?page={{ num }}&filter={{ filter_option }}&search={{ search_query }}"
+                class="btn btn-sm btn-light border">
+                    {{ num }}
+                </a>
+
+            {% endif %}
+
+        {% endfor %}
+
+        {% if products.has_next %}
+            <a href="?page={{ products.next_page_number }}&filter={{ filter_option }}&search={{ search_query }}"
+            class="btn btn-sm btn-light border">
+                Next
+            </a>
+        {% endif %}
+
+    </div>
+{% endif %}
 
 <!-- DELETE MODAL -->
 <div class="modal fade" id="deleteModal" tabindex="-1">

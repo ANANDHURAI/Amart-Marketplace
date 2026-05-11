@@ -490,29 +490,28 @@ def restore_category(request, slug):
 
 @admin_login_required
 def product_list(request):
-    """List products with filters, search, and total stock."""
     title = "Products"
     current_page = "product_list"
 
-    products = (
-        Product.objects.all()
-        .prefetch_related("product_images")
-        .annotate(total_stock=Coalesce(Sum("inventory_sizes__stock"), 0))
-        .order_by("-created_at")
-    )
+    filter_option = request.GET.get("filter", "available_products")
 
-    request.session["selection"] = "all"
-
-    if request.method == "POST":
-        filter_option = request.POST.get("filter_option")
-        if filter_option == "awaiting_listing":
-            products = products.filter(approved=False)
-            request.session["selection"] = "awaiting_listing"
-        elif filter_option == "listed_products":
-            products = products.filter(approved=True)
-            request.session["selection"] = "listed_products"
+    if filter_option == "deleted_products":
+        products = (
+            Product.all_objects.filter(is_deleted=True)
+            .prefetch_related("product_images")
+            .annotate(total_stock=Coalesce(Sum("inventory_sizes__stock"), 0))
+            .order_by("-created_at")
+        )
+    else:
+        products = (
+            Product.objects.all()
+            .prefetch_related("product_images")
+            .annotate(total_stock=Coalesce(Sum("inventory_sizes__stock"), 0))
+            .order_by("-created_at")
+        )
 
     search_query = request.GET.get("search", "")
+
     if search_query:
         products = products.filter(
             Q(name__icontains=search_query) |
@@ -531,11 +530,10 @@ def product_list(request):
         "current_page": current_page,
         "title": title,
         "search_query": search_query,
+        "filter_option": filter_option,
     }
+
     return render(request, "aadmin/product-list.html", context)
-
-
-
 
 
 
@@ -549,6 +547,7 @@ def product_form(request, product_id=None):
         is_edit = True
 
     if request.method == "POST":
+
         name = request.POST.get("name", "").strip()
         description = request.POST.get("description", "").strip()
         category_id = request.POST.get("category")
@@ -559,25 +558,73 @@ def product_form(request, product_id=None):
             request.POST.get("cropped_image_3"),
         ]
 
-      
+       
         if not name or len(name) < 3:
-            messages.error(request, "Product name must be at least 3 characters")
-            return redirect(
-                "edit_product", product_id=product.id
-            ) if is_edit else redirect("add_product")
+            messages.error(
+                request,
+                "Product name must be at least 3 characters."
+            )
 
-        if not category_id or not Category.objects.filter(id=category_id).exists():
-            messages.error(request, "Please select a valid category")
             return redirect(
-                "edit_product", product_id=product.id
+                "edit_product",
+                product_id=product.id
             ) if is_edit else redirect("add_product")
-
-        if not is_edit and any(not img for img in cropped_images):
-            messages.error(request, "Please upload and crop all 3 product images")
-            return redirect("add_product")
 
        
+        existing_product = Product.all_objects.filter(
+            name__iexact=name
+        )
+
+        if is_edit:
+            existing_product = existing_product.exclude(id=product.id)
+
+        if existing_product.exists():
+
+            existing_item = existing_product.first()
+
+           
+            if existing_item.is_deleted:
+                messages.error(
+                    request,
+                    "This product name already exists in deleted products. "
+                    "Please restore it instead of creating a new one."
+                )
+            else:
+                messages.error(
+                    request,
+                    "Product name already exists. Please use a different product name."
+                )
+
+            return redirect(
+                "edit_product",
+                product_id=product.id
+            ) if is_edit else redirect("add_product")
+
+       
+        if not category_id or not Category.objects.filter(id=category_id).exists():
+
+            messages.error(
+                request,
+                "Please select a valid category."
+            )
+
+            return redirect(
+                "edit_product",
+                product_id=product.id
+            ) if is_edit else redirect("add_product")
+
+      
+        if not is_edit and any(not img for img in cropped_images):
+
+            messages.error(
+                request,
+                "Please upload and crop all 3 product images."
+            )
+
+            return redirect("add_product")
+
         if not is_edit:
+
             product = Product.objects.create(
                 name=name,
                 description=description,
@@ -586,17 +633,21 @@ def product_form(request, product_id=None):
                 is_available=request.POST.get("is_available") == "on",
                 approved=request.POST.get("approved") == "on",
             )
+
+       
         else:
+
             product.name = name
             product.description = description
             product.main_category_id = category_id
             product.slug = slugify(name)
             product.is_available = request.POST.get("is_available") == "on"
             product.approved = request.POST.get("approved") == "on"
+
             product.save()
 
-        
         for img_data in cropped_images:
+
             if not img_data:
                 continue
 
@@ -608,25 +659,39 @@ def product_form(request, product_id=None):
                 name=f"{product.slug}-{uuid4()}.{ext}"
             )
 
-            ProductImage.objects.create(product=product, image=image_file)
+            ProductImage.objects.create(
+                product=product,
+                image=image_file
+            )
 
         messages.success(
             request,
-            "Product updated successfully" if is_edit else "Product added successfully"
+            "Product updated successfully."
+            if is_edit
+            else "Product added successfully."
         )
+
         return redirect("product_list")
 
-    
     categories = Category.objects.all()
-    existing_images = product.product_images.all() if product else []
 
-    return render(request, "aadmin/product-form.html", {
+    existing_images = (
+        product.product_images.all()
+        if product else []
+    )
+
+    context = {
         "product": product,
         "categories": categories,
         "is_edit": is_edit,
         "existing_images": existing_images,
-    })
+    }
 
+    return render(
+        request,
+        "aadmin/product-form.html",
+        context
+    )
 
 
 
@@ -637,6 +702,18 @@ def remove_product_image(request, image_id):
         image.delete()
         messages.success(request, "Image removed successfully.")
     return redirect("edit_product", product_id=image.product.id)
+
+
+@admin_login_required
+def restore_product(request, product_id):
+    product = get_object_or_404(Product.all_objects, id=product_id)
+
+    product.restore()
+
+    messages.success(request, "Product restored successfully.")
+
+    return redirect("product_list")
+
 
 
 def delete_product(request, product_id):
@@ -652,6 +729,8 @@ def product_approval(request, pk):
     product.approved = not product.approved
     product.save()
     return redirect("product_list")
+
+
 
 
 @admin_login_required

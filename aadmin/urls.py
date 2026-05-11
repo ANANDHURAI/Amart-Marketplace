@@ -25,6 +25,7 @@ urlpatterns = [
     path("products/<int:product_id>/edit/", views.product_form, name="edit_product"),
     path('products/<int:product_id>/delete/', views.delete_product, name='delete_product'),
     path('products/<int:pk>/approval/', views.product_approval, name="product_approval"),
+    path("products/<int:product_id>/", views.restore_product, name="restore_product"),
 
     # Product Images
     path('products/images/<int:image_id>/delete/', views.remove_product_image, name='remove_product_image'),
