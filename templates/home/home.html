@@ -424,7 +424,7 @@
         <div class="prod-actions">
           <a href="{% url 'add-to-favourite' product.id %}" class="prod-action">♡ Wish</a>
           <a href="#!" data-toggle="modal" data-target="#add-to-cart-modal-{{ product.id }}" class="prod-action">Add to Cart</a>
-          <a href="{{ product.get_absolute_url }}" class="prod-action">View</a>
+          <a href="{% url 'product_page' product.slug %}" class="prod-action">View</a>
         </div>
       </div>
       <div class="prod-info">
