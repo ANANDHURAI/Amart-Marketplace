@@ -133,6 +133,38 @@ tbody td{padding:13px 16px;font-size:14px;color:var(--text);vertical-align:middl
     </tbody>
   </table>
 </div>
+{% if offers.has_other_pages %}
+  <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:20px;flex-wrap:wrap;">
+      
+      {% if offers.has_previous %}
+          <a href="?page={{ offers.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}"
+            style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--text);background:var(--white);font-size:13px;">
+            Previous
+          </a>
+      {% endif %}
+
+      {% for num in offers.paginator.page_range %}
+          {% if offers.number == num %}
+              <span style="padding:8px 14px;border-radius:8px;background:var(--primary);color:#fff;font-size:13px;font-weight:600;">
+                  {{ num }}
+              </span>
+          {% else %}
+              <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}"
+                style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--text);background:var(--white);font-size:13px;">
+                {{ num }}
+              </a>
+          {% endif %}
+      {% endfor %}
+
+      {% if offers.has_next %}
+          <a href="?page={{ offers.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}"
+            style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--text);background:var(--white);font-size:13px;">
+            Next
+          </a>
+      {% endif %}
+
+  </div>
+{% endif %}
 
 <script>
 function showToast(msg,type){
