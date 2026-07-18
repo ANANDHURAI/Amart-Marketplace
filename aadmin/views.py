@@ -20,7 +20,7 @@ from functools import wraps
 from django.urls import reverse
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
-
+from django.utils import timezone
 
 def admin_login_required(view_func):
     @wraps(view_func)
@@ -113,7 +113,7 @@ def admin_dashboard(request):
 def get_top_products():
     top_products_info = (
         OrderItem.objects.filter(product__isnull=False)
-        .values("product__id", "product__name")
+        .values("product__id",)
         .annotate(total_quantity=Coalesce(Sum("quantity"), 0))
         .order_by("-total_quantity")[:5]
     )
@@ -461,13 +461,19 @@ def edit_category(request, slug):
  
  
 
+ 
 @admin_login_required
 def delete_category(request, slug):
     category = get_object_or_404(Category, slug=slug)
-    category.delete()   # soft-delete via your custom manager
+    category.delete()
+
+    Product.objects.filter(main_category=category).update(
+        is_deleted=True,
+        deleted_at=timezone.now(),
+    )
+
     messages.success(request, f'"{category.name}" has been deleted.')
     return redirect("category_list")
- 
 
 
 
@@ -707,7 +713,6 @@ def remove_product_image(request, image_id):
 @admin_login_required
 def restore_product(request, product_id):
     product = get_object_or_404(Product.all_objects, id=product_id)
-
     product.restore()
 
     messages.success(request, "Product restored successfully.")
