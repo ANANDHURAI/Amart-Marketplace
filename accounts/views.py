@@ -206,9 +206,15 @@ def forgot_password(request):
             return redirect("forgot_password")
         
         request.session["email"] = email
-        send_otp(request, purpose="forgot_password")
-        messages.success(request, "OTP sent to your email.")
-        return redirect("customer_activation") # Reuse activation UI
+        if send_otp(request, purpose="forgot_password"):
+            messages.success(request, "OTP sent to your email.")
+            return redirect("customer_activation")
+
+        messages.error(
+            request,
+            "Unable to send OTP. Please try again later."
+        )
+        return redirect("forgot_password")
         
     return render(request, "accounts/forgot-password.html")
 

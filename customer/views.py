@@ -390,15 +390,16 @@ def cancel_order(request, order_id):
 
 @customer_required
 def cancel_order_item(request, order_item_id):
-    customer   = _get_customer(request)
+    customer = _get_customer(request)
     order_item = get_object_or_404(
         OrderItem, id=order_item_id, order__customer=customer
     )
-    order      = order_item.order
-    wallet, _  = Wallet.objects.get_or_create(customer=customer)
+    order = order_item.order
+    wallet, _ = Wallet.objects.get_or_create(customer=customer)
 
     if order_item.status != "cancelled":
         refund = 0
+
         if order.is_paid and order.payment_method.lower() != "cod":
             refund = _proportional_refund(order, order_item)
 
@@ -417,6 +418,20 @@ def cancel_order_item(request, order_item_id):
 
         if not OrderItem.objects.filter(order=order).exclude(status="cancelled").exists():
             order.status = "cancelled"
+            order.total_amount = 0
+            order.save()
+
+        else:
+            remaining_items = OrderItem.objects.filter(
+                order=order
+            ).exclude(status="cancelled")
+
+            new_total = sum(
+                item.inventory.price * item.quantity
+                for item in remaining_items
+            )
+
+            order.total_amount = new_total
             order.save()
 
     return redirect("customer-orders")
