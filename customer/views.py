@@ -6,7 +6,8 @@ prefetch_related to avoid N+1 in orders, cart, checkout, favourites, invoice.
 """
 import logging
 import re
-
+import os
+from PIL import Image
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
@@ -91,23 +92,112 @@ def profile(request):
 
 
 
+
+
 @customer_required
 def edit_profile(request):
-    """Update customer profile (name, mobile, profile image)."""
-    if request.method == "POST":
-        customer = _get_customer(request)
-        customer.first_name = request.POST.get("first_name").title()
-        customer.last_name = request.POST.get("last_name").title()
-        customer.mobile = request.POST.get("mobile")
+    """Update customer profile with strong server-side validation."""
 
-        profile_image = request.FILES.get("profile_image")
-        if profile_image:
-            customer.profile_image = profile_image
+    if request.method != "POST":
+        return redirect("customer-profile")
 
-        customer.save()
-        messages.success(request, "Profile updated successfully!")
+    customer = _get_customer(request)
+
+    first_name = request.POST.get("first_name", "").strip()
+    last_name = request.POST.get("last_name", "").strip()
+    mobile = request.POST.get("mobile", "").strip()
+    profile_image = request.FILES.get("profile_image")
+
+    errors = []
+
+    if first_name:
+        if len(first_name) < 2:
+            errors.append("First name must contain at least 2 characters.")
+
+        if len(first_name) > 50:
+            errors.append("First name cannot exceed 50 characters.")
+
+        if not re.fullmatch(r"[A-Za-z]+(?:[ '-][A-Za-z]+)*", first_name):
+            errors.append(
+                "First name can contain only letters, spaces, hyphens, or apostrophes."
+            )
+
+
+    if last_name:
+        if len(last_name) < 2:
+            errors.append("Last name must contain at least 2 characters.")
+
+        if len(last_name) > 50:
+            errors.append("Last name cannot exceed 50 characters.")
+
+        if not re.fullmatch(r"[A-Za-z]+(?:[ '-][A-Za-z]+)*", last_name):
+            errors.append(
+                "Last name can contain only letters, spaces, hyphens, or apostrophes."
+            )
+
+            
+    if mobile:
+
+        if not re.fullmatch(r"[6-9]\d{9}", mobile):
+            errors.append(
+                "Enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9."
+            )
+            
+        elif len(set(mobile)) == 1:
+            errors.append(
+                "Please enter a valid mobile number."
+            )
+
+
+    if profile_image:
+        # Max 5 MB
+        max_size = 5 * 1024 * 1024
+
+        if profile_image.size > max_size:
+            errors.append("Profile image must be smaller than 5 MB.")
+
+        allowed_extensions = [".jpg", ".jpeg", ".png", ".webp"]
+
+        extension = os.path.splitext(profile_image.name)[1].lower()
+
+        if extension not in allowed_extensions:
+            errors.append(
+                "Only JPG, JPEG, PNG, and WEBP images are allowed."
+            )
+            
+        try:
+            image = Image.open(profile_image)
+            image.verify()
+        except Exception:
+            errors.append("The uploaded profile image is invalid.")
+
+    if errors:
+        for error in errors:
+            messages.error(request, error)
+
+        return redirect("customer-profile")
+
+    
+    if first_name:
+        customer.first_name = first_name.title()
+
+    if last_name:
+        customer.last_name = last_name.title()
+
+    customer.mobile = mobile or None
+
+    if profile_image:
+        customer.profile_image = profile_image
+
+    customer.save()
+
+    messages.success(
+        request,
+        "Profile updated successfully!"
+    )
 
     return redirect("customer-profile")
+
 
 
 

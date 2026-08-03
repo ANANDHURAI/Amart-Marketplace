@@ -1,5 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
+
+
+mobile_validator = RegexValidator(
+    regex=r"^[6-9]\d{9}$",
+    message="Enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9."
+)
 
 
 class AccountManager(BaseUserManager):
@@ -24,25 +32,60 @@ class AccountManager(BaseUserManager):
             last_name=last_name,
             password=password,
         )
+
         user.is_admin = True
         user.is_active = True
         user.is_staff = True
-        user.is_superadmin = True  
-        user.is_superuser = True 
+        user.is_superadmin = True
+        user.is_superuser = True
         user.save(using=self._db)
+
         return user
 
 
 class Account(AbstractBaseUser):
-    first_name = models.CharField(max_length=50)
-    last_name = models.CharField(max_length=50)
-    email = models.EmailField(max_length=254, unique=True)
-    mobile = models.CharField(max_length=10, null=True, blank=True)
-    profile_image = models.ImageField(
-        upload_to="images/user/customer/profile_image", null=True
+
+    first_name = models.CharField(
+        max_length=50,
+        validators=[
+            RegexValidator(
+                regex=r"^[A-Za-z]+(?:[ '-][A-Za-z]+)*$",
+                message="First name can contain only letters, spaces, hyphens, or apostrophes."
+            )
+        ]
     )
+
+    last_name = models.CharField(
+        max_length=50,
+        validators=[
+            RegexValidator(
+                regex=r"^[A-Za-z]+(?:[ '-][A-Za-z]+)*$",
+                message="Last name can contain only letters, spaces, hyphens, or apostrophes."
+            )
+        ]
+    )
+
+    email = models.EmailField(
+        max_length=254,
+        unique=True
+    )
+
+    mobile = models.CharField(
+        max_length=10,
+        null=True,
+        blank=True,
+        validators=[mobile_validator]
+    )
+
+    profile_image = models.ImageField(
+        upload_to="images/user/customer/profile_image",
+        null=True,
+        blank=True
+    )
+
     date_joined = models.DateTimeField(auto_now_add=True)
     last_login = models.DateTimeField(auto_now=True)
+
     is_active = models.BooleanField(default=False)
     is_customer = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
@@ -60,10 +103,9 @@ class Account(AbstractBaseUser):
 
     def has_perm(self, perm, obj=None):
         return self.is_superuser
-    
+
     def has_module_perms(self, add_label):
         return True
- 
 
 
 class Customer(Account):
