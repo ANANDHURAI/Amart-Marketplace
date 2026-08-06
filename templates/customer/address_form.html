@@ -36,14 +36,20 @@
                   <h4 class="widget-title">
                     {% if address %}Edit address{% else %}Add new address{% endif %}
                   </h4>
-                    {% for message in messages %}
-                        {% if message.tags == "error" %}
-                            <div class="alert alert-danger alert-common auto-dismiss" role="alert">
 
-                                <i class="tf-ion-close-circled"></i><span></span>{{ message }}
-                            </div>
-                        {% endif %}
-                    {% endfor %}
+                    {% if messages %}
+                        <div class="address-error-box" style="border:1px solid #f5c2c7; background:#fff4f4; border-radius:4px; padding:14px 18px; margin-bottom:1.2rem;">
+                            {% for message in messages %}
+                                {% if message.tags == "error" %}
+                                    <div style="display:flex; align-items:flex-start; gap:8px; color:#c1121f; font-size:14px; padding:4px 0;">
+                                        <i class="tf-ion-close-circled" style="margin-top:2px;"></i>
+                                        <span>{{ message }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
                 <form class="checkout-form" method="post" {% if address %}action="{% url "edit-address" address.id %}"{% endif %}>
                     {% csrf_token %}
                     <div class="form-group">
@@ -52,56 +58,45 @@
                             class="form-control"
                             id="full_name"
                             name="name"
-                            placeholder="Full name *"
-                            pattern="^[A-Za-z]+(?:[\s-][A-Za-z]+)*$"
+                            placeholder="e.g. Ramesh Kumar"
                             maxlength="255"
-                            
-                            oninput="this.setCustomValidity('')"
-                            oninvalid="this.setCustomValidity('Enter a valid full name')"
-                            value="{{ address.name }}">
-
+                            value="{{ initial.name }}">
                     </div>
                     <div class="checkout-country-code clearfix">
                         <input type="text"
                             name="pincode"
-                            placeholder="000000"
-                            pattern="^[1-9]\d{5}$"
+                            placeholder="6-digit pincode, e.g. 600001"
                             maxlength="6"
-                            value="{{ address.pincode }}"        
-                            oninput="this.setCustomValidity('')"
-                            oninvalid="this.setCustomValidity('Enter a valid 6-digit pincode')">
+                            value="{{ initial.pincode }}">
 
-                        <!-- Mobile — add value -->
                         <input type="text"
                             name="mobile"
-                            placeholder="+91"
-                            pattern="^[6-9]\d{9}$"
+                            placeholder="10-digit mobile, e.g. 9876543210"
                             maxlength="10"
-                            value="{{ address.mobile }}"         
-                            oninput="this.setCustomValidity('')"
-                            oninvalid="this.setCustomValidity('Enter a valid 10-digit Indian mobile number')">
-                                            </div>
+                            value="{{ initial.mobile }}">
+                    </div>
                     <div class="form-group">
                         <label for="user_house">Building</label>
-                        <input type="text" class="form-control" id="user_house" name="building" placeholder="House/Building/Apartment *" pattern="[A-Za-z0-9]+(?: [A-Za-z0-9]+)*" oninvalid="this.setCustomValidity('Invalid Input')" value="{{address.building}}" >
+                        <input type="text" class="form-control" id="user_house" name="building" placeholder="House / Building / Apartment name" value="{{ initial.building }}">
                     </div>
                     <div class="form-group">
                         <label for="user_street">Street</label>
-                        <input type="text" class="form-control" id="user_street" name="street" placeholder="Street/Locality *" pattern="[A-Za-z0-9]+(?: [A-Za-z0-9]+)*" oninvalid="this.setCustomValidity('Invalid Input')" value="{{address.street}}" >
+                        <input type="text" class="form-control" id="user_street" name="street" placeholder="Street / Locality" value="{{ initial.street }}">
                     </div>
                     <div class="form-group">
                         <label for="user_city">City</label>
-                        <input type="text" class="form-control" id="user_city" name="city" placeholder="City/Town (Optional)" pattern="[A-Za-z]+(?: [A-Za-z]+)*" oninvalid="this.setCustomValidity('Invalid Input')" value="{{address.city}}">
+                        <input type="text" class="form-control" id="user_city" name="city" placeholder="City / Town (optional)" value="{{ initial.city }}">
                     </div>
                     <div class="form-group">
                         <label for="user_district">district</label>
-                        <input type="text" class="form-control" id="user_district" name="district" placeholder="district *" pattern="[A-Za-z]+(?: [A-Za-z]+)*" oninvalid="this.setCustomValidity('Invalid Input')"  value="{{address.district}}">
+                        <input type="text" class="form-control" id="user_district" name="district" placeholder="District" value="{{ initial.district }}">
                     </div>
                     <div class="checkout-country-code clearfix">
                         <div class="form-group">
                             <select style="height: 50px;" class="form-control" id="user_state" name="state" >
+                                <option value="" {% if not initial.state %}selected{% endif %} disabled>Select a state</option>
                                 {% for state in states %}
-                                    <option {% if address.state == state %}selected{% endif %} value="{{ state }}">{{ state }}</option>
+                                    <option {% if initial.state == state %}selected{% endif %} value="{{ state }}">{{ state }}</option>
                                 {% endfor %}
                             </select>
                         </div>

@@ -156,6 +156,10 @@
   .coupon-feedback .alert-success { color: var(--success); background: #f0faf5; border: 1px solid #a8d5bb; border-radius: 2px; padding: 10px 14px; }
   .coupon-feedback .alert-danger { color: var(--danger); background: #fff4f4; border: 1px solid #f5c2c7; border-radius: 2px; padding: 10px 14px; }
 
+  /* ─── Shared form error box (used by coupon + address errors) ─── */
+  .form-error-box { display: flex; align-items: center; gap: 8px; color: var(--danger); background: #fff4f4; border: 1px solid #f5c2c7; border-radius: 2px; padding: 10px 14px; font-size: 13px; line-height: 1.5; margin-top: 10px; }
+  .form-error-box svg { flex-shrink: 0; }
+
   /* ─── Payment options ─── */
   .payment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
   .payment-card {
@@ -389,7 +393,6 @@
           </div>
 
           {# Other addresses #}
-          {% with has_others=False %}
           {% for address in addresses %}{% if not address.is_default %}{% if forloop.first %}
           <p class="address-section-label" style="margin-top: 1.5rem;">Other Addresses</p>
           <div class="address-grid">
@@ -402,7 +405,6 @@
             </label>
           {% if forloop.last %}</div>{% endif %}
           {% endif %}{% endfor %}
-          {% endwith %}
           {% endif %}
 
         </div>
@@ -428,81 +430,13 @@
           </div>
           <div id="coupon-feedback" class="coupon-feedback"></div>
           {% for message in messages %}
-            {% if message.tags == "error" %}
-            <div class="coupon-feedback"><div class="alert-danger" style="margin-top:10px; padding: 10px 14px; border-radius:2px; font-size:13px; background:#fff4f4; border:1px solid #f5c2c7; color:var(--danger);">{{ message }}</div></div>
+            {% if 'error' in message.tags and 'address' not in message.tags %}
+            <div class="form-error-box">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.007M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span>{{ message }}</span>
+            </div>
             {% endif %}
           {% endfor %}
-        </div>
-      </div>
-
-      <!-- PAYMENT BLOCK -->
-      <div class="checkout-block" id="block-payment" style="transition-delay: 0.2s;">
-        <div class="block-header">
-          <div class="block-icon">
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
-          </div>
-          <div>
-            <h4 class="block-title">Payment Method</h4>
-            <p class="block-sub">Select how you'd like to pay</p>
-          </div>
-        </div>
-        <div class="block-body">
-          <div class="payment-grid">
-
-            <!-- Razorpay -->
-            <label class="payment-card {% if cart.remaining_amount <= 0 %}disabled{% endif %} {% if selected_payment_method == 'razorpay' %}selected{% endif %}"
-                   onclick="{% if cart.remaining_amount > 0 %}selectPayment(this){% endif %}">
-              <input {% if cart.remaining_amount <= 0 %}disabled{% endif %}
-                     {% if selected_payment_method == "razorpay" %}checked{% endif %}
-                     type="radio" name="payment_method" id="payment-razorpay" value="razorpay" required>
-              <img class="payment-logo" src="{% static 'images/razorpay.png' %}" alt="Razorpay">
-              {% if cart.remaining_amount <= 0 %}
-              <p class="payment-note">Not available for this order.</p>
-              {% endif %}
-            </label>
-
-            <!-- Cash on Delivery -->
-            <label class="payment-card {% if cart.remaining_amount > 1000 %}disabled{% endif %} {% if selected_payment_method == 'cod' %}selected{% endif %}"
-                   onclick="{% if cart.remaining_amount <= 1000 %}selectPayment(this){% endif %}">
-              <input {% if cart.remaining_amount > 1000 %}disabled{% endif %}
-                     {% if selected_payment_method == "cod" %}checked{% endif %}
-                     type="radio" name="payment_method" id="payment-cod" value="cod" required>
-              <img class="payment-logo" src="{% static 'images/cash-on-delivery.png' %}" alt="Cash on Delivery">
-              {% if cart.remaining_amount > 1000 %}
-              <p class="payment-note">Not available for orders above ₹1000.</p>
-              {% endif %}
-            </label>
-
-          </div>
-
-          <!-- Wallet -->
-          <div style="margin-top: 0;">
-            <label class="wallet-card-inner {% if wallet_balance < cart.remaining_amount %}disabled{% endif %} {% if selected_payment_method == 'wallet' %}selected{% endif %}"
-                   onclick="{% if wallet_balance >= cart.remaining_amount %}selectWallet(this){% endif %}"
-                   id="wallet-card">
-              <input type="radio" name="payment_method" id="wallet" value="wallet"
-                     {% if wallet_balance < cart.remaining_amount %}disabled{% endif %}>
-              <div class="wallet-icon">
-                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18-3a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3m18-3V6"/></svg>
-              </div>
-              <div>
-                <p class="wallet-label">Amart Wallet</p>
-                <p class="wallet-balance">₹{{ wallet_balance }}</p>
-                {% if wallet_balance < cart.remaining_amount %}
-                <p class="wallet-insufficient">Insufficient balance for this order</p>
-                {% endif %}
-              </div>
-            </label>
-          </div>
-
-          <div id="address-warning" class="addr-warning">
-            ⚠ Please add a delivery address before placing your order.
-          </div>
-
-          <button type="submit" class="btn-place-order" id="place-order-btn">
-            Place Order →
-          </button>
-
         </div>
       </div>
 
@@ -520,52 +454,63 @@
           </div>
         </div>
         <div class="block-body">
+
+          {% for message in messages %}
+            {% if 'address' in message.tags %}
+            <div class="form-error-box">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.007M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span>{{ message }}</span>
+            </div>
+            {% endif %}
+          {% endfor %}
+
           <form class="checkout-form" method="post" name="new-address" action="{% url "new-address" %}">
             {% csrf_token %}
             <div class="form-field">
               <label for="full_name">Full Name</label>
-              <input type="text" id="full_name" name="name" placeholder="Enter your full name" required>
+              <input type="text" id="full_name" name="name" placeholder="e.g. Ramesh Kumar" maxlength="255" value="{{ new_address_initial.name }}">
             </div>
             <div class="form-row-2">
               <div class="form-field">
                 <label for="user_pin_code">Pin Code</label>
-                <input type="text" id="user_pin_code" name="pincode" placeholder="6-digit pin code" pattern="\d{6}" required oninvalid="this.setCustomValidity('Invalid Pin code')">
+                <input type="text" id="user_pin_code" name="pincode" placeholder="6-digit pincode, e.g. 600001" maxlength="6" value="{{ new_address_initial.pincode }}">
               </div>
               <div class="form-field">
                 <label for="user_mobile">Mobile No. (+91)</label>
-                <input type="text" id="user_mobile" name="mobile" placeholder="10-digit number" pattern="\d{10}"  oninvalid="this.setCustomValidity('Invalid mobile number')">
+                <input type="text" id="user_mobile" name="mobile" placeholder="10-digit mobile, e.g. 9876543210" maxlength="10" value="{{ new_address_initial.mobile }}">
               </div>
             </div>
             <div class="form-field">
               <label for="user_house">Building / Apartment</label>
-              <input type="text" id="user_house" name="building" placeholder="House / Building / Apartment" required>
+              <input type="text" id="user_house" name="building" placeholder="House / Building / Apartment" value="{{ new_address_initial.building }}">
             </div>
             <div class="form-field">
               <label for="user_street">Street / Locality</label>
-              <input type="text" id="user_street" name="street" placeholder="Street / Locality" required>
+              <input type="text" id="user_street" name="street" placeholder="Street / Locality" value="{{ new_address_initial.street }}">
             </div>
             <div class="form-row-2">
               <div class="form-field">
                 <label for="user_city">City (Optional)</label>
-                <input type="text" id="user_city" name="city" placeholder="City / Town">
+                <input type="text" id="user_city" name="city" placeholder="City / Town" value="{{ new_address_initial.city }}">
               </div>
               <div class="form-field">
                 <label for="user_district">District</label>
-                <input type="text" id="user_district" name="district" placeholder="District" required>
+                <input type="text" id="user_district" name="district" placeholder="District" value="{{ new_address_initial.district }}">
               </div>
             </div>
             <div class="form-row-2">
               <div class="form-field">
                 <label for="user_state">State</label>
-                <select id="user_state" name="state" required>
+                <select id="user_state" name="state">
+                  <option value="" {% if not new_address_initial.state %}selected{% endif %} disabled>Select a state</option>
                   {% for state in states %}
-                  <option value="{{ state }}">{{ state }}</option>
+                  <option {% if new_address_initial.state == state %}selected{% endif %} value="{{ state }}">{{ state }}</option>
                   {% endfor %}
                 </select>
               </div>
               <div class="form-field">
                 <label for="user_country">Country</label>
-                <input type="text" id="user_country" name="country" value="India" readonly required>
+                <input type="text" id="user_country" name="country" value="India" readonly>
               </div>
             </div>
             <button type="submit" class="btn-save-address" name="checkout_submit">Save Address</button>
@@ -625,6 +570,78 @@
           <img src="{% static 'images/shop/verified.png' %}" alt="Verified">
         </div>
       </div>
+
+      <!-- PAYMENT BLOCK -->
+      <div class="checkout-block" id="block-payment" style="transition-delay: 0.2s;">
+        <div class="block-header">
+          <div class="block-icon">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
+          </div>
+          <div>
+            <h4 class="block-title">Payment Method</h4>
+            <p class="block-sub">Select how you'd like to pay</p>
+          </div>
+        </div>
+        <div class="block-body">
+          <div class="payment-grid">
+
+            <!-- Razorpay -->
+            <label class="payment-card {% if cart.remaining_amount <= 0 %}disabled{% endif %} {% if selected_payment_method == 'razorpay' %}selected{% endif %}"
+                   onclick="{% if cart.remaining_amount > 0 %}selectPayment(this){% endif %}">
+              <input {% if cart.remaining_amount <= 0 %}disabled{% endif %}
+                     {% if selected_payment_method == "razorpay" %}checked{% endif %}
+                     type="radio" name="payment_method" id="payment-razorpay" value="razorpay" form="place_order_form" required>
+              <img class="payment-logo" src="{% static 'images/razorpay.png' %}" alt="Razorpay">
+              {% if cart.remaining_amount <= 0 %}
+              <p class="payment-note">Not available for this order.</p>
+              {% endif %}
+            </label>
+
+            <!-- Cash on Delivery -->
+            <label class="payment-card {% if cart.remaining_amount > 1000 %}disabled{% endif %} {% if selected_payment_method == 'cod' %}selected{% endif %}"
+                   onclick="{% if cart.remaining_amount <= 1000 %}selectPayment(this){% endif %}">
+              <input {% if cart.remaining_amount > 1000 %}disabled{% endif %}
+                     {% if selected_payment_method == "cod" %}checked{% endif %}
+                     type="radio" name="payment_method" id="payment-cod" value="cod" form="place_order_form" required>
+              <img class="payment-logo" src="{% static 'images/cash-on-delivery.png' %}" alt="Cash on Delivery">
+              {% if cart.remaining_amount > 1000 %}
+              <p class="payment-note">Not available for orders above ₹1000.</p>
+              {% endif %}
+            </label>
+
+          </div>
+
+          <!-- Wallet -->
+          <div style="margin-top: 0;">
+            <label class="wallet-card-inner {% if wallet_balance < cart.remaining_amount %}disabled{% endif %} {% if selected_payment_method == 'wallet' %}selected{% endif %}"
+                   onclick="{% if wallet_balance >= cart.remaining_amount %}selectWallet(this){% endif %}"
+                   id="wallet-card">
+              <input type="radio" name="payment_method" id="wallet" value="wallet" form="place_order_form"
+                     {% if wallet_balance < cart.remaining_amount %}disabled{% endif %}>
+              <div class="wallet-icon">
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18-3a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3m18-3V6"/></svg>
+              </div>
+              <div>
+                <p class="wallet-label">Amart Wallet</p>
+                <p class="wallet-balance">₹{{ wallet_balance }}</p>
+                {% if wallet_balance < cart.remaining_amount %}
+                <p class="wallet-insufficient">Insufficient balance for this order</p>
+                {% endif %}
+              </div>
+            </label>
+          </div>
+
+          <div id="address-warning" class="addr-warning">
+            ⚠ Please add a delivery address before placing your order.
+          </div>
+
+          <button type="submit" class="btn-place-order" id="place-order-btn" form="place_order_form">
+            Place Order →
+          </button>
+
+        </div>
+      </div>
+
     </div>
 
   </div>

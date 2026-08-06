@@ -247,26 +247,43 @@ def validate_address_data(data):
     district = data.get("district", "").strip()
     state = data.get("state", "").strip()
 
-    if not re.fullmatch(r"[A-Za-z]+(?:[\s-][A-Za-z]+)*", name):
-        errors.append("Invalid full name.")
+    if not name:
+        errors.append("Please enter your full name.")
+    elif not re.fullmatch(r"[A-Za-z]+(?:[\s-][A-Za-z]+)*", name):
+        errors.append("Full name should contain only letters, spaces or hyphens (e.g. 'Ramesh Kumar').")
 
-    if not re.fullmatch(r"[6-9]\d{9}", mobile):
-        errors.append("Invalid mobile number.")
+    if not mobile:
+        errors.append("Please enter a mobile number.")
+    elif not re.fullmatch(r"[6-9]\d{9}", mobile):
+        errors.append("Enter a valid 10-digit Indian mobile number starting with 6-9.")
 
-    if not re.fullmatch(r"[1-9]\d{5}", pincode):
-        errors.append("Invalid pincode.")
+    if not pincode:
+        errors.append("Please enter a pincode.")
+    elif not re.fullmatch(r"[1-9]\d{5}", pincode):
+        errors.append("Enter a valid 6-digit pincode.")
 
-    if len(building) < 3:
-        errors.append("Building name is too short.")
+    if not building:
+        errors.append("Please enter your building/apartment name.")
+    elif len(building) < 3 or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9,./#\- ]*", building):
+        errors.append("Building/Apartment must be at least 3 characters (letters, numbers, ',./#-' allowed).")
 
-    if len(street) < 3:
-        errors.append("Street name is too short.")
+    if not street:
+        errors.append("Please enter your street/locality.")
+    elif len(street) < 3 or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9,./#\- ]*", street):
+        errors.append("Street/Locality must be at least 3 characters (letters, numbers, ',./#-' allowed).")
 
-    if not re.fullmatch(r"[A-Za-z ]+", district):
-        errors.append("Invalid district name.")
+    if city and not re.fullmatch(r"[A-Za-z]+(?:[\s-][A-Za-z]+)*", city):
+        errors.append("City should contain only letters and spaces.")
 
-    if state not in list_of_states_in_india:
-        errors.append("Invalid state selected.")
+    if not district:
+        errors.append("Please enter your district.")
+    elif not re.fullmatch(r"[A-Za-z]+(?:[\s-][A-Za-z]+)*", district):
+        errors.append("District should contain only letters and spaces.")
+
+    if not state:
+        errors.append("Please select a state.")
+    elif state not in list_of_states_in_india:
+        errors.append("Please select a valid state from the list.")
 
     return errors
 
@@ -274,15 +291,39 @@ def validate_address_data(data):
 
 
 
+def _address_initial(address=None, form_data=None):
+    """Build the field values to prefill the address form with."""
+    fields = ["name", "pincode", "mobile", "building", "street", "city", "district", "state"]
+    if form_data:
+        return {f: form_data.get(f, "") for f in fields}
+    if address:
+        return {f: getattr(address, f) for f in fields}
+    return {f: "" for f in fields}
+
+
+
 @customer_required
 def new_address(request):
+    
+    from product.views import _build_checkout_context
     if request.method == "POST":
         errors = validate_address_data(request.POST)
 
         if errors:
             for error in errors:
-                messages.error(request, error)
-            return redirect("new-address")
+                messages.error(request, error, extra_tags="address")
+
+            if "checkout_submit" in request.POST:
+                
+                context = _build_checkout_context(request)
+                context["new_address_initial"] = _address_initial(form_data=request.POST)
+                return render(request, "customer/checkout.html", context)
+
+          
+            return render(request, "customer/address_form.html", {
+                "states": list_of_states_in_india,
+                "initial": _address_initial(form_data=request.POST),
+            })
 
         name = request.POST["name"].strip().title()
         mobile = request.POST["mobile"].strip()
@@ -296,28 +337,18 @@ def new_address(request):
         customer = _get_customer(request)
 
         address_parts = [
-            name,
-            building,
-            street,
+            name, building, street,
             city if city else None,
             f"{district}, {state}",
             f"Pincode - {pincode}",
             f"Mobile: {mobile}",
         ]
-
         address_text = "\n".join(filter(None, address_parts))
 
         address = Address.objects.create(
-            customer=customer,
-            name=name,
-            mobile=mobile,
-            pincode=pincode,
-            building=building,
-            street=street,
-            city=city,
-            district=district,
-            state=state,
-            address_text=address_text,
+            customer=customer, name=name, mobile=mobile, pincode=pincode,
+            building=building, street=street, city=city,
+            district=district, state=state, address_text=address_text,
         )
 
         if not Address.objects.filter(customer=customer).exclude(id=address.id).exists():
@@ -327,7 +358,8 @@ def new_address(request):
         return redirect("checkout" if "checkout_submit" in request.POST else "customer-addresses")
 
     return render(request, "customer/address_form.html", {
-        "states": list_of_states_in_india
+        "states": list_of_states_in_india,
+        "initial": _address_initial(),
     })
 
 
@@ -338,31 +370,41 @@ def edit_address(request, address_id):
     """Edit an address; address must belong to the current customer."""
     customer = _get_customer(request)
     address = get_object_or_404(Address, id=address_id, customer=customer)
-    if request.method == "POST":
-        name = request.POST.get("name").title()
-        pincode = int(request.POST.get("pincode"))
-        mobile = int(request.POST.get("mobile"))
-        building = request.POST.get("building").title()
-        street = request.POST.get("street").title()
-        city = request.POST.get("city").title()
-        district = request.POST.get("district").title()
-        state = request.POST.get("state").title()
-        address_parts = [
-            name,
-            building,
-            street,
-            f"{district}, {state}",
-            f"Pincode: {int(pincode)}",
-            f"Mobile: {int(mobile)}",
-        ]
-        if city:
-            address_parts.insert(3, city)
-        address_text = "\n".join(address_parts)
 
-        address.customer = customer
+    if request.method == "POST":
+        errors = validate_address_data(request.POST)
+
+        if errors:
+            for error in errors:
+                messages.error(request, error, extra_tags="address")
+                
+            return render(request, "customer/address_form.html", {
+                "address": address,
+                "states": list_of_states_in_india,
+                "initial": _address_initial(form_data=request.POST),
+            })
+
+        name = request.POST["name"].strip().title()
+        mobile = request.POST["mobile"].strip()
+        pincode = request.POST["pincode"].strip()
+        building = request.POST["building"].strip().title()
+        street = request.POST["street"].strip().title()
+        city = request.POST.get("city", "").strip().title()
+        district = request.POST["district"].strip().title()
+        state = request.POST["state"].strip()
+
+        address_parts = [
+            name, building, street,
+            city if city else None,
+            f"{district}, {state}",
+            f"Pincode - {pincode}",
+            f"Mobile: {mobile}",
+        ]
+        address_text = "\n".join(filter(None, address_parts))
+
         address.name = name
-        address.pincode = pincode
         address.mobile = mobile
+        address.pincode = pincode
         address.building = building
         address.street = street
         address.city = city
@@ -373,9 +415,11 @@ def edit_address(request, address_id):
 
         return redirect("customer-addresses")
 
-    context = {"address": address, "states": list_of_states_in_india}
-    return render(request, "customer/address_form.html", context)
-
+    return render(request, "customer/address_form.html", {
+        "address": address,
+        "states": list_of_states_in_india,
+        "initial": _address_initial(address=address),
+    })
 
 
 

@@ -215,18 +215,15 @@ def remove_favourite_item(request, favourite_item_id):
 
 
 
-@customer_required
-def checkout(request):
-    """Checkout: cart summary, addresses, payment method, category offers and wallet."""
-    customer = _get_customer(request)
+def _build_checkout_context(request, customer=None):
+    """Rebuild the full checkout page context (cart, totals, addresses, wallet)."""
+    customer = customer or _get_customer(request)
     cart, _ = Cart.objects.get_or_create(customer=customer)
     cart_items = (
         CartItem.objects.filter(cart=cart)
         .select_related("product", "product__main_category", "inventory")
         .prefetch_related("product__product_images")
     )
-    if not cart_items.exists():
-        return redirect("cart")
 
     wallet, _ = Wallet.objects.get_or_create(customer=customer)
     category_ids = list({ci.product.main_category_id for ci in cart_items})
@@ -243,9 +240,7 @@ def checkout(request):
         cart_item.product.primary_image = (
             cart_item.product.product_images.order_by("priority").first()
         )
-        offer_discount = offers_by_category.get(
-            cart_item.product.main_category_id, 0
-        )
+        offer_discount = offers_by_category.get(cart_item.product.main_category_id, 0)
         amount = cart_item.quantity * cart_item.inventory.price
         total_amount += amount
         total_offer += round(amount * offer_discount / 100)
@@ -254,9 +249,9 @@ def checkout(request):
     cart.total_offer = total_offer
     cart.remaining_amount = total_amount - total_offer
     cart.save()
-    
+
     addresses = Address.objects.filter(customer=customer)
-    return render(request, "customer/checkout.html", {
+    return {
         "customer": customer,
         "cart_items": cart_items,
         "cart": cart,
@@ -265,8 +260,27 @@ def checkout(request):
         "selected_address_id": request.session.get("address_id"),
         "selected_payment_method": request.session.get("payment_method"),
         "wallet_balance": wallet.balance,
-        "remaining_amount": total_amount - total_offer
-    })
+        "remaining_amount": total_amount - total_offer,
+    }
+
+
+
+
+@customer_required
+def checkout(request):
+    """Checkout: cart summary, addresses, payment method, category offers and wallet."""
+    customer = _get_customer(request)
+    cart, _ = Cart.objects.get_or_create(customer=customer)
+    if not CartItem.objects.filter(cart=cart).exists():
+        return redirect("cart")
+
+    context = _build_checkout_context(request, customer=customer)
+    return render(request, "customer/checkout.html", context)
+
+
+
+
+
 
 
 
