@@ -105,34 +105,80 @@ def add_to_cart(request, product_id):
 
 
 
+
+
 @customer_required
 def update_cart_item(request, cart_item_id):
     if request.method != "POST":
         return redirect("cart")
-        
+
     customer = _get_customer(request)
     cart = get_object_or_404(Cart, customer=customer)
-    cart_item = get_object_or_404(CartItem, id=cart_item_id, cart=cart)
-    
-    quantity = int(request.POST.get("product-quantity", 1))
-    size = request.POST.get("product-size")
-    inventory = get_object_or_404(Inventory, product=cart_item.product, size=size)
+    cart_item = get_object_or_404(
+        CartItem,
+        id=cart_item_id,
+        cart=cart
+    )
 
-    if quantity < 1:                                         
-        messages.warning(request, "Quantity must be at least 1.")
+    try:
+        quantity = int(request.POST.get("product-quantity", 1))
+    except (TypeError, ValueError):
+        quantity = 1
+
+    size = request.POST.get("product-size")
+
+    inventory = get_object_or_404(
+        Inventory,
+        product=cart_item.product,
+        size=size
+    )
+
+    if quantity < 1:
+        message = "Quantity must be at least 1."
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": False,
+                "message": message
+            }, status=400)
+
+        messages.warning(request, message)
         return redirect("cart")
-    
+
     if quantity > 10:
-        messages.warning(request, "Maximum limit is 10 units.")
+        message = "Maximum limit is 10 units."
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": False,
+                "message": message
+            }, status=400)
+
+        messages.warning(request, message)
         return redirect("cart")
 
     if quantity > inventory.stock:
-        messages.error(request, f"Only {inventory.stock} left in stock.")
-        return redirect("cart") 
+        message = f"Only {inventory.stock} left in stock."
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": False,
+                "message": message
+            }, status=400)
+
+        messages.error(request, message)
+        return redirect("cart")
 
     cart_item.quantity = quantity
     cart_item.inventory = inventory
     cart_item.save()
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({
+            "success": True,
+            "quantity": cart_item.quantity
+        })
+
     return redirect("cart")
 
 

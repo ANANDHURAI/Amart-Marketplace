@@ -215,45 +215,100 @@
 {% block extra_scripts %}
 <script>
     $(document).ready(function() {
-        
-        function showLimitPopup() {
-            $('#limit-toast').fadeIn(400).delay(2000).fadeOut(400);
+
+        function showLimitPopup(message) {
+            $('#limit-toast')
+                .text(message)
+                .fadeIn(400)
+                .delay(2000)
+                .fadeOut(400);
         }
 
-        // Handling Plus Button
+        function updateQuantity(id, quantity, oldQuantity) {
+            var form = $('#form-' + id);
+            var input = $('#qty-' + id);
+
+            $.ajax({
+                url: form.attr('action'),
+                type: 'POST',
+                data: {
+                    'product-quantity': quantity,
+                    'product-size': form.find('input[name="product-size"]').val(),
+                    'csrfmiddlewaretoken': form.find('input[name="csrfmiddlewaretoken"]').val()
+                },
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+
+                success: function(response) {
+                    if (response.success) {
+                        input.val(response.quantity);
+                    }
+                },
+
+                error: function(xhr) {
+                    input.val(oldQuantity);
+
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        showLimitPopup(xhr.responseJSON.message);
+                    }
+                }
+            });
+        }
+
+
+        // PLUS
         $('.plus').click(function(e) {
             e.preventDefault();
+
             var id = $(this).data('id');
             var input = $('#qty-' + id);
             var currentVal = parseInt(input.val());
-            var stock = parseInt($(this).data('stock'));  // ← add this
-            var maxAllowed = Math.min(10, stock); 
-            
+            var stock = parseInt($(this).data('stock'));
+
+            var maxAllowed = Math.min(10, stock);
+
             if (currentVal < maxAllowed) {
-                input.val(currentVal + 1);
-                $('#form-' + id).submit();
+
+                var newQuantity = currentVal + 1;
+
+                input.val(newQuantity);
+
+                updateQuantity(id, newQuantity, currentVal);
+
             } else {
-                // Customize message depending on which limit was hit
+
                 if (stock < 10) {
-                    $('#limit-toast').text('Only ' + stock + ' item(s) available in stock!').fadeIn(400).delay(2000).fadeOut(400);
+                    showLimitPopup(
+                        'Only ' + stock + ' item(s) available in stock!'
+                    );
                 } else {
-                    showLimitPopup();
+                    showLimitPopup(
+                        'Maximum 10 quantity allowed per customer'
+                    );
                 }
             }
         });
 
-        // Handling Minus Button
+
+        // MINUS
         $('.minus').click(function(e) {
             e.preventDefault();
+
             var id = $(this).data('id');
             var input = $('#qty-' + id);
             var currentVal = parseInt(input.val());
-            
+
             if (currentVal > 1) {
-                input.val(currentVal - 1);
-                $('#form-' + id).submit();
+
+                var newQuantity = currentVal - 1;
+
+                input.val(newQuantity);
+
+                updateQuantity(id, newQuantity, currentVal);
             }
         });
+
     });
 </script>
 {% endblock %}
