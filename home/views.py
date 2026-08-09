@@ -4,13 +4,15 @@ Home app views: landing, shop listing, and product detail.
 All product listings use approved_objects and only show in-stock items.
 Query optimization: prefetch_related for images/inventory; batch favourite checks.
 """
-from django.shortcuts import render, get_object_or_404
+
+
+from django.shortcuts import render
 from django.core.paginator import Paginator
-from django.db.models import Sum, Q, Min, Max
+from django.db.models import Sum, Q, Min
 from django.db.models.functions import Lower
-from product.models import Product, Category, ProductImage, Inventory
+
+from product.models import Product, Category
 from customer.models import FavouriteItem
-from aadmin.models import CategoryOffer
 
 
 def _enrich_products_with_display_data(products, request):
@@ -74,76 +76,146 @@ def home(request):
 
 
 
-
 def shop(request):
     title = "Shop"
-    
-    # 1. Retrieve filter values from Session or POST
+
     if request.method == "POST":
-        sort_by = request.POST.get("sort_by", "")
-        selected_category = request.POST.get("selected_category", "")
-        min_price = request.POST.get("min_price", "")
-        max_price = request.POST.get("max_price", "")
-        
-        # Store in session for persistence
+        sort_by = request.POST.get("sort_by", "").strip()
+        selected_category = request.POST.get(
+            "selected_category", ""
+        ).strip()
+        min_price = request.POST.get("min_price", "").strip()
+        max_price = request.POST.get("max_price", "").strip()
+
         request.session["sort_by"] = sort_by
         request.session["selected_category"] = selected_category
         request.session["min_price"] = min_price
         request.session["max_price"] = max_price
+
     else:
         sort_by = request.session.get("sort_by", "")
-        selected_category = request.session.get("selected_category", "")
+        selected_category = request.session.get(
+            "selected_category", ""
+        )
         min_price = request.session.get("min_price", "")
         max_price = request.session.get("max_price", "")
 
-    # 2. Base Queryset (Optimized)
+    try:
+        min_price_value = int(min_price) if min_price else None
+    except (TypeError, ValueError):
+        min_price_value = None
+        min_price = ""
+
+    try:
+        max_price_value = int(max_price) if max_price else None
+    except (TypeError, ValueError):
+        max_price_value = None
+        max_price = ""
+
+
+    invalid_price_range = (
+        min_price_value is not None
+        and max_price_value is not None
+        and min_price_value > max_price_value
+    )
+
     products = Product.approved_objects.filter(
+        is_available=True,
         main_category__is_deleted=False,
         inventory_sizes__is_active=True,
-        inventory_sizes__stock__gt=0
+        inventory_sizes__stock__gt=0,
     ).distinct()
 
-    # 3. Apply Filters
+   
     search = request.GET.get("search", "").strip()
+
     if search:
-        products = products.filter(Q(name__icontains=search) | Q(description__icontains=search))
-    
+        products = products.filter(
+            Q(name__icontains=search)
+            | Q(description__icontains=search)
+        )
+
     if selected_category:
-        products = products.filter(main_category_id=selected_category)
+        products = products.filter(
+            main_category_id=selected_category
+        )
 
-    # Price Range Filter Logic
-    if min_price:
-        products = products.filter(inventory_sizes__price__gte=min_price)
-    if max_price:
-        products = products.filter(inventory_sizes__price__lte=max_price)
+    products = products.annotate(
+        shop_price_db=Min(
+            "inventory_sizes__price",
+            filter=Q(
+                inventory_sizes__is_active=True,
+                inventory_sizes__stock__gt=0,
+            ),
+        )
+    )
 
-    # 4. Apply Sorting
-        
+   
+    if invalid_price_range:
+        products = products.none()
+
+    else:
+        if min_price_value is not None:
+            products = products.filter(
+                shop_price_db__gte=min_price_value
+            )
+
+        if max_price_value is not None:
+            products = products.filter(
+                shop_price_db__lte=max_price_value
+            )
+
     if sort_by == "price_asc":
-        products = products.annotate(min_p=Min("inventory_sizes__price")).order_by("min_p")
+        products = products.order_by(
+            "shop_price_db"
+        )
+
     elif sort_by == "price_desc":
-        products = products.annotate(max_p=Max("inventory_sizes__price")).order_by("-max_p")
+        products = products.order_by(
+            "-shop_price_db"
+        )
+
     elif sort_by == "popularity":
-        products = products.annotate(total_sold=Sum("orderitem__quantity")).order_by("-total_sold")
+        products = products.annotate(
+            total_sold=Sum("orderitem__quantity")
+        ).order_by("-total_sold")
+
     elif sort_by == "new":
         products = products.order_by("-created_at")
+
     elif sort_by == "name_asc":
-        # Industry level: sort by lowercase name to avoid Case Sensitivity issues
-        products = products.annotate(name_lower=Lower('name')).order_by("name_lower")
+        products = products.annotate(
+            name_lower=Lower("name")
+        ).order_by("name_lower")
+
     elif sort_by == "name_desc":
-        products = products.annotate(name_lower=Lower('name')).order_by("-name_lower")
+        products = products.annotate(
+            name_lower=Lower("name")
+        ).order_by("-name_lower")
+
     else:
-        # Default sort (newest first is usually better than -id)
         products = products.order_by("-created_at")
 
-    # 5. Performance Optimization & Pagination
-    products = products.prefetch_related("product_images", "inventory_sizes")
-    paginator = Paginator(products, 9) # Increased per page for better UI
+    products = products.prefetch_related(
+        "product_images",
+        "inventory_sizes",
+    ).distinct()
+
+  
+    paginator = Paginator(products, 9)
+
     page_number = request.GET.get("page")
     paged_products = paginator.get_page(page_number)
 
-    _enrich_products_with_display_data(paged_products, request)
-    categories = Category.objects.filter(is_deleted=False)
+    _enrich_products_with_display_data(
+        paged_products,
+        request
+    )
+
+   
+    categories = Category.objects.filter(
+        is_deleted=False
+    )
 
     context = {
         "products": paged_products,
@@ -154,8 +226,12 @@ def shop(request):
         "min_price": min_price,
         "max_price": max_price,
     }
-    return render(request, "home/shop.html", context)
 
+    return render(
+        request,
+        "home/shop.html",
+        context
+    )
 
 
 
