@@ -967,6 +967,7 @@ def coupon_list(request):
 
 
 
+
 def validate_coupon_fields(code, discount, quantity, minimum_purchase):
     errors = []
 
@@ -977,10 +978,10 @@ def validate_coupon_fields(code, discount, quantity, minimum_purchase):
 
     try:
         discount = int(discount)
-        if discount <= 0:
-            errors.append("Discount must be greater than zero.")
+        if discount < 1 or discount > 99:
+            errors.append("Discount must be a percentage between 1 and 99.")
     except:
-        errors.append("Enter a valid discount amount.")
+        errors.append("Enter a valid discount percentage.")
 
     try:
         quantity = int(quantity)
@@ -996,13 +997,8 @@ def validate_coupon_fields(code, discount, quantity, minimum_purchase):
     except:
         errors.append("Enter a valid minimum purchase amount.")
 
-    if isinstance(discount, int) and isinstance(minimum_purchase, int):
-        if discount >= minimum_purchase:
-            errors.append(
-                "Discount amount must be less than minimum purchase amount."
-            )
-
     return errors
+
 
 
 
@@ -1085,6 +1081,8 @@ def edit_coupon(request, id):
     return render(request, "aadmin/coupon-form.html", {
         "coupon": coupon
     })
+
+
 
 
 @admin_login_required

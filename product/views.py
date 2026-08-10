@@ -270,6 +270,15 @@ def _build_checkout_context(request, customer=None):
         .select_related("product", "product__main_category", "inventory")
         .prefetch_related("product__product_images")
     )
+    
+    available_coupons = Coupon.objects.filter(
+        is_active=True, quantity__gt=0
+    ).exclude(
+        id__in=Order.objects.filter(
+            customer=customer, coupon__isnull=False
+        ).values_list("coupon_id", flat=True)
+    ).order_by("-created_at")
+    
 
     wallet, _ = Wallet.objects.get_or_create(customer=customer)
     category_ids = list({ci.product.main_category_id for ci in cart_items})
@@ -307,6 +316,7 @@ def _build_checkout_context(request, customer=None):
         "selected_payment_method": request.session.get("payment_method"),
         "wallet_balance": wallet.balance,
         "remaining_amount": total_amount - total_offer,
+        "available_coupons": available_coupons,
     }
 
 
@@ -401,7 +411,7 @@ def place_order(request):
                 )
                 return redirect("checkout")
 
-            coupon_discount = min(coupon.discount, amount_after_offers)
+            coupon_discount = coupon.calculate_discount(amount_after_offers)
 
         final_amount = max(amount_after_offers - coupon_discount, 0)
 
@@ -486,7 +496,7 @@ def preview_coupon(request):
             ),
         })
 
-    coupon_discount = min(coupon.discount, remaining_amount)
+    coupon_discount = coupon.calculate_discount(remaining_amount)
     final_amount    = remaining_amount - coupon_discount
 
     return JsonResponse({

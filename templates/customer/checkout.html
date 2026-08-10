@@ -422,9 +422,32 @@
           </div>
         </div>
         <div class="block-body">
+
+          {% if available_coupons %}
+          <div class="available-coupons" style="margin-bottom: 1.2rem;">
+            <p class="address-section-label" style="margin-bottom: 0.6rem;">Available Coupons</p>
+            <div class="coupon-chip-list" style="display:flex; flex-direction:column; gap:8px;">
+              {% for coupon in available_coupons %}
+              <div class="coupon-chip" style="display:flex; align-items:center; justify-content:space-between; border:1.5px dashed var(--border); border-radius:2px; padding:10px 14px;">
+                <div>
+                  <span style="font-weight:600; letter-spacing:0.05em;">{{ coupon.code }}</span>
+                  <span style="font-size:12px; color:var(--muted); margin-left:8px;">
+                    {{ coupon.discount }}% off &middot; Min. purchase ₹{{ coupon.minimum_purchase }}
+                  </span>
+                </div>
+                <button type="button" class="btn-coupon btn-coupon-apply coupon-chip-apply"
+                        data-code="{{ coupon.code }}" style="padding:8px 16px;">
+                  Apply
+                </button>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
           <div class="coupon-row">
             <input type="text" class="coupon-input" id="coupon_input" name="coupon_code"
-                   placeholder="Have a discount coupon?" autocomplete="off">
+                  placeholder="Have a discount coupon?" autocomplete="off">
             <button type="button" class="btn-coupon btn-coupon-apply" id="apply-coupon-btn">Apply</button>
             <button type="button" class="btn-coupon btn-coupon-remove" id="remove-coupon-btn" style="display:none;">Remove</button>
           </div>
@@ -786,6 +809,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
   couponInput.addEventListener("keydown", function (e) {
     if (e.key === "Enter") { e.preventDefault(); applyBtn.click(); }
+  });
+
+  /* ── Coupon chip quick-apply ─────────────────────────── */
+  document.querySelectorAll('.coupon-chip-apply').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      couponInput.value = btn.dataset.code;
+      applyBtn.click();
+    });
   });
 
   /* ── Place order + confirmation ──────────────────────── */

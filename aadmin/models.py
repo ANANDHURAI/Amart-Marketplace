@@ -6,9 +6,13 @@ from django.utils import timezone
 
 
 
+
 class Coupon(models.Model):
     code = models.CharField(max_length=20, unique=True)
-    discount = models.PositiveIntegerField()
+    discount = models.PositiveIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(99)],
+        help_text="Discount percentage (1-99)."
+    )
     quantity = models.PositiveIntegerField(default=1)
     minimum_purchase = models.PositiveIntegerField()
     is_active = models.BooleanField(default=True)
@@ -17,6 +21,10 @@ class Coupon(models.Model):
 
     def __str__(self):
         return self.code
+
+    def calculate_discount(self, amount):
+        discount_amount = round(amount * self.discount / 100)
+        return min(discount_amount, amount)
 
 
 

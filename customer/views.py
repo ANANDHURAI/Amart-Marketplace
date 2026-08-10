@@ -602,12 +602,12 @@ def create_order(request):
             )
 
     amount_after_offers = subtotal - total_offer
-
+    
     coupon = None
     if coupon_code:
         coupon = Coupon.objects.filter(code=coupon_code).first()
         if coupon:
-            coupon_discount = min(coupon_discount, amount_after_offers)
+            coupon_discount = coupon.calculate_discount(amount_after_offers)
         else:
             coupon_discount = 0
 

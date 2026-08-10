@@ -58,22 +58,24 @@
 .page-btn:hover { border-color:var(--primary); color:var(--primary); text-decoration:none; }
 .page-current { padding:0 14px; height:34px; border-radius:var(--rs); background:var(--primary); color:var(--white); font-size:13px; font-weight:500; display:inline-flex; align-items:center; }
 
-/* Toast */
-.toast-container { position:fixed; top:20px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
-.toast { min-width:280px; max-width:360px; background:var(--white); border-radius:var(--rs); box-shadow:0 8px 30px rgba(0,0,0,.12); padding:14px 16px; display:flex; align-items:flex-start; gap:11px; pointer-events:all; border-left:3.5px solid var(--primary); animation:toastIn .3s cubic-bezier(.34,1.56,.64,1); position:relative; overflow:hidden; transition:opacity .4s,transform .4s; }
-.toast.toast-success { border-left-color:var(--success); }
-.toast.toast-error   { border-left-color:var(--danger);  }
-.toast-icon { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; }
-.toast-success .toast-icon { background:var(--success-light); color:var(--success); }
-.toast-error   .toast-icon { background:var(--danger-light);  color:var(--danger);  }
-.toast-body { flex:1; }
-.toast-title { font-size:13.5px; font-weight:600; color:var(--text); }
-.toast-msg   { font-size:12.5px; color:var(--muted); margin-top:2px; }
-.toast-close { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; }
-.toast-progress { position:absolute; bottom:0; left:0; height:3px; background:currentColor; opacity:.2; animation:progressShrink 3.5s linear forwards; }
-@keyframes toastIn { from{opacity:0;transform:translateX(30px) scale(.95)} to{opacity:1;transform:none} }
-@keyframes progressShrink { from{width:100%} to{width:0} }
-.toast.hiding { opacity:0; transform:translateX(20px); }
+/* Custom toast — namespaced as "cx-toast" to avoid colliding with Bootstrap's
+   built-in .toast component (Bootstrap forces display:none on .toast:not(.show)
+   with !important, which was hiding our toasts instantly). */
+.cx-toast-container { position:fixed; top:20px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
+.cx-toast { min-width:280px; max-width:360px; background:var(--white); border-radius:var(--rs); box-shadow:0 8px 30px rgba(0,0,0,.12); padding:14px 16px; display:flex; align-items:flex-start; gap:11px; pointer-events:all; border-left:3.5px solid var(--primary); animation:cxToastIn .3s cubic-bezier(.34,1.56,.64,1); position:relative; overflow:hidden; transition:opacity .4s,transform .4s; }
+.cx-toast.cx-success { border-left-color:var(--success); }
+.cx-toast.cx-error   { border-left-color:var(--danger);  }
+.cx-toast-icon { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; }
+.cx-success .cx-toast-icon { background:var(--success-light); color:var(--success); }
+.cx-error   .cx-toast-icon { background:var(--danger-light);  color:var(--danger);  }
+.cx-toast-body { flex:1; }
+.cx-toast-title { font-size:13.5px; font-weight:600; color:var(--text); }
+.cx-toast-msg   { font-size:12.5px; color:var(--muted); margin-top:2px; }
+.cx-toast-close { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; }
+.cx-toast-progress { position:absolute; bottom:0; left:0; height:3px; background:currentColor; opacity:.2; animation-name:cxProgressShrink; animation-timing-function:linear; animation-fill-mode:forwards; }
+@keyframes cxToastIn { from{opacity:0;transform:translateX(30px) scale(.95)} to{opacity:1;transform:none} }
+@keyframes cxProgressShrink { from{width:100%} to{width:0} }
+.cx-toast.cx-hiding { opacity:0; transform:translateX(20px); }
 
 /* Modal */
 .modal-overlay { position:fixed; inset:0; background:rgba(26,29,46,.45); backdrop-filter:blur(3px); z-index:10000; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .2s; }
@@ -91,7 +93,7 @@
 .modal-btn-confirm:hover { background:#c0303b; }
 </style>
 
-<div class="toast-container" id="toastContainer"></div>
+<div class="cx-toast-container" id="cxToastContainer"></div>
 {% if messages %}<div id="dj-msgs" style="display:none">{% for m in messages %}<span data-tags="{{ m.tags }}" data-text="{{ m }}"></span>{% endfor %}</div>{% endif %}
 
 <div class="modal-overlay" id="confirmModal">
@@ -138,7 +140,7 @@
       {% for coupon in coupons %}
       <tr>
         <td><span class="coupon-code">{{ coupon.code }}</span></td>
-        <td class="text-center font-weight-bold">₹{{ coupon.discount }}</td>
+        <td class="text-center font-weight-bold">{{ coupon.discount }}</td>
         <td class="text-center" style="color:var(--muted)">{{ coupon.quantity }}</td>
         <td class="text-center" style="color:var(--muted)">₹{{ coupon.minimum_purchase }}</td>
         <td class="text-center">
@@ -178,30 +180,67 @@
 </div>
 
 <script>
-function showToast(msg, type) {
-  const cfg = {success:{icon:'mdi-check',title:'Success'}, error:{icon:'mdi-alert-circle',title:'Error'}};
-  const c = cfg[type] || {icon:'mdi-information',title:'Info'};
-  const t = document.createElement('div');
-  t.className = `toast toast-${type}`;
-  t.innerHTML = `<div class="toast-icon"><i class="mdi ${c.icon}"></i></div>
-    <div class="toast-body"><div class="toast-title">${c.title}</div><div class="toast-msg">${msg}</div></div>
-    <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
-    <div class="toast-progress"></div>`;
-  document.getElementById('toastContainer').appendChild(t);
-  setTimeout(() => { t.classList.add('hiding'); setTimeout(() => t.remove(), 400); }, 3500);
-}
-document.addEventListener('DOMContentLoaded', () => {
-  const box = document.getElementById('dj-msgs');
-  if (!box) return;
-  box.querySelectorAll('span').forEach(el => showToast(el.dataset.text, el.dataset.tags.includes('success') ? 'success' : 'error'));
-  box.remove();
-});
-function openDeleteModal(url, code, qty) {
-  document.getElementById('modalDesc').textContent = `"${code}" will be permanently deleted. Current quantity: ${qty}.`;
-  document.getElementById('modalConfirmBtn').href = url;
-  document.getElementById('confirmModal').classList.add('show');
-}
-function closeModal() { document.getElementById('confirmModal').classList.remove('show'); }
-document.getElementById('confirmModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+(function () {
+  const MIN_DURATION = 5000;
+
+  function cxShowToast(msgs, type) {
+    const cfg = { success: { icon: 'mdi-check', title: 'Success' }, error: { icon: 'mdi-alert-circle', title: 'Error' } };
+    const c = cfg[type] || { icon: 'mdi-information', title: 'Info' };
+    const container = document.getElementById('cxToastContainer');
+    if (!container) return;
+
+    const body = msgs.length > 1
+      ? `<ul style="margin:2px 0 0;padding-left:16px;">${msgs.map(m => `<li>${m}</li>`).join('')}</ul>`
+      : `<div class="cx-toast-msg">${msgs[0]}</div>`;
+
+    const t = document.createElement('div');
+    t.className = `cx-toast cx-${type}`;
+    t.innerHTML = `<div class="cx-toast-icon"><i class="mdi ${c.icon}"></i></div>
+      <div class="cx-toast-body"><div class="cx-toast-title">${c.title}</div>${body}</div>
+      <button class="cx-toast-close" type="button">&times;</button>
+      <div class="cx-toast-progress" style="animation-duration:${MIN_DURATION}ms"></div>`;
+    container.appendChild(t);
+
+    const dismiss = () => {
+      if (t.classList.contains('cx-hiding')) return;
+      t.classList.add('cx-hiding');
+      setTimeout(() => t.remove(), 400);
+    };
+    t.querySelector('.cx-toast-close').addEventListener('click', dismiss);
+    setTimeout(dismiss, MIN_DURATION);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const box = document.getElementById('dj-msgs');
+    if (!box || box.dataset.consumed === 'true') return;
+    box.dataset.consumed = 'true';
+
+    // group by type, dedupe identical text, one toast per type
+    const grouped = { success: [], error: [] };
+    const seen = new Set();
+    box.querySelectorAll('span').forEach(el => {
+      const type = el.dataset.tags.includes('success') ? 'success' : 'error';
+      const key = type + '|' + el.dataset.text;
+      if (seen.has(key)) return;
+      seen.add(key);
+      grouped[type].push(el.dataset.text);
+    });
+
+    if (grouped.success.length) cxShowToast(grouped.success, 'success');
+    if (grouped.error.length) cxShowToast(grouped.error, 'error');
+  });
+
+  window.openDeleteModal = function (url, code, qty) {
+    document.getElementById('modalDesc').textContent = `"${code}" will be permanently deleted. Current quantity: ${qty}.`;
+    document.getElementById('modalConfirmBtn').href = url;
+    document.getElementById('confirmModal').classList.add('show');
+  };
+  window.closeModal = function () {
+    document.getElementById('confirmModal').classList.remove('show');
+  };
+  document.getElementById('confirmModal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+})();
 </script>
 {% endblock %}
