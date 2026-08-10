@@ -792,7 +792,12 @@ document.addEventListener("DOMContentLoaded", function () {
       } else {
         setFeedback(data.message, false);
         resetCoupon();
-        couponInput.readOnly = false;
+        
+        const chip = document.querySelector(`.coupon-chip-apply[data-code="${code}"]`);
+        if (chip) {
+          chip.closest('.coupon-chip').style.opacity = "0.4";
+          chip.disabled = true;
+        }
       }
     })
     .catch(() => {

@@ -51,22 +51,21 @@ tbody td{padding:13px 16px;font-size:14px;color:var(--text);vertical-align:middl
 .mbtn-cancel:hover{background:var(--border);}
 .mbtn-del{background:var(--danger);color:#fff;}
 .mbtn-del:hover{background:#c0303b;}
-/* toast */
-.tc{position:fixed;top:20px;right:22px;z-index:10000;display:flex;flex-direction:column;gap:9px;pointer-events:none;}
-.toast{min-width:270px;background:var(--white);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.11);padding:13px 15px;display:flex;align-items:flex-start;gap:10px;pointer-events:all;border-left:3.5px solid var(--primary);animation:tIn .3s cubic-bezier(.34,1.56,.64,1);transition:opacity .4s,transform .4s;position:relative;overflow:hidden;}
-.toast.ts{border-left-color:#0ead69;}.toast.te{border-left-color:var(--danger);}
-.tico{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
-.ts .tico{background:#e6faf2;color:#0ead69;}.te .tico{background:var(--danger-light);color:var(--danger);}
-.ttitle{font-size:13px;font-weight:600;color:var(--text);}.tmsg{font-size:12px;color:var(--muted);margin-top:1px;}
-.tclose{background:none;border:none;color:var(--muted);cursor:pointer;margin-left:auto;font-size:14px;}
-.tprog{position:absolute;bottom:0;left:0;height:3px;background:currentColor;opacity:.2;animation:prog 7s linear forwards;}
-.toast.hiding{opacity:0;transform:translateX(18px);}
-@keyframes tIn{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
-@keyframes prog{from{width:100%}to{width:0}}
+/* manual messages */
+.msg-box{display:flex;align-items:flex-start;gap:9px;padding:12px 15px;border-radius:8px;font-size:13px;margin-bottom:14px;border-left:3.5px solid var(--primary);background:var(--white);box-shadow:0 2px 10px rgba(0,0,0,.05);}
+.msg-box.msg-success{border-left-color:var(--success);background:var(--success-light);color:#065f46;}
+.msg-box.msg-error{border-left-color:var(--danger);background:var(--danger-light);color:#991b1b;}
+.msg-box i{font-size:15px;margin-top:1px;}
 </style>
 
-<div class="tc" id="tc"></div>
-{% if messages %}<div id="dm" style="display:none">{% for m in messages %}<span data-tags="{{ m.tags }}" data-text="{{ m }}"></span>{% endfor %}</div>{% endif %}
+{% if messages %}
+  {% for m in messages %}
+    <div class="msg-box {% if 'success' in m.tags %}msg-success{% else %}msg-error{% endif %}">
+      <i class="mdi {% if 'success' in m.tags %}mdi-check-circle-outline{% else %}mdi-alert-circle-outline{% endif %}"></i>
+      <span>{{ m }}</span>
+    </div>
+  {% endfor %}
+{% endif %}
 
 <div class="overlay" id="delModal">
   <div class="mbox">
@@ -135,7 +134,7 @@ tbody td{padding:13px 16px;font-size:14px;color:var(--text);vertical-align:middl
 </div>
 {% if offers.has_other_pages %}
   <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:20px;flex-wrap:wrap;">
-      
+
       {% if offers.has_previous %}
           <a href="?page={{ offers.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}"
             style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--text);background:var(--white);font-size:13px;">
@@ -167,16 +166,6 @@ tbody td{padding:13px 16px;font-size:14px;color:var(--text);vertical-align:middl
 {% endif %}
 
 <script>
-function showToast(msg,type){
-  const t=document.createElement('div');t.className=`toast t${type[0]}`;
-  t.innerHTML=`<div class="tico"><i class="mdi mdi-${type==='success'?'check':'alert-circle'}"></i></div><div><div class="ttitle">${type==='success'?'Success':'Error'}</div><div class="tmsg">${msg}</div></div><button class="tclose" onclick="dim(this.parentElement)">&times;</button><div class="tprog"></div>`;
-  document.getElementById('tc').appendChild(t);setTimeout(()=>dim(t),5000);
-}
-function dim(t){if(!t||t.classList.contains('hiding'))return;t.classList.add('hiding');setTimeout(()=>t.remove(),400);}
-document.addEventListener('DOMContentLoaded',()=>{
-  const d=document.getElementById('dm');
-  if(d){d.querySelectorAll('span').forEach(s=>showToast(s.dataset.text,s.dataset.tags.includes('success')?'success':'error'));d.remove();}
-});
 function openDel(url,name){
   document.getElementById('mDesc').textContent=`Offer for "${name}" will be permanently deleted.`;
   document.getElementById('mConfirm').href=url;

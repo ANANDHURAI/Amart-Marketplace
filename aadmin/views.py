@@ -817,12 +817,32 @@ def update_order_status(request, order_item_id):
     if request.method == "POST":
         new_status = request.POST.get("new_status")
         order_item = get_object_or_404(OrderItem, id=order_item_id)
-        order_item.status = new_status
-        order_item.save()
-        messages.success(
-            request, f"Status for order item {order_item_id} updated to {new_status}"
-        )
+
+        if order_item.status == "cancelled" and new_status == "delivered":
+            messages.error(
+                request,
+                f"Order item {order_item_id} is cancelled and cannot be marked as delivered."
+            )
+            return redirect("order_list")
+
+        old_status = order_item.status
+
+        if old_status != new_status:
+            old_status_display = order_item.get_status_display()
+
+            order_item.status = new_status
+            order_item.save()
+
+            new_status_display = order_item.get_status_display()
+
+            messages.success(
+                request,
+                f"Order #{order_item.order.id} status changed from "
+                f"{old_status_display} to {new_status_display}."
+            )
+
     return redirect("order_list")
+
 
 
 

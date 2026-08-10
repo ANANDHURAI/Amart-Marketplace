@@ -4,7 +4,7 @@
 {% block content %}
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
-:root{--primary:#4361ee;--primary-light:#eef0fd;--danger:#e63946;--danger-light:#fef0f1;--text:#1a1d2e;--muted:#8b90a7;--border:#eaedf5;--bg:#f7f8fc;--white:#fff;}
+:root{--primary:#4361ee;--primary-light:#eef0fd;--danger:#e63946;--danger-light:#fef0f1;--success:#0ead69;--success-light:#e6faf2;--text:#1a1d2e;--muted:#8b90a7;--border:#eaedf5;--bg:#f7f8fc;--white:#fff;}
 *{font-family:'DM Sans',sans-serif;}
 .fp{max-width:560px;margin:0 auto;}
 .breadcrumb-link{display:inline-flex;align-items:center;gap:4px;color:var(--muted);text-decoration:none;font-size:14px;margin-bottom:18px;transition:.15s;}
@@ -24,25 +24,25 @@
 .btn-cancel:hover{background:var(--border);color:var(--text);text-decoration:none;}
 .btn-submit{display:inline-flex;align-items:center;gap:5px;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:9px 26px;font-size:13.5px;font-weight:500;cursor:pointer;transition:.2s;font-family:'DM Sans',sans-serif;}
 .btn-submit:hover{background:#3451d1;box-shadow:0 4px 14px rgba(67,97,238,.3);}
-/* toast */
-.tc{position:fixed;top:20px;right:22px;z-index:10000;display:flex;flex-direction:column;gap:9px;pointer-events:none;}
-.toast{min-width:270px;background:var(--white);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.11);padding:13px 15px;display:flex;align-items:flex-start;gap:10px;pointer-events:all;border-left:3.5px solid var(--primary);animation:tIn .3s cubic-bezier(.34,1.56,.64,1);transition:opacity .4s,transform .4s;position:relative;overflow:hidden;}
-.toast.ts{border-left-color:#0ead69;}.toast.te{border-left-color:var(--danger);}
-.tico{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
-.ts .tico{background:#e6faf2;color:#0ead69;}.te .tico{background:var(--danger-light);color:var(--danger);}
-.ttitle{font-size:13px;font-weight:600;color:var(--text);}.tmsg{font-size:12px;color:var(--muted);margin-top:1px;}
-.tclose{background:none;border:none;color:var(--muted);cursor:pointer;margin-left:auto;font-size:14px;}
-.tprog{position:absolute;bottom:0;left:0;height:3px;background:currentColor;opacity:.2;animation:prog 7s linear forwards;}
-.toast.hiding{opacity:0;transform:translateX(18px);}
-@keyframes tIn{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
-@keyframes prog{from{width:100%}to{width:0}}
+/* manual messages */
+.msg-box{display:flex;align-items:flex-start;gap:9px;padding:12px 15px;border-radius:8px;font-size:13px;margin-bottom:12px;border-left:3.5px solid var(--primary);background:var(--white);box-shadow:0 2px 10px rgba(0,0,0,.05);}
+.msg-box.msg-success{border-left-color:var(--success);background:var(--success-light);color:#065f46;}
+.msg-box.msg-error{border-left-color:var(--danger);background:var(--danger-light);color:#991b1b;}
+.msg-box i{font-size:15px;margin-top:1px;}
 </style>
-
-<div class="tc" id="tc"></div>
-{% if messages %}<div id="dm" style="display:none">{% for m in messages %}<span data-tags="{{ m.tags }}" data-text="{{ m }}"></span>{% endfor %}</div>{% endif %}
 
 <div class="fp">
   <a href="{% url 'offer_list' %}" class="breadcrumb-link"><i class="mdi mdi-arrow-left"></i> Offers</a>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="msg-box {% if 'success' in m.tags %}msg-success{% else %}msg-error{% endif %}">
+        <i class="mdi {% if 'success' in m.tags %}mdi-check-circle-outline{% else %}mdi-alert-circle-outline{% endif %}"></i>
+        <span>{{ m }}</span>
+      </div>
+    {% endfor %}
+  {% endif %}
+
   <div class="card">
     <div class="card-head">
       <div class="card-head-icon"><i class="mdi {% if offer %}mdi-pencil{% else %}mdi-tag-plus{% endif %}"></i></div>
@@ -79,17 +79,4 @@
     </div>
   </div>
 </div>
-
-<script>
-function showToast(msg,type){
-  const t=document.createElement('div');t.className=`toast t${type[0]}`;
-  t.innerHTML=`<div class="tico"><i class="mdi mdi-${type==='success'?'check':'alert-circle'}"></i></div><div><div class="ttitle">${type==='success'?'Success':'Error'}</div><div class="tmsg">${msg}</div></div><button class="tclose" onclick="dim(this.parentElement)">&times;</button><div class="tprog"></div>`;
-  document.getElementById('tc').appendChild(t);setTimeout(()=>dim(t),5000);
-}
-function dim(t){if(!t||t.classList.contains('hiding'))return;t.classList.add('hiding');setTimeout(()=>t.remove(),400);}
-document.addEventListener('DOMContentLoaded',()=>{
-  const d=document.getElementById('dm');
-  if(d){d.querySelectorAll('span').forEach(s=>showToast(s.dataset.text,s.dataset.tags.includes('success')?'success':'error'));d.remove();}
-});
-</script>
 {% endblock %}
