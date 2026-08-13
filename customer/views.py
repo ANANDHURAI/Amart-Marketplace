@@ -19,7 +19,7 @@ from django.urls import reverse
 
 import razorpay
 from accounts.models import Customer
-from aadmin.models import CategoryOffer, Coupon
+from aadmin.models import CategoryOffer, Coupon, CustomerCoupon
 
 
 from .models import Address, Cart, CartItem, Order, OrderItem, Wallet
@@ -33,6 +33,25 @@ def _get_customer(request):
     if not request.user.is_authenticated or not request.user.is_customer:
         return None
     return get_object_or_404(Customer, pk=request.user.pk)
+
+
+
+def _get_customer_coupon_queryset(customer):
+    """
+    Coupons visible to this customer:
+    - public coupons (no linked CustomerCoupon row)
+    - coupons specifically issued to this customer
+    """
+    ineligible_ids = CustomerCoupon.objects.exclude(
+        customer=customer
+    ).values_list("coupon_ptr_id", flat=True)
+    return Coupon.objects.exclude(id__in=ineligible_ids)
+
+
+def _is_coupon_eligible_for_customer(coupon, customer):
+    """Use this when a coupon was already fetched by code (preview/place_order)."""
+    customer_coupon = getattr(coupon, "customercoupon", None)  # reverse OneToOne
+    return customer_coupon is None or customer_coupon.customer_id == customer.id
 
 
 def customer_required(view_func):
@@ -302,6 +321,7 @@ def _address_initial(address=None, form_data=None):
 
 
 
+
 @customer_required
 def new_address(request):
     
@@ -361,6 +381,7 @@ def new_address(request):
         "states": list_of_states_in_india,
         "initial": _address_initial(),
     })
+
 
 
 

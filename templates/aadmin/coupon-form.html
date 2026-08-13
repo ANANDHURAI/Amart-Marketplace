@@ -60,6 +60,12 @@
           <label class="fl">Coupon Code <span class="req">*</span></label>
           <input id="fCode" name="code" type="text" maxlength="20" class="fi" placeholder="e.g. SAVE20" value="{% if coupon %}{{ coupon.code }}{% endif %}">
         </div>
+        <div class="fg">
+          <label class="fl">Valid Until</label>
+          <input id="fValidUntil" name="valid_until" type="datetime-local" class="fi"
+                 value="{% if coupon.valid_until %}{{ coupon.valid_until|date:'Y-m-d\TH:i' }}{% endif %}">
+          <p class="fhint">Leave blank for no expiry.</p>
+        </div>
         <div class="row2">
           <div class="fg">
             <label class="fl">Discount (%) <span class="req">*</span></label>

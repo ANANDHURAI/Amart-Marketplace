@@ -960,8 +960,9 @@ def coupon_list(request):
         elif filter_option == "inactive_coupons":
             coupons = Coupon.objects.filter(is_active=False)
             request.session["selection"] = "inactive_coupons"
+        
         elif filter_option == "expired_coupons":
-            coupons = Coupon.objects.filter(quantity=0)
+            coupons = Coupon.objects.filter(valid_until__lt=timezone.now())
             request.session["selection"] = "expired_coupons"
 
     # Pagination
@@ -988,7 +989,9 @@ def coupon_list(request):
 
 
 
-def validate_coupon_fields(code, discount, quantity, minimum_purchase):
+
+from django.utils.dateparse import parse_datetime
+def validate_coupon_fields(code, discount, quantity, minimum_purchase, valid_until=None):
     errors = []
 
     if not code:
@@ -1017,7 +1020,17 @@ def validate_coupon_fields(code, discount, quantity, minimum_purchase):
     except:
         errors.append("Enter a valid minimum purchase amount.")
 
+    if valid_until:
+        parsed = parse_datetime(valid_until)
+        if not parsed:
+            errors.append("Enter a valid expiry date/time.")
+        elif timezone.is_naive(parsed):
+            parsed = timezone.make_aware(parsed)
+        if parsed and parsed <= timezone.now():
+            errors.append("Expiry date must be in the future.")
+
     return errors
+
 
 
 
@@ -1033,9 +1046,10 @@ def add_coupon(request):
         quantity = request.POST.get("quantity")
         minimum_purchase = request.POST.get("minimum_purchase")
         active = request.POST.get("active") == "1"
+        valid_until = request.POST.get("valid_until") or None
 
         errors = validate_coupon_fields(
-            code, discount, quantity, minimum_purchase
+            code, discount, quantity, minimum_purchase, valid_until
         )
 
         if Coupon.objects.filter(code=code).exists():
@@ -1046,12 +1060,17 @@ def add_coupon(request):
                 messages.error(request, error)
             return redirect("add_coupon")
 
+        parsed_valid_until = parse_datetime(valid_until) if valid_until else None
+        if parsed_valid_until and timezone.is_naive(parsed_valid_until):
+            parsed_valid_until = timezone.make_aware(parsed_valid_until)
+
         Coupon.objects.create(
             code=code,
             discount=int(discount),
             quantity=int(quantity),
             minimum_purchase=int(minimum_purchase),
             is_active=active,
+            valid_until=parsed_valid_until,
         )
 
         messages.success(request, "Coupon added successfully.")
@@ -1061,6 +1080,8 @@ def add_coupon(request):
         "title": title,
         "current_page": current_page
     })
+
+
 
 
 
@@ -1075,9 +1096,10 @@ def edit_coupon(request, id):
         quantity = request.POST.get("quantity")
         minimum_purchase = request.POST.get("minimum_purchase")
         active = request.POST.get("active") == "1"
+        valid_until = request.POST.get("valid_until") or None
 
         errors = validate_coupon_fields(
-            code, discount, quantity, minimum_purchase
+            code, discount, quantity, minimum_purchase, valid_until
         )
 
         if Coupon.objects.filter(code=code).exclude(id=coupon.id).exists():
@@ -1088,11 +1110,16 @@ def edit_coupon(request, id):
                 messages.error(request, error)
             return redirect("edit_coupon", id=coupon.id)
 
+        parsed_valid_until = parse_datetime(valid_until) if valid_until else None
+        if parsed_valid_until and timezone.is_naive(parsed_valid_until):
+            parsed_valid_until = timezone.make_aware(parsed_valid_until)
+
         coupon.code = code
         coupon.discount = int(discount)
         coupon.quantity = int(quantity)
         coupon.minimum_purchase = int(minimum_purchase)
         coupon.is_active = active
+        coupon.valid_until = parsed_valid_until
         coupon.save()
 
         messages.success(request, "Coupon updated successfully.")
@@ -1105,11 +1132,15 @@ def edit_coupon(request, id):
 
 
 
+
 @admin_login_required
 def delete_coupon(request, id):
     coupon = Coupon.objects.get(id=id)
     coupon.delete()
     return redirect("coupon_list")
+
+
+
 
 
 @admin_login_required

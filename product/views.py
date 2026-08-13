@@ -25,7 +25,8 @@ from customer.models import Address, Cart, CartItem, FavouriteItem, Order, Walle
 logger = logging.getLogger(__name__)
 from customer.views import _get_customer , customer_required ,create_order
 from customer.utils import list_of_states_in_india
-
+from django.utils import timezone
+from django.db.models import Q
 
 @customer_required
 def cart(request):
@@ -271,6 +272,7 @@ def remove_favourite_item(request, favourite_item_id):
 
 
 def _build_checkout_context(request, customer=None):
+    from customer.views import _get_customer_coupon_queryset
     """Rebuild the full checkout page context (cart, totals, addresses, wallet)."""
     customer = customer or _get_customer(request)
     cart, _ = Cart.objects.get_or_create(customer=customer)
@@ -282,6 +284,8 @@ def _build_checkout_context(request, customer=None):
     
     available_coupons = Coupon.objects.filter(
         is_active=True, quantity__gt=0
+    ).filter(
+        Q(valid_until__isnull=True) | Q(valid_until__gte=timezone.now())
     ).exclude(
         id__in=Order.objects.filter(
             customer=customer, coupon__isnull=False
@@ -401,6 +405,10 @@ def place_order(request):
                 messages.error(request, "Invalid or expired coupon code.")
                 return redirect("checkout")
 
+            if coupon.valid_until and coupon.valid_until < timezone.now():
+                messages.error(request, "This coupon has expired.")
+                return redirect("checkout")
+
             already_used = Order.objects.filter(
                 customer=customer, coupon=coupon
             ).exists()
@@ -453,9 +461,11 @@ def place_order(request):
     
 
 
+
 @customer_required
 @require_POST
 def preview_coupon(request):
+    from customer.views import _is_coupon_eligible_for_customer
     customer = _get_customer(request)
     cart = Cart.objects.filter(customer=customer).first()
     if not cart:
@@ -464,10 +474,13 @@ def preview_coupon(request):
     code = request.POST.get("coupon_code", "").strip().upper()
     if not code:
         return JsonResponse({"valid": False, "message": "Please enter a coupon code."})
-
+    
     coupon = Coupon.objects.filter(code=code, is_active=True).first()
     if not coupon:
         return JsonResponse({"valid": False, "message": "Invalid or expired coupon."})
+
+    if not _is_coupon_eligible_for_customer(coupon, customer):
+        return JsonResponse({"valid": False, "message": "This coupon is not available for your account."})
 
     already_used = Order.objects.filter(customer=customer, coupon=coupon).exists()
     if already_used:
@@ -514,6 +527,8 @@ def preview_coupon(request):
         "final_amount":    final_amount,
         "message":         f"Coupon applied! You save ₹{coupon_discount}.",
     })
+
+
 
 
 

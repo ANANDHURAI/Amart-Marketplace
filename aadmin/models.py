@@ -16,6 +16,8 @@ class Coupon(models.Model):
     quantity = models.PositiveIntegerField(default=1)
     minimum_purchase = models.PositiveIntegerField()
     is_active = models.BooleanField(default=True)
+    valid_until = models.DateTimeField(null=True, blank=True, help_text="Leave blank for no expiry")
+    created_at = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

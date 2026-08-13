@@ -132,6 +132,7 @@
         <th class="text-center">Discount</th>
         <th class="text-center">Qty Left</th>
         <th class="text-center">Min. Purchase</th>
+        <th class="text-center">Expiry</th>
         <th class="text-center">Status</th>
         <th class="text-center">Actions</th>
       </tr>
@@ -143,6 +144,9 @@
         <td class="text-center font-weight-bold">{{ coupon.discount }}</td>
         <td class="text-center" style="color:var(--muted)">{{ coupon.quantity }}</td>
         <td class="text-center" style="color:var(--muted)">₹{{ coupon.minimum_purchase }}</td>
+        <td class="text-center" style="color:var(--muted)">
+          {% if coupon.valid_until %}{{ coupon.valid_until|date:"d M Y, H:i" }}{% else %}No expiry{% endif %}
+        </td>
         <td class="text-center">
           {% if coupon.is_active %}
             <span class="badge badge-active"><i class="mdi mdi-circle-medium"></i> Active</span>
@@ -161,7 +165,7 @@
       </tr>
       {% empty %}
       <tr class="empty-row">
-        <td colspan="6">
+        <td colspan="7">
           <i class="mdi mdi-ticket-percent-outline empty-icon"></i>
           <p class="empty-text">No coupons found</p>
         </td>
