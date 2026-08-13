@@ -583,4 +583,35 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink)}
   </div>
 
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const messages = document.querySelectorAll('.or-message');
+
+        messages.forEach(function (message) {
+
+            setTimeout(function () {
+
+                message.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                message.style.opacity = '0';
+                message.style.transform = 'translateY(-10px)';
+
+                setTimeout(function () {
+                    message.remove();
+
+                    const messagesContainer = document.querySelector('.or-messages');
+
+                    if (messagesContainer && messagesContainer.children.length === 0) {
+                        messagesContainer.remove();
+                    }
+
+                }, 500);
+
+            }, 3000);
+
+        });
+
+    });
+</script>
 {% endblock %}
