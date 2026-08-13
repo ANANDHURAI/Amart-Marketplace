@@ -90,13 +90,15 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
-
+    
     STATUS_CHOICES = [
         ("pending", "pending"),
         ("confirmed", "confirmed"),
         ("shipped", "shipped"),
         ("delivered", "delivered"),
         ("cancelled", "cancelled"),
+        ("return_requested", "return_requested"),  
+        ("returned", "returned"),                   
     ]
     order = models.ForeignKey(Order, related_name="items", on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -113,6 +115,34 @@ class OrderItem(models.Model):
 
 
 
+class ReturnRequest(models.Model):
+    STATUS_CHOICES = [
+        ("requested", "Requested"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+    ]
+
+    order_item = models.ForeignKey(
+        OrderItem, related_name="return_requests", on_delete=models.CASCADE
+    )
+    customer = models.ForeignKey(
+        Customer, related_name="return_requests", on_delete=models.CASCADE
+    )
+    reason = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="requested")
+    refund_amount = models.PositiveIntegerField(null=True, blank=True)
+    admin_note = models.TextField(null=True, blank=True)
+    requested_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-requested_at"]
+
+    def __str__(self):
+        return f"Return #{self.id} - {self.order_item}"
+
+
+
 class FavouriteItem(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -126,3 +156,32 @@ class FavouriteItem(models.Model):
 class Wallet(models.Model):
     customer = models.OneToOneField(Customer, on_delete=models.CASCADE)
     balance = models.PositiveIntegerField(default=0)
+    
+    
+class WalletTransaction(models.Model):
+    TYPE_CHOICES = [
+        ("credit", "Credit"),
+        ("debit", "Debit"),
+    ]
+    SOURCE_CHOICES = [
+        ("order_cancel", "Order Cancelled"),
+        ("item_cancel", "Item Cancelled"),
+        ("return_approved", "Return Approved"),
+        ("wallet_topup", "Wallet Top-up"),
+        ("order_payment", "Order Payment"),
+    ]
+
+    wallet = models.ForeignKey(Wallet, related_name="transactions", on_delete=models.CASCADE)
+    transaction_type = models.CharField(max_length=10, choices=TYPE_CHOICES)
+    source = models.CharField(max_length=20, choices=SOURCE_CHOICES)
+    amount = models.PositiveIntegerField()
+    order = models.ForeignKey(Order, null=True, blank=True, on_delete=models.SET_NULL)
+    order_item = models.ForeignKey(OrderItem, null=True, blank=True, on_delete=models.SET_NULL)
+    description = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.transaction_type} ₹{self.amount} - {self.wallet.customer.email}"

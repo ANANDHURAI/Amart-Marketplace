@@ -1,0 +1,249 @@
+{% extends "aadmin/admin-base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+:root {
+  --primary:#4361ee; --primary-light:#eef0fd;
+  --success:#0ead69; --success-light:#e6faf2;
+  --danger:#e63946;  --danger-light:#fef0f1;
+  --warning:#f0ad00; --warning-light:#fff8e1;
+  --text:#1a1d2e; --muted:#8b90a7; --border:#eaedf5; --bg:#f7f8fc; --white:#fff;
+  --r:12px; --rs:8px; --shadow:0 2px 12px rgba(67,97,238,.06);
+}
+* { font-family:'DM Sans',sans-serif; }
+
+.pg-topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:22px; gap:12px; flex-wrap:wrap; }
+.pg-topbar h1 { font-size:22px; font-weight:600; color:var(--text); margin:0; }
+.pg-topbar h1 span { display:inline-block; width:8px; height:8px; background:var(--primary); border-radius:50%; margin-right:8px; vertical-align:middle; }
+.pg-controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+.filter-select {
+  background:var(--white); border:1.5px solid var(--border); border-radius:var(--rs);
+  padding:8px 30px 8px 12px; font-size:13.5px; color:var(--text); outline:none; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b90a7' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 10px center;
+}
+
+/* stat cards */
+.stat-row { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:22px; }
+.stat-card { background:var(--white); border:1px solid var(--border); border-radius:var(--r); box-shadow:var(--shadow); padding:18px 20px; display:flex; align-items:center; gap:14px; transition:transform .18s, box-shadow .18s; }
+.stat-card:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(67,97,238,.1); }
+.stat-icon { width:44px; height:44px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+.stat-icon.pending  { background:var(--warning-light); color:#a06a00; }
+.stat-icon.approved { background:var(--success-light); color:var(--success); }
+.stat-icon.rejected { background:var(--danger-light);  color:var(--danger); }
+.stat-num { font-size:22px; font-weight:700; color:var(--text); line-height:1.1; }
+.stat-label { font-size:12.5px; color:var(--muted); margin-top:2px; }
+
+.cat-card { background:var(--white); border-radius:var(--r); box-shadow:var(--shadow); border:1px solid var(--border); overflow:hidden; }
+.cat-table { width:100%; border-collapse:collapse; }
+.cat-table thead tr { background:var(--bg); border-bottom:1.5px solid var(--border); }
+.cat-table thead th { padding:12px 16px; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); }
+.cat-table tbody tr { border-bottom:1px solid var(--border); transition:background .15s; }
+.cat-table tbody tr:last-child { border-bottom:none; }
+.cat-table tbody tr:hover { background:#fafbff; }
+.cat-table tbody td { padding:14px 16px; font-size:14px; color:var(--text); vertical-align:middle; }
+
+.order-chip { display:inline-block; padding:3px 10px; border-radius:6px; background:var(--primary-light); color:var(--primary); font-weight:600; font-size:12.5px; }
+
+.product-cell { display:flex; align-items:center; gap:10px; }
+.product-icon { width:34px; height:34px; border-radius:9px; background:var(--bg); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:15px; flex-shrink:0; }
+.product-name { font-weight:500; }
+.product-size { color:var(--muted); font-size:12px; }
+
+.customer-email { color:var(--text); font-size:13.5px; }
+
+.reason-text { color:var(--muted); font-size:13px; max-width:220px; display:block; }
+
+.refund-amt { font-weight:700; color:var(--text); }
+.refund-amt.pending-amt { color:var(--muted); font-weight:400; }
+
+.badge { display:inline-flex; align-items:center; gap:4px; padding:4px 11px; border-radius:20px; font-size:11.5px; font-weight:600; }
+.badge-pending  { background:var(--warning-light); color:#a06a00; }
+.badge-active   { background:var(--success-light); color:#065f46; }
+.badge-inactive { background:var(--danger-light);  color:#991b1b; }
+.badge i { font-size:12px; }
+
+.action-group { display:flex; align-items:center; justify-content:center; gap:6px; }
+.btn-action { display:inline-flex; align-items:center; gap:5px; padding:6px 13px; border-radius:7px; font-size:12.5px; font-weight:500; text-decoration:none; border:1.5px solid transparent; cursor:pointer; transition:all .18s; background:none; font-family:'DM Sans',sans-serif; }
+.btn-approve { border-color:#a3e4c1; color:var(--success); background:var(--success-light); }
+.btn-approve:hover { background:#d1f4e5; color:#087a4a; text-decoration:none; transform:translateY(-1px); }
+.btn-delete { border-color:#fca5a5; color:var(--danger); background:var(--danger-light); }
+.btn-delete:hover { background:#fee2e2; color:#b91c1c; transform:translateY(-1px); }
+.processed-dash { color:var(--muted); font-size:12.5px; }
+
+.empty-row td { text-align:center; padding:56px 20px; }
+.empty-icon { font-size:40px; color:var(--border); display:block; margin-bottom:12px; }
+.empty-text { font-size:14.5px; color:var(--muted); }
+
+.cat-pagination { display:flex; justify-content:center; align-items:center; gap:6px; padding:18px 16px; border-top:1px solid var(--border); }
+.page-btn { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:var(--rs); border:1.5px solid var(--border); background:var(--white); color:var(--text); font-size:13px; text-decoration:none; transition:all .18s; }
+.page-btn:hover { border-color:var(--primary); color:var(--primary); text-decoration:none; }
+.page-current { padding:0 14px; height:34px; border-radius:var(--rs); background:var(--primary); color:var(--white); font-size:13px; font-weight:500; display:inline-flex; align-items:center; }
+
+.modal-overlay { position:fixed; inset:0; background:rgba(26,29,46,.45); backdrop-filter:blur(3px); z-index:10000; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .2s; }
+.modal-overlay.show { opacity:1; pointer-events:all; }
+.modal-box { background:var(--white); border-radius:16px; padding:28px; max-width:380px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,.15); transform:scale(.92) translateY(10px); transition:transform .25s cubic-bezier(.34,1.56,.64,1); }
+.modal-overlay.show .modal-box { transform:none; }
+.modal-icon-wrap { width:52px; height:52px; background:var(--danger-light); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:22px; color:var(--danger); }
+.modal-title { text-align:center; font-size:17px; font-weight:600; color:var(--text); margin-bottom:8px; }
+.modal-actions { display:flex; gap:10px; margin-top:12px; }
+.modal-btn { flex:1; padding:10px; border-radius:var(--rs); font-size:13.5px; font-weight:500; cursor:pointer; border:none; transition:all .18s; font-family:'DM Sans',sans-serif; }
+.modal-btn-cancel  { background:var(--bg); color:var(--muted); border:1.5px solid var(--border); }
+.modal-btn-cancel:hover { background:var(--border); color:var(--text); }
+.modal-btn-confirm { background:var(--danger); color:white; }
+.modal-btn-confirm:hover { background:#c0303b; }
+.form-control { width:100%; border:1.5px solid var(--border); border-radius:var(--rs); padding:8px 12px; font-size:13.5px; }
+
+@media (max-width: 720px) {
+  .stat-row { grid-template-columns:1fr; }
+}
+</style>
+
+<div class="pg-topbar">
+  <h1><span></span>Return Requests</h1>
+  <div class="pg-controls">
+    <form method="post" style="display:contents">
+      {% csrf_token %}
+      <select name="filter_option" class="filter-select" onchange="this.form.submit()">
+        <option value="all" {% if filter_option == "all" %}selected{% endif %}>All Requests</option>
+        <option value="requested" {% if filter_option == "requested" %}selected{% endif %}>Pending</option>
+        <option value="approved" {% if filter_option == "approved" %}selected{% endif %}>Approved</option>
+        <option value="rejected" {% if filter_option == "rejected" %}selected{% endif %}>Rejected</option>
+      </select>
+    </form>
+  </div>
+</div>
+
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="stat-icon pending"><i class="mdi mdi-clock-outline"></i></div>
+    <div>
+      <div class="stat-num">{{ pending_count }}</div>
+      <div class="stat-label">Pending Review</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon approved"><i class="mdi mdi-check-circle-outline"></i></div>
+    <div>
+      <div class="stat-num">{{ approved_count }}</div>
+      <div class="stat-label">Approved</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon rejected"><i class="mdi mdi-close-circle-outline"></i></div>
+    <div>
+      <div class="stat-num">{{ rejected_count }}</div>
+      <div class="stat-label">Rejected</div>
+    </div>
+  </div>
+</div>
+
+<div class="cat-card">
+  <table class="cat-table">
+    <thead>
+      <tr>
+        <th>Order</th>
+        <th>Product</th>
+        <th>Customer</th>
+        <th>Reason</th>
+        <th class="text-center">Refund</th>
+        <th class="text-center">Status</th>
+        <th class="text-center">Requested On</th>
+        <th class="text-center">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rr in return_requests %}
+      <tr>
+        <td><span class="order-chip">#{{ rr.order_item.order.id }}</span></td>
+        <td>
+          <div class="product-cell">
+            <div class="product-icon"><i class="mdi mdi-hanger"></i></div>
+            <div>
+              <div class="product-name">{{ rr.order_item.product.name }}</div>
+              <div class="product-size">Size: {{ rr.order_item.inventory.size }}</div>
+            </div>
+          </div>
+        </td>
+        <td><span class="customer-email">{{ rr.customer.email }}</span></td>
+        <td><span class="reason-text" title="{{ rr.reason }}">{{ rr.reason|truncatechars:60 }}</span></td>
+        <td class="text-center">
+          {% if rr.refund_amount %}
+            <span class="refund-amt">₹{{ rr.refund_amount }}</span>
+          {% else %}
+            <span class="refund-amt pending-amt">—</span>
+          {% endif %}
+        </td>
+        <td class="text-center">
+          {% if rr.status == "requested" %}
+            <span class="badge badge-pending"><i class="mdi mdi-circle-medium"></i> Pending</span>
+          {% elif rr.status == "approved" %}
+            <span class="badge badge-active"><i class="mdi mdi-circle-medium"></i> Approved</span>
+          {% else %}
+            <span class="badge badge-inactive"><i class="mdi mdi-circle-medium"></i> Rejected</span>
+          {% endif %}
+        </td>
+        <td class="text-center" style="color:var(--muted)">{{ rr.requested_at|date:"Y-m-d" }}</td>
+        <td class="text-center">
+          {% if rr.status == "requested" %}
+          <div class="action-group">
+            <a href="{% url 'approve-return' rr.id %}" class="btn-action btn-approve">
+              <i class="mdi mdi-check"></i> Approve
+            </a>
+            <button class="btn-action btn-delete" onclick="openRejectModal('{% url 'reject-return' rr.id %}')">
+              <i class="mdi mdi-close"></i> Reject
+            </button>
+          </div>
+          {% else %}
+            <span class="processed-dash">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr class="empty-row">
+        <td colspan="8">
+          <i class="mdi mdi-keyboard-return empty-icon"></i>
+          <p class="empty-text">No return requests found</p>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if return_requests.paginator.num_pages > 1 %}
+  <div class="cat-pagination">
+    {% if return_requests.has_previous %}<a class="page-btn" href="?page={{ return_requests.previous_page_number }}"><i class="mdi mdi-chevron-left"></i></a>{% endif %}
+    <span class="page-current">{{ return_requests.number }} / {{ return_requests.paginator.num_pages }}</span>
+    {% if return_requests.has_next %}<a class="page-btn" href="?page={{ return_requests.next_page_number }}"><i class="mdi mdi-chevron-right"></i></a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="modal-overlay" id="rejectModal">
+  <div class="modal-box">
+    <div class="modal-icon-wrap"><i class="mdi mdi-close-circle-outline"></i></div>
+    <div class="modal-title">Reject Return Request?</div>
+    <form method="post" id="rejectForm">
+      {% csrf_token %}
+      <textarea name="admin_note" class="form-control" rows="2" placeholder="Optional note for the customer" style="margin-bottom:16px;"></textarea>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn modal-btn-cancel" onclick="document.getElementById('rejectModal').classList.remove('show')">Cancel</button>
+        <button type="submit" class="modal-btn modal-btn-confirm">Reject</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openRejectModal(url) {
+  document.getElementById('rejectForm').action = url;
+  document.getElementById('rejectModal').classList.add('show');
+}
+document.getElementById('rejectModal').addEventListener('click', function(e) {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
+});
+</script>
+{% endblock %}

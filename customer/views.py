@@ -482,7 +482,7 @@ def orders(request):
     })
 
 
-
+from .models import WalletTransaction
 
 @customer_required
 @transaction.atomic
@@ -509,10 +509,19 @@ def cancel_order(request, order_id):
     if refund_amount > 0:
         wallet.balance += refund_amount
         wallet.save()
+        WalletTransaction.objects.create(
+            wallet=wallet,
+            transaction_type="credit",
+            source="order_cancel",
+            amount=refund_amount,
+            order=order,
+            description=f"Refund for cancelled Order #{order.id}",
+        )
         messages.success(
             request,
             f"Order cancelled. Refund of ₹{refund_amount} added to your wallet."
         )
+    
     else:
         messages.success(request, "Order cancelled successfully.")
 
@@ -545,6 +554,15 @@ def cancel_order_item(request, order_item_id):
         if refund > 0:
             wallet.balance += refund
             wallet.save()
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                transaction_type="credit",
+                source="item_cancel",
+                amount=refund,
+                order=order,
+                order_item=order_item,
+                description=f"Refund for cancelled item in Order #{order.id}",
+            )
             messages.success(
                 request,
                 f"Item cancelled. Refund of ₹{refund} added to your wallet."
@@ -569,6 +587,45 @@ def cancel_order_item(request, order_item_id):
             order.save()
 
     return redirect("customer-orders")
+
+
+
+
+
+from .models import ReturnRequest
+@customer_required
+def request_return(request, order_item_id):
+    customer = _get_customer(request)
+    order_item = get_object_or_404(
+        OrderItem, id=order_item_id, order__customer=customer
+    )
+
+    if order_item.status != "delivered":
+        messages.error(request, "Only delivered items can be returned.")
+        return redirect("customer-orders")
+
+    if order_item.return_requests.filter(status="requested").exists():
+        messages.error(request, "A return request is already pending for this item.")
+        return redirect("customer-orders")
+
+    if request.method == "POST":
+        reason = request.POST.get("reason", "").strip()
+        if not reason:
+            messages.error(request, "Please provide a reason for the return.")
+            return redirect("customer-orders")
+
+        ReturnRequest.objects.create(
+            order_item=order_item,
+            customer=customer,
+            reason=reason,
+        )
+        order_item.status = "return_requested"
+        order_item.save()
+
+        messages.success(request, "Return request submitted. We'll review it shortly.")
+
+    return redirect("customer-orders")
+
 
 
 
@@ -680,42 +737,12 @@ def customer_wallet(request):
     customer = _get_customer(request)
     wallet, _ = Wallet.objects.get_or_create(customer=customer)
 
-    order_items_qs = (
-        OrderItem.objects.filter(
-            order__customer=customer,
-            status="cancelled",
-            order__is_paid=True,
-        )
-        .exclude(order__payment_method__iexact="cod")
-        .select_related("order", "product", "inventory")
-        .order_by("-id")
-    )
-
-    from collections import defaultdict
-
-    order_ids = list({oi.order_id for oi in order_items_qs})
-
-    all_items_in_orders = (
-        OrderItem.objects
-        .filter(order_id__in=order_ids)
-        .select_related("inventory")
-    )
-    order_subtotals = defaultdict(int)
-    for item in all_items_in_orders:
-        order_subtotals[item.order_id] += item.quantity * item.inventory.price
-
-    for oi in order_items_qs:
-        subtotal = order_subtotals[oi.order_id]
-        if subtotal > 0:
-            item_subtotal = oi.quantity * oi.inventory.price
-            oi.actual_refund = round(item_subtotal / subtotal * oi.order.total_amount)
-        else:
-            oi.actual_refund = 0
+    transactions = wallet.transactions.select_related("order", "order_item__product").all()
 
     context = {
         "customer": customer,
         "wallet": wallet,
-        "order_items": order_items_qs,
+        "transactions": transactions,
     }
 
     if request.method == "POST":
@@ -739,7 +766,6 @@ def customer_wallet(request):
             })
 
     return render(request, "customer/customer-wallet.html", context)
-
 
 
 

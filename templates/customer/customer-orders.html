@@ -6,6 +6,14 @@
 {% include 'home/includes/navigation.html' %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <style>
+    .product-card .media-object {
+        width: 90px;
+        height: 90px;
+        object-fit: cover;
+    }
+    .product-card .media-body {
+        overflow: hidden; 
+    }
     .cancel-btn {
       background-color: #f8d7da; /* Light red background */
       color: #721c24;           /* Darker red text */
@@ -137,11 +145,26 @@
                                                                             </a>
                                                                             <div class="media-body">
                                                                             <h4 class="media-heading"><a href="{% url "product_page" order_item.product.slug %}">{{ order_item.product.brand_name }}</a></h4>
-                                                                            <div>
-                                                                                {% if order_item.status != "cancelled" and order_item.status != "delivered" %}
-                                                                                    <div>
-                                                                                        <button data-toggle="modal" data-target="#cancel-order-item-modal-{{ order_item.id }}" type="button" class="btn btn-danger pull-right">Cancel order</button>
-                                                                                    </div>
+                                                                            <div class="item-action-row" style="min-height:34px; margin-bottom:8px; overflow:hidden; text-align:right;">
+                                                                                {% if order_item.status == "pending" or order_item.status == "confirmed" or order_item.status == "shipped" %}
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        class="btn btn-danger cancel-order-btn"
+                                                                                        data-order-item-id="{{ order_item.id }}">
+                                                                                        Cancel order
+                                                                                    </button>   
+                                                                                {% elif order_item.status == "delivered" %}
+                                                                                <button
+                                                                                    type="button"
+                                                                                    class="btn btn-danger return-btn"
+                                                                                    data-toggle="modal"
+                                                                                    data-target="#return-order-item-modal-{{ order_item.id }}">
+                                                                                    Return item
+                                                                                </button>                                                                                   
+                                                                                {% elif order_item.status == "return_requested" %}
+                                                                                    <span class="label label-warning">Return Requested</span>
+                                                                                {% elif order_item.status == "returned" %}
+                                                                                    <span class="label label-success">Returned</span>
                                                                                 {% endif %}
                                                                             </div>
                                                                             <h6 class="media-heading"><a href="{% url "product_page" order_item.product.slug %}">{{ order_item.product.name }}</a></h6>
@@ -161,22 +184,42 @@
                                                                                 {% endif %}
                                                                             </p>
                                                                             </div>
-                                                                                
                                                                                 <div class="modal fade" id="cancel-order-item-modal-{{ order_item.id }}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                                                                                    <div class="modal-dialog" role="document">
-                                                                                        <div class="modal-content">
-                                                                                            <div class="modal-body">
-                                                                                                <h3 class="modal-title">Do you want to remove this Order?
-                                                                                                {% comment %} <h4>{{ address.address_text|linebreaksbr }}</h4> {% endcomment %}
-                                                                                                <br>
-                                                                                                <p> Are you sure you want to proceed with removing this Order?</p>
-                                                                                                <div class="modal-footer">
-                                                                                                    <a href="{% url "cancel-order-item" order_item.id %}" type="button" class="btn btn-main">Cancel</a>
+                                                                                        <div class="modal-dialog" role="document">
+                                                                                            <div class="modal-content">
+                                                                                                <div class="modal-body">
+                                                                                                    <h3 class="modal-title">Do you want to remove this Order?
+                                                                                                    {% comment %} <h4>{{ address.address_text|linebreaksbr }}</h4> {% endcomment %}
+                                                                                                    <br>
+                                                                                                    <p> Are you sure you want to proceed with removing this Order?</p>
+                                                                                                    <div class="modal-footer">
+                                                                                                        <a href="{% url "cancel-order-item" order_item.id %}" type="button" class="btn btn-main">Cancel</a>
+                                                                                                    </div>
                                                                                                 </div>
                                                                                             </div>
                                                                                         </div>
                                                                                     </div>
-                                                                                </div>
+
+                                                                                    <div class="modal fade" id="return-order-item-modal-{{ order_item.id }}" tabindex="-1" role="dialog" aria-labelledby="returnModalLabel" aria-hidden="true">
+                                                                                        <div class="modal-dialog" role="document">
+                                                                                            <div class="modal-content">
+                                                                                                <div class="modal-body">
+                                                                                                    <h3 class="modal-title">Return this item?</h3>
+                                                                                                    <br>
+                                                                                                    <form method="post" action="{% url "request-return" order_item.id %}">
+                                                                                                        {% csrf_token %}
+                                                                                                        <p>Please tell us why you're returning this item:</p>
+                                                                                                        <textarea name="reason" class="form-control" rows="3" required placeholder="e.g. Size doesn't fit, damaged product..."></textarea>
+                                                                                                        <div class="modal-footer" style="margin-top:15px;">
+                                                                                                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                                                                                            <button type="submit" class="btn btn-main">Submit Return Request</button>
+                                                                                                        </div>
+                                                                                                    </form>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                            </div>
                                                                         </div>
 
 
@@ -320,62 +363,53 @@
         });
     });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
-    document.querySelectorAll('.cancel-btn').forEach(function(button) {
-      button.addEventListener('click', function() {
-        Swal.fire({
-          title: "Are you sure you want to cancel this order?",
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonText: 'Yes, cancel it!',
-          cancelButtonText: 'No, keep it'
-        }).then((result) => {
-          if (result.isConfirmed) {
-            // Action to perform if the user confirms
-            Swal.fire(
-              'Cancelled!',
-              'Your order has been cancelled.',
-              'success'
-            )
-          } else if (result.dismiss === Swal.DismissReason.cancel) {
-            // Action to perform if the user cancels
-            Swal.fire(
-              'Not Cancelled',
-              'Your order is safe :)',
-              'info'
-            )
-          }
+    document.addEventListener('DOMContentLoaded', function () {
+
+        document.querySelectorAll('.cancel-order-btn').forEach(function (button) {
+
+            button.addEventListener('click', function (event) {
+
+                event.preventDefault();
+
+                const cancelUrl = this.getAttribute('data-cancel-url');
+
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: 'Do you really want to cancel this order?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, cancel it!',
+                    cancelButtonText: 'No, keep it',
+                    reverseButtons: true
+                }).then(function (result) {
+
+                    if (result.isConfirmed) {
+                        window.location.href = cancelUrl;
+                    }
+
+                });
+
+            });
+
         });
-      });
+  
+
+        $('.btn[data-toggle="modal"]').on('click', function (event) {
+
+            const modalId = $(this).data('target');
+
+            if (modalId) {
+                $(modalId).modal('show');
+            }
+
+        });
+
     });
-    </script>
+</script>
+
+    
    
-   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-   <script>
-       document.addEventListener('DOMContentLoaded', function() {
-           const actionButtons = document.querySelectorAll('.cancel-btn, .return-btn');
-   
-           actionButtons.forEach(button => {
-               button.addEventListener('click', function() {
-                   const orderId = this.getAttribute('data-order-id');
-                   const action = this.classList.contains('cancel-btn') ? 'cancel' : 'return';
-   
-                   Swal.fire({
-                       title: 'Are you sure?',
-                       text: `Do you really want to ${action} this order?`,
-                       icon: 'warning',
-                       showCancelButton: true,
-                       confirmButtonColor: '#3085d6',
-                       cancelButtonColor: '#d33',
-                       confirmButtonText: `Yes, ${action} it!`
-                   }).then((result) => {
-                       if (result.isConfirmed) {
-                           // Redirect to the cancel/return order view
-                           window.location.href = `/${action}_order/${orderId}/`;
-                       }
-                   });
-               });
-           });
-       });
-   </script>
 {% endblock extra_scripts %}

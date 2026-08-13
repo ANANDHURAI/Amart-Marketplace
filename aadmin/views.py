@@ -1365,3 +1365,108 @@ def delete_inventory(request, inventory_id):
     return redirect("inventory_list")
 
 
+
+from customer.models import ReturnRequest, Wallet
+from customer.views import _proportional_refund
+@admin_login_required
+def return_requests_list(request):
+    filter_option = request.session.get("return_filter", "all")
+
+    if request.method == "POST" and "filter_option" in request.POST:
+        filter_option = request.POST.get("filter_option")
+        request.session["return_filter"] = filter_option
+
+    base_qs = ReturnRequest.objects.select_related(
+        "order_item__order", "order_item__product", "order_item__inventory", "customer"
+    )
+
+    qs = base_qs
+    if filter_option == "requested":
+        qs = qs.filter(status="requested")
+    elif filter_option == "approved":
+        qs = qs.filter(status="approved")
+    elif filter_option == "rejected":
+        qs = qs.filter(status="rejected")
+
+    paginator = Paginator(qs, 5)
+    page_number = request.GET.get("page")
+    return_requests = paginator.get_page(page_number)
+
+    return render(request, "aadmin/return-requests.html", {
+        "return_requests": return_requests,
+        "filter_option": filter_option,
+        "pending_count": base_qs.filter(status="requested").count(),
+        "approved_count": base_qs.filter(status="approved").count(),
+        "rejected_count": base_qs.filter(status="rejected").count(),
+        "current_page": "return_requests_list",
+    })
+    
+    
+    
+    
+    
+    
+
+from customer.models import WalletTransaction
+
+@admin_login_required
+@transaction.atomic
+def approve_return(request, return_id):
+    return_request = get_object_or_404(ReturnRequest, id=return_id, status="requested")
+    order_item = return_request.order_item
+    order = order_item.order
+
+    refund_amount = 0
+    if order.is_paid and order.payment_method.lower() != "cod":
+        refund_amount = _proportional_refund(order, order_item)
+    else:
+        refund_amount = order_item.quantity * order_item.inventory.price
+
+    wallet, _ = Wallet.objects.get_or_create(customer=return_request.customer)
+    wallet.balance += refund_amount
+    wallet.save()
+
+    WalletTransaction.objects.create(
+        wallet=wallet,
+        transaction_type="credit",
+        source="return_approved",
+        amount=refund_amount,
+        order=order,
+        order_item=order_item,
+        description=f"Refund for returned item in Order #{order.id}",
+    )
+
+    order_item.status = "returned"
+    order_item.inventory.stock += order_item.quantity
+    order_item.inventory.save()
+    order_item.save()
+
+    return_request.status = "approved"
+    return_request.refund_amount = refund_amount
+    return_request.processed_at = timezone.now()
+    return_request.save()
+
+    messages.success(request, f"Return approved. ₹{refund_amount} credited to customer's wallet.")
+    return redirect("return-requests-list")
+
+
+
+
+
+@admin_login_required
+def reject_return(request, return_id):
+    return_request = get_object_or_404(ReturnRequest, id=return_id, status="requested")
+
+    if request.method == "POST":
+        return_request.admin_note = request.POST.get("admin_note", "").strip()
+
+    return_request.status = "rejected"
+    return_request.processed_at = timezone.now()
+    return_request.save()
+
+    order_item = return_request.order_item
+    order_item.status = "delivered"
+    order_item.save()
+
+    messages.success(request, "Return request rejected.")
+    return redirect("return-requests-list")

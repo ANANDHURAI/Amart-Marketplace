@@ -9,6 +9,7 @@ urlpatterns = [
     path("orders/items/<int:order_item_id>/cancel/", views.cancel_order_item, name="cancel-order-item"),
     path("orders/<int:order_id>/invoice/", views.invoice, name="invoice"),
     path("orders/<int:order_id>/confirmation/", views.order_confirmation, name="order-confirmation"),
+    path("request-return/<int:order_item_id>/", views.request_return, name="request-return"),
 
     
     path("addresses/", views.address, name="customer-addresses"),

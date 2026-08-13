@@ -106,7 +106,6 @@ def add_to_cart(request, product_id):
 
 
 
-
 @customer_required
 def update_cart_item(request, cart_item_id):
     if request.method != "POST":
@@ -114,6 +113,7 @@ def update_cart_item(request, cart_item_id):
 
     customer = _get_customer(request)
     cart = get_object_or_404(Cart, customer=customer)
+
     cart_item = get_object_or_404(
         CartItem,
         id=cart_item_id,
@@ -169,17 +169,26 @@ def update_cart_item(request, cart_item_id):
         messages.error(request, message)
         return redirect("cart")
 
+    # Update cart item
     cart_item.quantity = quantity
     cart_item.inventory = inventory
     cart_item.save()
 
+
+    total_amount = sum(
+        item.quantity * item.inventory.price
+        for item in cart.cartitem_set.select_related("inventory").all()
+    )
+
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return JsonResponse({
             "success": True,
-            "quantity": cart_item.quantity
+            "quantity": cart_item.quantity,
+            "total_amount": total_amount,
         })
 
     return redirect("cart")
+
 
 
 

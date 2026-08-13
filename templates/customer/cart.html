@@ -186,7 +186,12 @@
                     <tr>
                       <td></td>
                       <td align="right"><strong>Total Amount:</strong></td>
-                      <td><strong><center>₹ {{ cart.total_amount }}</center></strong></td>
+                      
+                      <td>
+                          <strong>
+                              <center id="cart-total">₹ {{ cart.total_amount }}</center>
+                          </strong>
+                      </td>
                       <td colspan="3"></td>
                     </tr>
                   </tbody>
@@ -243,6 +248,7 @@
                 success: function(response) {
                     if (response.success) {
                         input.val(response.quantity);
+                        $('#cart-total').text('₹ ' + response.total_amount);
                     }
                 },
 

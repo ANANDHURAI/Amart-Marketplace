@@ -198,6 +198,13 @@
                   </a>
                 </li>
 
+                <li class="{% if current_page == 'return_requests_list' %}active{% endif %}">
+                  <a href="{% url 'return-requests-list' %}">
+                    <i class="mdi mdi-keyboard-return"></i>
+                    <span class="nav-text">Return Requests</span>
+                  </a>
+                </li>
+
                 <li class="{% if current_page == 'sales_report' %}active{% endif %}">
                   <a href="{% url 'sales_report' %}">
                     <i class="mdi mdi-chart-bell-curve-cumulative"></i>

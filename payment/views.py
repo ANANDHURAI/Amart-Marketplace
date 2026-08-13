@@ -52,6 +52,7 @@ logger = logging.getLogger(__name__)
 
 
 
+from customer.models import WalletTransaction
 
 @customer_required
 @csrf_exempt
@@ -79,7 +80,14 @@ def razorpay_paymenthandler(request):
             wallet.balance += amount
             wallet.save()
 
-         
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                transaction_type="credit",
+                source="wallet_topup",
+                amount=amount,
+                description=f"Wallet top-up via Razorpay",
+            )
+
             request.session.pop("wallet_topup", None)
             request.session.pop("wallet_amount", None)
 
@@ -164,6 +172,15 @@ def handle_wallet_payment(request, customer, total_amount):
         with transaction.atomic():
             wallet.balance -= total_amount
             wallet.save()
+
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                transaction_type="debit",
+                source="order_payment",
+                amount=total_amount,
+                description="Payment for order via wallet",
+            )
+
             request.session["payment_successful"] = True
             request.session["payment_method"] = "wallet"
         return redirect("finalize-order")

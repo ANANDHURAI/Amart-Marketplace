@@ -56,4 +56,9 @@ urlpatterns = [
     path('inventory/<int:inventory_id>/edit/', views.add_edit_inventory, name='edit_inventory'),
     path('inventory/<int:inventory_id>/status/', views.inventory_status, name='inventory_status'),
     path('inventory/<int:inventory_id>/delete/', views.delete_inventory, name='delete_inventory'),
+    
+    
+    path("admin/return-requests/", views.return_requests_list, name="return-requests-list"),
+    path("admin/return-requests/approve/<int:return_id>/", views.approve_return, name="approve-return"),
+    path("admin/return-requests/reject/<int:return_id>/", views.reject_return, name="reject-return"),
 ]

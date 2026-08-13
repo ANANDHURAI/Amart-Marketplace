@@ -33,35 +33,41 @@
                 </div>
 
                 <div class="dashboard-wrapper user-dashboard">
-                    {% if order_items %}
+                    {% if transactions %}
                     <div class="table-responsive">
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th>Order Item ID</th>
-                                    <th>Product</th>
-                                    <th class="text-center">Unit Price</th>
-                                    <th class="text-center">Quantity</th>
-                                    <th class="text-center">Refund Amount</th>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Order</th>
+                                    <th class="text-center">Type</th>
+                                    <th class="text-center">Amount</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for order_item in order_items %}
+                                {% for txn in transactions %}
                                 <tr>
-                                    <td>#{{ order_item.id }}</td>
-                                    <td>{{ order_item.product.name }}</td>
-                                    <td class="text-center">₹{{ order_item.inventory.price }}</td>
-                                    <td class="text-center">{{ order_item.quantity }}</td>
-                                    <td class="text-center">₹{{ order_item.actual_refund }}</td>                               
+                                    <td>{{ txn.created_at|date:"Y-m-d H:i" }}</td>
+                                    <td>{{ txn.description }}</td>
+                                    <td>{% if txn.order %}#{{ txn.order.id }}{% else %}—{% endif %}</td>
+                                    <td class="text-center">
+                                        {% if txn.transaction_type == "credit" %}
+                                            <span class="label label-success">Credit</span>
+                                        {% else %}
+                                            <span class="label label-danger">Debit</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center {% if txn.transaction_type == 'credit' %}text-success{% else %}text-danger{% endif %}">
+                                        {% if txn.transaction_type == "credit" %}+{% else %}-{% endif %}₹{{ txn.amount }}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
                     {% else %}
-                        <p>No Cancelled Orders Yet. Shop Now!</p>
-                        <hr>
-                        <a href="{% url 'shop' %}" class="btn btn-main">Shop Now</a>
+                        <p>No wallet transactions yet.</p>
                     {% endif %}
                 </div>
             </div>
