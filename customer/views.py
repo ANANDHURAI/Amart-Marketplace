@@ -16,7 +16,7 @@ from django.db.models import F, Prefetch, Sum
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 import razorpay
 from accounts.models import Customer
 from aadmin.models import CategoryOffer, Coupon, CustomerCoupon
@@ -469,14 +469,15 @@ def default_address(request, address_id):
 
 
 
-
 @customer_required
 def orders(request):
     """List all orders for the current customer with items and subtotals."""
     customer = _get_customer(request)
+
     order_items_qs = OrderItem.objects.select_related(
         "product", "inventory"
     ).prefetch_related("product__product_images")
+
     orders_qs = (
         Order.objects.filter(customer=customer)
         .prefetch_related(Prefetch("items", queryset=order_items_qs))
@@ -484,23 +485,49 @@ def orders(request):
         .order_by("-created_at")
     )
 
-    for order in orders_qs:
+    # Pagination
+    paginator = Paginator(orders_qs, 5)
+    page = request.GET.get("page")
+
+    try:
+        orders_page = paginator.page(page)
+    except PageNotAnInteger:
+        orders_page = paginator.page(1)
+    except EmptyPage:
+        orders_page = paginator.page(paginator.num_pages)
+
+    for order in orders_page:
         order.order_items = list(order.items.all())
+
         order.sub_total = sum(
-            oi.quantity * oi.inventory.price for oi in order.order_items
+            oi.quantity * oi.inventory.price
+            for oi in order.order_items
         )
+
         order.has_active_items = any(
-            oi.status != "cancelled" for oi in order.order_items
+            oi.status != "cancelled"
+            for oi in order.order_items
         )
+
         for order_item in order.order_items:
             order_item.product.primary_image = (
-                order_item.product.product_images.order_by("priority").first()
+                order_item.product.product_images
+                .order_by("priority")
+                .first()
             )
 
-    return render(request, "customer/customer-orders.html", {
-        "customer": customer,
-        "orders": orders_qs,
-    })
+    return render(
+        request,
+        "customer/customer-orders.html",
+        {
+            "customer": customer,
+            "orders": orders_page,
+            "paginator": paginator,
+        },
+    )
+
+
+
 
 
 from .models import WalletTransaction
@@ -752,32 +779,51 @@ razorpay_client = razorpay.Client(
 
 
 
-
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 @customer_required
 def customer_wallet(request):
     customer = _get_customer(request)
     wallet, _ = Wallet.objects.get_or_create(customer=customer)
 
-    transactions = wallet.transactions.select_related("order", "order_item__product").all()
+    transactions = wallet.transactions.select_related(
+        "order",
+        "order_item__product"
+    ).all().order_by("-created_at")
+
+    # Pagination
+    paginator = Paginator(transactions, 5)
+    page = request.GET.get("page")
+
+    try:
+        transactions_page = paginator.page(page)
+    except PageNotAnInteger:
+        transactions_page = paginator.page(1)
+    except EmptyPage:
+        transactions_page = paginator.page(paginator.num_pages)
 
     context = {
         "customer": customer,
         "wallet": wallet,
-        "transactions": transactions,
+        "transactions": transactions_page,
+        "paginator": paginator,
     }
 
     if request.method == "POST":
         amount = int(request.POST.get("amount", 0))
+
         if amount > 0:
             currency = "INR"
+
             razorpay_order = razorpay_client.order.create({
                 "amount": amount * 100,
                 "currency": currency,
                 "payment_capture": 1,
                 "receipt": f"wallet_{customer.id}"
             })
+
             request.session["wallet_topup"] = True
             request.session["wallet_amount"] = amount
+
             context.update({
                 "razorpay_order_id": razorpay_order["id"],
                 "razorpay_merchant_key": settings.RAZOR_KEY_ID,
@@ -786,8 +832,11 @@ def customer_wallet(request):
                 "callback_url": reverse("razorpay_paymenthandler"),
             })
 
-    return render(request, "customer/customer-wallet.html", context)
-
+    return render(
+        request,
+        "customer/customer-wallet.html",
+        context
+    )
 
 
 

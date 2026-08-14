@@ -293,6 +293,51 @@
                                 </tbody>
                             </table>
                         </div>
+                            {% if orders.has_other_pages %}
+                                <div class="text-center" style="margin-top: 30px;">
+                                    <ul class="pagination">
+
+                                        {% if orders.has_previous %}
+                                            <li>
+                                                <a href="?page={{ orders.previous_page_number }}">
+                                                    &laquo;
+                                                </a>
+                                            </li>
+                                        {% else %}
+                                            <li class="disabled">
+                                                <span>&laquo;</span>
+                                            </li>
+                                        {% endif %}
+
+                                        {% for num in orders.paginator.page_range %}
+                                            {% if orders.number == num %}
+                                                <li class="active">
+                                                    <span>{{ num }}</span>
+                                                </li>
+                                            {% else %}
+                                                <li>
+                                                    <a href="?page={{ num }}">
+                                                        {{ num }}
+                                                    </a>
+                                                </li>
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        {% if orders.has_next %}
+                                            <li>
+                                                <a href="?page={{ orders.next_page_number }}">
+                                                    &raquo;
+                                                </a>
+                                            </li>
+                                        {% else %}
+                                            <li class="disabled">
+                                                <span>&raquo;</span>
+                                            </li>
+                                        {% endif %}
+
+                                    </ul>
+                                </div>
+                            {% endif %}
                         {% else %}
                         <p>No Orders Yet. Shop Now!</p>
                         <hr>

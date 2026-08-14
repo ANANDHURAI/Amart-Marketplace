@@ -66,6 +66,51 @@
                             </tbody>
                         </table>
                     </div>
+                    {% if transactions.has_other_pages %}
+                    <div class="text-center" style="margin-top: 30px;">
+                        <ul class="pagination">
+
+                            {% if transactions.has_previous %}
+                                <li>
+                                    <a href="?page={{ transactions.previous_page_number }}">
+                                        &laquo;
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="disabled">
+                                    <span>&laquo;</span>
+                                </li>
+                            {% endif %}
+
+                            {% for num in transactions.paginator.page_range %}
+                                {% if transactions.number == num %}
+                                    <li class="active">
+                                        <span>{{ num }}</span>
+                                    </li>
+                                {% else %}
+                                    <li>
+                                        <a href="?page={{ num }}">
+                                            {{ num }}
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if transactions.has_next %}
+                                <li>
+                                    <a href="?page={{ transactions.next_page_number }}">
+                                        &raquo;
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="disabled">
+                                    <span>&raquo;</span>
+                                </li>
+                            {% endif %}
+
+                        </ul>
+                    </div>
+                    {% endif %}
                     {% else %}
                         <p>No wallet transactions yet.</p>
                     {% endif %}
