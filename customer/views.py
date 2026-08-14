@@ -169,27 +169,28 @@ def edit_profile(request):
 
 
     if profile_image:
-        # Max 5 MB
         max_size = 5 * 1024 * 1024
 
         if profile_image.size > max_size:
             errors.append("Profile image must be smaller than 5 MB.")
 
         allowed_extensions = [".jpg", ".jpeg", ".png", ".webp"]
-
         extension = os.path.splitext(profile_image.name)[1].lower()
 
         if extension not in allowed_extensions:
             errors.append(
                 "Only JPG, JPEG, PNG, and WEBP images are allowed."
             )
-            
+
         try:
             image = Image.open(profile_image)
             image.verify()
         except Exception:
             errors.append("The uploaded profile image is invalid.")
-
+        finally:
+            profile_image.seek(0)
+            
+            
     if errors:
         for error in errors:
             messages.error(request, error)
