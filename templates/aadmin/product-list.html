@@ -96,20 +96,25 @@
                                 </td>
 
                                 <!-- STATUS -->
+ 
                                 <td class="text-center">
 
                                     {% if not product.is_deleted %}
 
-                                        {% if product.approved %}
-                                            <a href="{% url 'product_approval' product.id %}"
+                                        {% if product.is_available %}
+
+                                            <a href="{% url 'product_availability' product.id %}"
                                             class="btn btn-sm btn-danger">
-                                            Unlist
+                                                Unlist
                                             </a>
+
                                         {% else %}
-                                            <a href="{% url 'product_approval' product.id %}"
+
+                                            <a href="{% url 'product_availability' product.id %}"
                                             class="btn btn-sm btn-primary">
-                                            List
+                                                List
                                             </a>
+
                                         {% endif %}
 
                                     {% else %}

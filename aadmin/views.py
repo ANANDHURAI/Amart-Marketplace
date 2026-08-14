@@ -728,11 +728,26 @@ def delete_product(request, product_id):
     return redirect("product_list")
 
 
+
+
 @admin_login_required
-def product_approval(request, pk):
-    product = Product.objects.get(pk=pk)
-    product.approved = not product.approved
-    product.save()
+def product_availability(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+
+    product.is_available = not product.is_available
+    product.save(update_fields=["is_available"])
+
+    if product.is_available:
+        messages.success(
+            request,
+            f"{product.name} has been listed successfully."
+        )
+    else:
+        messages.success(
+            request,
+            f"{product.name} has been unlisted successfully."
+        )
+
     return redirect("product_list")
 
 
