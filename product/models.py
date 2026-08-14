@@ -2,6 +2,9 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from ecom.models import SoftDeleteModel, ApprovedProductManager
 from PIL import Image
+        
+from io import BytesIO
+from django.core.files.base import ContentFile
 
 
 class Category(SoftDeleteModel):
@@ -57,8 +60,11 @@ class Product(SoftDeleteModel):
 
 class ProductImage(models.Model):
     product = models.ForeignKey(
-        Product, related_name="product_images", on_delete=models.CASCADE
+        Product,
+        related_name="product_images",
+        on_delete=models.CASCADE
     )
+
     image = models.ImageField(upload_to="images/product_images")
     priority = models.PositiveIntegerField(null=True, blank=True)
 
@@ -66,21 +72,38 @@ class ProductImage(models.Model):
         return f"Image of {self.product.name}"
 
     def save(self, *args, **kwargs):
+        if self.image:
+            img = Image.open(self.image)
+
+            min_dim = min(img.size)
+
+            crop_box = (
+                (img.width - min_dim) // 2,
+                (img.height - min_dim) // 2,
+                (img.width + min_dim) // 2,
+                (img.height + min_dim) // 2,
+            )
+
+            img = img.crop(crop_box)
+            img = img.resize((400, 400), Image.LANCZOS)
+
+            output = BytesIO()
+
+            image_format = img.format or "JPEG"
+
+            if image_format.upper() == "JPEG" and img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+
+            img.save(output, format=image_format)
+
+            output.seek(0)
+
+            self.image = ContentFile(
+                output.read(),
+                name=self.image.name
+            )
+
         super().save(*args, **kwargs)
-
-        img = Image.open(self.image.path)
-        min_dim = min(img.size)
-        crop_box = (
-            (img.width - min_dim) // 2,
-            (img.height - min_dim) // 2,
-            (img.width + min_dim) // 2,
-            (img.height + min_dim) // 2,
-        )
-        img = img.crop(crop_box)
-
-        img = img.resize((400, 400), Image.LANCZOS)
-
-        img.save(self.image.path)
 
 
 
