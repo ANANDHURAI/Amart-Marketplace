@@ -3,56 +3,308 @@
 
 {% block extra_styles %}
 <style>
-    .auth-split-container { display: flex; min-height: 100vh; align-items: stretch; background: #fff; }
-    .auth-form-side { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; }
-    .auth-image-side { 
-        flex: 1.2; 
-        background-image: url('https://images.unsplash.com/photo-1488161628813-04466f872be2?q=80&w=1964&auto=format&fit=crop'); 
-        background-size: cover; 
-        background-position: center; 
+    .auth-split-container {
+        display: flex;
+        min-height: 100vh;
+        align-items: stretch;
+        background: #fff;
     }
-    .auth-card { max-width: 400px; width: 100%; border: none; }
-    @media (max-width: 992px) { .auth-image-side { display: none; } }
+
+    .auth-form-side {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+    }
+
+    .auth-image-side {
+        flex: 1.2;
+        background-image: url('https://images.unsplash.com/photo-1488161628813-04466f872be2?q=80&w=1964&auto=format&fit=crop');
+        background-size: cover;
+        background-position: center;
+    }
+
+    .auth-card {
+        max-width: 400px;
+        width: 100%;
+        border: none;
+    }
+
+    .form-group {
+        margin-bottom: 18px;
+        text-align: left;
+    }
+
+    .form-control {
+        height: 48px;
+        border-radius: 6px;
+    }
+
+    .field-error {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 6px;
+        display: block;
+    }
+
+    .login-alert {
+        border-radius: 6px;
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 992px) {
+        .auth-image-side {
+            display: none;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="auth-split-container">
+
     <div class="auth-form-side">
+
         <div class="auth-card text-center reveal active">
+
             <div class="auth-header">
+
                 <a href="{% url 'home' %}">
-                    <img src="{% static 'images/logo-no-background.png' %}" alt="logo" style="width:140px; margin-bottom: 20px;">
+                    <img
+                        src="{% static 'images/logo-no-background.png' %}"
+                        alt="logo"
+                        style="width:140px; margin-bottom:20px;"
+                    >
                 </a>
+
                 <h2>Welcome Back</h2>
-                <p>Sign in to your Amart account</p>
+
+                <p>
+                    Sign in to your Amart account
+                </p>
+
             </div>
 
-            <form method="post" enctype="multipart/form-data">
+
+            <form method="post" id="loginForm">
+
                 {% csrf_token %}
+
                 {% if messages %}
-                    {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
+                    {% for message in messages %}
+                        <div class="alert alert-danger login-alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
                 {% endif %}
 
+
+                <!-- EMAIL -->
                 <div class="form-group">
-                    <input required type="email" class="form-control" placeholder="Email Address" name="email">
-                </div>
-                <div class="form-group mb-2">
-                    <input required type="password" class="form-control" placeholder="Password" name="password">
+
+                    <label for="email" class="sr-only">
+                        Email Address
+                    </label>
+
+                    <input
+                        id="email"
+                        type="email"
+                        class="form-control"
+                        placeholder="Email Address"
+                        name="email"
+                        value="{{ request.POST.email|default:'' }}"
+                        autocomplete="email"
+                    >
+
+                    <small
+                        id="emailError"
+                        class="field-error"
+                        style="display:none;"
+                    ></small>
+
                 </div>
 
-                <div class="text-right mb-4" style="text-align: right;">
-                    <a href="{% url 'forgot_password' %}" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 1px;">Forgot Password?</a>
+
+                <!-- PASSWORD -->
+                <div class="form-group">
+
+                    <label for="password" class="sr-only">
+                        Password
+                    </label>
+
+                    <input
+                        id="password"
+                        type="password"
+                        class="form-control"
+                        placeholder="Password"
+                        name="password"
+                        autocomplete="current-password"
+                    >
+
+                    <small
+                        id="passwordError"
+                        class="field-error"
+                        style="display:none;"
+                    ></small>
+
                 </div>
 
-                <button type="submit" class="btn-main" name="customer_login">SIGN IN</button>
+
+                <div
+                    class="text-right mb-4"
+                    style="text-align:right;"
+                >
+                    <a
+                        href="{% url 'forgot_password' %}"
+                        style="
+                            font-size:12px;
+                            color:#999;
+                            text-transform:uppercase;
+                            letter-spacing:1px;
+                        "
+                    >
+                        Forgot Password?
+                    </a>
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="btn-main"
+                    name="customer_login"
+                >
+                    SIGN IN
+                </button>
+
             </form>
 
+
             <div class="auth-links">
-                <p>New member? <a href="{% url 'customer_signup' %}">JOIN NOW</a></p>
+
+                <p>
+                    New member?
+                    <a href="{% url 'customer_signup' %}">
+                        JOIN NOW
+                    </a>
+                </p>
+
             </div>
+
         </div>
+
     </div>
+
     <div class="auth-image-side"></div>
+
 </div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const form = document.getElementById("loginForm");
+
+    const email = document.getElementById("email");
+    const password = document.getElementById("password");
+
+    const emailError = document.getElementById("emailError");
+    const passwordError = document.getElementById("passwordError");
+
+
+    form.addEventListener("submit", function (event) {
+
+        let isValid = true;
+
+        // Reset previous errors
+        emailError.style.display = "none";
+        passwordError.style.display = "none";
+
+        emailError.textContent = "";
+        passwordError.textContent = "";
+
+        email.classList.remove("is-invalid");
+        password.classList.remove("is-invalid");
+
+
+        // -------------------------
+        // Email validation
+        // -------------------------
+
+        if (!email.value.trim()) {
+
+            emailError.textContent =
+                "Please enter your email address.";
+
+            emailError.style.display = "block";
+
+            email.classList.add("is-invalid");
+
+            isValid = false;
+
+        } else {
+
+            const emailPattern =
+                /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            if (!emailPattern.test(email.value.trim())) {
+
+                emailError.textContent =
+                    "Please enter a valid email address.";
+
+                emailError.style.display = "block";
+
+                email.classList.add("is-invalid");
+
+                isValid = false;
+            }
+        }
+
+
+        // -------------------------
+        // Password validation
+        // -------------------------
+
+        if (!password.value) {
+
+            passwordError.textContent =
+                "Please enter your password.";
+
+            passwordError.style.display = "block";
+
+            password.classList.add("is-invalid");
+
+            isValid = false;
+        }
+
+
+        // Stop request if validation failed
+        if (!isValid) {
+            event.preventDefault();
+        }
+
+    });
+
+
+    // Remove email error while typing
+    email.addEventListener("input", function () {
+
+        emailError.style.display = "none";
+        email.classList.remove("is-invalid");
+
+    });
+
+
+    // Remove password error while typing
+    password.addEventListener("input", function () {
+
+        passwordError.style.display = "none";
+        password.classList.remove("is-invalid");
+
+    });
+
+});
+</script>
+
 {% endblock %}

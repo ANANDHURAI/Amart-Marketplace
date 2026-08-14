@@ -82,45 +82,105 @@ def customer_signup(request):
 
 
 
+from django.contrib import messages
+from django.contrib.auth import authenticate, login
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from django.shortcuts import redirect, render
 
 
 def customer_login(request):
-    """Customer login with basic account checks."""
-    if request.method == "POST":
-        email = _normalize_email(request.POST.get("email", ""))
-        password = request.POST.get("password")
+    """Customer login with detailed validation and account checks."""
 
-        if not email or not password:
-            messages.error(request, "Email and password are required")
+    if request.method == "POST":
+
+        email = _normalize_email(request.POST.get("email", ""))
+        password = request.POST.get("password", "")
+
+        if not email and not password:
+            messages.error(
+                request,
+                "Please enter your email address and password."
+            )
+            return redirect("customer_login")
+
+        if not email:
+            messages.error(
+                request,
+                "Please enter your email address."
+            )
+            return redirect("customer_login")
+
+        if not password:
+            messages.error(
+                request,
+                "Please enter your password."
+            )
+            return redirect("customer_login")
+
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(
+                request,
+                "Please enter a valid email address, for example: name@example.com."
+            )
             return redirect("customer_login")
 
         try:
             customer = Customer.objects.get(email=email)
+
         except Customer.DoesNotExist:
-            messages.error(request, "Account not found. Please check your email.")
+            messages.error(
+                request,
+                "No account found with this email address. "
+                "Please check your email or create a new account."
+            )
             return redirect("customer_login")
 
         if not customer.is_active:
-            messages.error(request, "Your account is currently blocked. Please contact support.")
+            messages.error(
+                request,
+                "Your account is currently blocked. "
+                "Please contact support for assistance."
+            )
             return redirect("customer_login")
 
-
-       
         if customer.is_superadmin or customer.is_staff:
-            messages.error(request, "Admin accounts cannot login here.")
+            messages.error(
+                request,
+                "Admin accounts cannot sign in from the customer login page."
+            )
             return redirect("customer_login")
 
-        user = authenticate(request, email=email, password=password)
+        user = authenticate(
+            request,
+            email=email,
+            password=password
+        )
+
         if user is None:
-            messages.error(request, "Invalid email or password.")
+            messages.error(
+                request,
+                "Incorrect password. Please check your password and try again."
+            )
             return redirect("customer_login")
 
         login(request, user)
+
         return redirect("home")
 
-    return render(request, "accounts/customer-login.html", {"title": "Login"})
+    return render(
+        request,
+        "accounts/customer-login.html",
+        {
+            "title": "Login"
+        }
+    )
 
 
+
+    
 
 
 def customer_logout(request):
