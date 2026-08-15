@@ -722,33 +722,65 @@ def restore_product(request, product_id):
 
 @admin_login_required
 def delete_product(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
+    product = Product.all_objects.filter(id=product_id).first()
+
+    if not product:
+        messages.error(request, "This product no longer exists.")
+        return redirect("product_list")
+
+    if product.is_deleted:
+        messages.error(request, "This product is already deleted.")
+        return redirect("product_list")
+
     product.delete()
     messages.success(request, "Product deleted successfully.")
     return redirect("product_list")
 
 
 
+# @admin_login_required
+# def product_approval(request, pk):
+#     product = get_object_or_404(Product, pk=pk)
+
+#     product.approved = not product.approved
+#     product.save(update_fields=["approved"])
+
+#     if product.approved:
+#         messages.success(
+#             request,
+#             f'"{product.name}" has been listed successfully.'
+#         )
+#     else:
+#         messages.success(
+#             request,
+#             f'"{product.name}" has been unlisted successfully.'
+#         )
+
+#     return redirect("product_list")
+
+
+
 @admin_login_required
 def product_approval(request, pk):
-    product = get_object_or_404(Product, pk=pk)
+    product = Product.all_objects.filter(pk=pk).first()
+
+    if not product:
+        messages.error(request, "This product no longer exists.")
+        return redirect("product_list")
+
+    if product.is_deleted:
+        messages.error(request, "This product is deleted. Restore it first before listing/unlisting.")
+        return redirect("product_list")
 
     product.approved = not product.approved
     product.save(update_fields=["approved"])
 
     if product.approved:
-        messages.success(
-            request,
-            f'"{product.name}" has been listed successfully.'
-        )
+        messages.success(request, f'"{product.name}" has been listed successfully.')
     else:
-        messages.success(
-            request,
-            f'"{product.name}" has been unlisted successfully.'
-        )
+        messages.success(request, f'"{product.name}" has been unlisted successfully.')
 
     return redirect("product_list")
-
 
 
 
