@@ -125,6 +125,8 @@ def shop(request):
         inventory_sizes__is_active=True,
         inventory_sizes__stock__gt=0,
     ).distinct()
+    
+    
 
    
     search = request.GET.get("search", "").strip()

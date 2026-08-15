@@ -701,7 +701,7 @@ def product_form(request, product_id=None):
 
 
 
-
+@admin_login_required
 def remove_product_image(request, image_id):
     image = get_object_or_404(ProductImage, id=image_id)
     if request.method == "POST":
@@ -720,13 +720,12 @@ def restore_product(request, product_id):
     return redirect("product_list")
 
 
-
+@admin_login_required
 def delete_product(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     product.delete()
     messages.success(request, "Product deleted successfully.")
     return redirect("product_list")
-
 
 
 
