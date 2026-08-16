@@ -549,7 +549,10 @@ def product_form(request, product_id=None):
     is_edit = False
 
     if product_id:
-        product = get_object_or_404(Product, id=product_id)
+        product = Product.objects.filter(id=product_id).first()
+        if not product:
+            messages.error(request, "This product no longer exists or was deleted.")
+            return redirect("product_list")
         is_edit = True
 
     if request.method == "POST":
@@ -738,25 +741,7 @@ def delete_product(request, product_id):
 
 
 
-# @admin_login_required
-# def product_approval(request, pk):
-#     product = get_object_or_404(Product, pk=pk)
 
-#     product.approved = not product.approved
-#     product.save(update_fields=["approved"])
-
-#     if product.approved:
-#         messages.success(
-#             request,
-#             f'"{product.name}" has been listed successfully.'
-#         )
-#     else:
-#         messages.success(
-#             request,
-#             f'"{product.name}" has been unlisted successfully.'
-#         )
-
-#     return redirect("product_list")
 
 
 
@@ -782,7 +767,25 @@ def product_approval(request, pk):
 
     return redirect("product_list")
 
+# @admin_login_required
+# def product_approval(request, pk):
+#     product = get_object_or_404(Product, pk=pk)
 
+#     product.approved = not product.approved
+#     product.save(update_fields=["approved"])
+
+#     if product.approved:
+#         messages.success(
+#             request,
+#             f'"{product.name}" has been listed successfully.'
+#         )
+#     else:
+#         messages.success(
+#             request,
+#             f'"{product.name}" has been unlisted successfully.'
+#         )
+
+#     return redirect("product_list")
 
 @admin_login_required
 def order_list(request):
