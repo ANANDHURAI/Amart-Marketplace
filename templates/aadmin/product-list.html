@@ -17,9 +17,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
 
             <form method="get" class="d-flex" style="gap:10px;">
-
                 <select name="filter" class="form-control" onchange="this.form.submit()">
-
                     <option value="available_products"
                         {% if filter_option == "available_products" %}selected{% endif %}>
                         Available Products
@@ -29,7 +27,6 @@
                         {% if filter_option == "deleted_products" %}selected{% endif %}>
                         Deleted Products
                     </option>
-
                 </select>
 
                 <input type="text"
@@ -38,10 +35,16 @@
                     class="form-control"
                     placeholder="Search products">
 
-                <button class="btn btn-primary">
+                <button type="submit" class="btn btn-primary">
                     Search
                 </button>
 
+                {% if search_query %}
+                    <a href="?filter={{ filter_option }}"
+                    class="btn btn-secondary">
+                        Clear
+                    </a>
+                {% endif %}
             </form>
 
         </div>
