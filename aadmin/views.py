@@ -767,25 +767,10 @@ def product_approval(request, pk):
 
     return redirect("product_list")
 
-# @admin_login_required
-# def product_approval(request, pk):
-#     product = get_object_or_404(Product, pk=pk)
 
-#     product.approved = not product.approved
-#     product.save(update_fields=["approved"])
 
-#     if product.approved:
-#         messages.success(
-#             request,
-#             f'"{product.name}" has been listed successfully.'
-#         )
-#     else:
-#         messages.success(
-#             request,
-#             f'"{product.name}" has been unlisted successfully.'
-#         )
 
-#     return redirect("product_list")
+
 
 @admin_login_required
 def order_list(request):
