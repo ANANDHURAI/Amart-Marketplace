@@ -28,14 +28,32 @@ from customer.utils import list_of_states_in_india
 from django.utils import timezone
 from django.db.models import Q
 
+
+
+
+
+
+def get_cart_item_effective_price(item):
+    """Returns the per-unit price for a cart item after any active category offer."""
+    discount = CategoryOffer.objects.filter(
+        category=item.product.main_category
+    ).values_list("discount", flat=True).first() or 0
+
+    if discount > 0:
+        return int(item.inventory.price * (1 - discount / 100)), discount
+    return item.inventory.price, 0
+
+
+
+
+
 @customer_required
 def cart(request):
-    """Cart page with items, primary image, available sizes, and total."""
     customer = _get_customer(request)
     cart, _ = Cart.objects.get_or_create(customer=customer)
     cart_items = (
         CartItem.objects.filter(cart=cart)
-        .select_related("product", "inventory")
+        .select_related("product", "inventory", "product__main_category")
         .prefetch_related("product__product_images", "product__inventory_sizes")
     )
 
@@ -47,7 +65,9 @@ def cart(request):
         item.available_inventories = item.product.inventory_sizes.filter(
             is_active=True, stock__gt=0
         )
-        total_amount += item.quantity * item.inventory.price
+
+        item.effective_price, item.discount = get_cart_item_effective_price(item)
+        total_amount += item.quantity * item.effective_price
 
     cart.total_amount = total_amount
     return render(request, "customer/cart.html", {
@@ -55,8 +75,6 @@ def cart(request):
         "cart_items": cart_items,
         "cart": cart,
     })
-
-
 
 
 
@@ -175,11 +193,10 @@ def update_cart_item(request, cart_item_id):
     cart_item.inventory = inventory
     cart_item.save()
 
-
-    total_amount = sum(
-        item.quantity * item.inventory.price
-        for item in cart.cartitem_set.select_related("inventory").all()
-    )
+    total_amount = 0
+    for item in cart.cartitem_set.select_related("inventory", "product__main_category").all():
+        effective_price, _ = get_cart_item_effective_price(item)
+        total_amount += item.quantity * effective_price
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return JsonResponse({

@@ -112,7 +112,15 @@
                           {% endif %}
                         </td>
 
-                        <td class="text-center">₹ {{ cart_item.inventory.price }}</td>
+                        <td class="text-center">
+                          {% if cart_item.discount %}
+                            <span style="text-decoration:line-through;color:#999;font-size:12px;">₹ {{ cart_item.inventory.price }}</span>
+                            <br>
+                            ₹ {{ cart_item.effective_price }}
+                          {% else %}
+                            ₹ {{ cart_item.inventory.price }}
+                          {% endif %}
+                        </td>
 
                         <td class="text-center">
                           <span class="badge-size">{{ cart_item.inventory.size }}</span>
