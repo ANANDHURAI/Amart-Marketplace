@@ -150,7 +150,7 @@
                                                                                     <button
                                                                                         type="button"
                                                                                         class="btn btn-danger cancel-order-btn"
-                                                                                        data-order-item-id="{{ order_item.id }}">
+                                                                                        data-cancel-url="{% url 'cancel-order-item' order_item.id %}">
                                                                                         Cancel order
                                                                                     </button>   
                                                                                 {% elif order_item.status == "delivered" %}
