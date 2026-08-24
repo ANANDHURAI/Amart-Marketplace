@@ -1446,6 +1446,14 @@ def delete_inventory(request, inventory_id):
 
 
 
+
+
+def _calculate_refund_amount(order, order_item):
+    if order.is_paid and order.payment_method.lower() != "cod":
+        return _proportional_refund(order, order_item)
+    return order_item.quantity * order_item.inventory.price
+
+
 from customer.models import ReturnRequest, Wallet
 from customer.views import _proportional_refund
 @admin_login_required
@@ -1471,6 +1479,12 @@ def return_requests_list(request):
     paginator = Paginator(qs, 5)
     page_number = request.GET.get("page")
     return_requests = paginator.get_page(page_number)
+    
+    for rr in return_requests:
+        if rr.status == "approved":
+            rr.display_refund = rr.refund_amount
+        else:
+            rr.display_refund = _calculate_refund_amount(rr.order_item.order, rr.order_item)
 
     return render(request, "aadmin/return-requests.html", {
         "return_requests": return_requests,
@@ -1480,9 +1494,6 @@ def return_requests_list(request):
         "rejected_count": base_qs.filter(status="rejected").count(),
         "current_page": "return_requests_list",
     })
-    
-    
-    
     
     
     
@@ -1496,11 +1507,7 @@ def approve_return(request, return_id):
     order_item = return_request.order_item
     order = order_item.order
 
-    refund_amount = 0
-    if order.is_paid and order.payment_method.lower() != "cod":
-        refund_amount = _proportional_refund(order, order_item)
-    else:
-        refund_amount = order_item.quantity * order_item.inventory.price
+    refund_amount = _calculate_refund_amount(order, order_item)
 
     wallet, _ = Wallet.objects.get_or_create(customer=return_request.customer)
     wallet.balance += refund_amount
@@ -1528,8 +1535,6 @@ def approve_return(request, return_id):
 
     messages.success(request, f"Return approved. ₹{refund_amount} credited to customer's wallet.")
     return redirect("return-requests-list")
-
-
 
 
 

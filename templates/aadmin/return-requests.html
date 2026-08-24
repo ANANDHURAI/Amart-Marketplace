@@ -66,8 +66,10 @@
 .badge-inactive { background:var(--danger-light);  color:#991b1b; }
 .badge i { font-size:12px; }
 
-.action-group { display:flex; align-items:center; justify-content:center; gap:6px; }
+.action-group { display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:wrap; }
 .btn-action { display:inline-flex; align-items:center; gap:5px; padding:6px 13px; border-radius:7px; font-size:12.5px; font-weight:500; text-decoration:none; border:1.5px solid transparent; cursor:pointer; transition:all .18s; background:none; font-family:'DM Sans',sans-serif; }
+.btn-view { border-color:#c7d2fe; color:var(--primary); background:var(--primary-light); }
+.btn-view:hover { background:#e0e4fc; color:#2c46c9; text-decoration:none; transform:translateY(-1px); }
 .btn-approve { border-color:#a3e4c1; color:var(--success); background:var(--success-light); }
 .btn-approve:hover { background:#d1f4e5; color:#087a4a; text-decoration:none; transform:translateY(-1px); }
 .btn-delete { border-color:#fca5a5; color:var(--danger); background:var(--danger-light); }
@@ -96,6 +98,15 @@
 .modal-btn-confirm { background:var(--danger); color:white; }
 .modal-btn-confirm:hover { background:#c0303b; }
 .form-control { width:100%; border:1.5px solid var(--border); border-radius:var(--rs); padding:8px 12px; font-size:13.5px; }
+
+/* order details modal */
+.order-modal-box { max-width:440px; text-align:left; }
+.order-modal-title { text-align:left; font-size:17px; font-weight:600; color:var(--text); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.order-modal-title i { color:var(--primary); }
+.od-row { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--border); font-size:13.5px; }
+.od-row:last-of-type { border-bottom:none; }
+.od-label { color:var(--muted); font-weight:500; flex-shrink:0; }
+.od-value { color:var(--text); font-weight:600; text-align:right; }
 
 @media (max-width: 720px) {
   .stat-row { grid-template-columns:1fr; }
@@ -171,10 +182,12 @@
         <td><span class="customer-email">{{ rr.customer.email }}</span></td>
         <td><span class="reason-text" title="{{ rr.reason }}">{{ rr.reason|truncatechars:60 }}</span></td>
         <td class="text-center">
-          {% if rr.refund_amount %}
-            <span class="refund-amt">₹{{ rr.refund_amount }}</span>
+          {% if rr.status == "approved" %}
+            <span class="refund-amt">₹{{ rr.display_refund }}</span>
+          {% elif rr.status == "rejected" %}
+            <span class="refund-amt pending-amt" title="Not refunded — request was rejected">₹{{ rr.display_refund }}</span>
           {% else %}
-            <span class="refund-amt pending-amt">—</span>
+            <span class="refund-amt pending-amt" title="Estimated amount if approved">₹{{ rr.display_refund }} (est.)</span>
           {% endif %}
         </td>
         <td class="text-center">
@@ -188,18 +201,33 @@
         </td>
         <td class="text-center" style="color:var(--muted)">{{ rr.requested_at|date:"Y-m-d" }}</td>
         <td class="text-center">
-          {% if rr.status == "requested" %}
           <div class="action-group">
-            <a href="{% url 'approve-return' rr.id %}" class="btn-action btn-approve">
-              <i class="mdi mdi-check"></i> Approve
-            </a>
-            <button class="btn-action btn-delete" onclick="openRejectModal('{% url 'reject-return' rr.id %}')">
-              <i class="mdi mdi-close"></i> Reject
+            <button type="button" class="btn-action btn-view"
+              onclick='openOrderModal({
+                orderId: "{{ rr.order_item.order.id }}",
+                product: "{{ rr.order_item.product.name|escapejs }}",
+                size: "{{ rr.order_item.inventory.size|escapejs }}",
+                qty: "{{ rr.order_item.quantity }}",
+                price: "{{ rr.order_item.price }}",
+                payment: "{{ rr.order_item.order.payment_method|escapejs }}",
+                date: "{{ rr.order_item.order.created_at|date:"Y-m-d" }}",
+                total: "{{ rr.order_item.order.total_amount }}",
+                address: "{{ rr.order_item.order.address|escapejs }}",
+                reason: "{{ rr.reason|escapejs }}"
+              })'>
+              <i class="mdi mdi-eye-outline"></i> View
             </button>
+
+            {% if rr.status == "requested" %}
+              <a href="{% url 'approve-return' rr.id %}" class="btn-action btn-approve"
+                 onclick="return confirmApprove(event, this.href)">
+                <i class="mdi mdi-check"></i> Approve
+              </a>
+              <button type="button" class="btn-action btn-delete" onclick="openRejectModal('{% url 'reject-return' rr.id %}')">
+                <i class="mdi mdi-close"></i> Reject
+              </button>
+            {% endif %}
           </div>
-          {% else %}
-            <span class="processed-dash">—</span>
-          {% endif %}
         </td>
       </tr>
       {% empty %}
@@ -222,6 +250,7 @@
   {% endif %}
 </div>
 
+<!-- Reject Modal -->
 <div class="modal-overlay" id="rejectModal">
   <div class="modal-box">
     <div class="modal-icon-wrap"><i class="mdi mdi-close-circle-outline"></i></div>
@@ -237,6 +266,27 @@
   </div>
 </div>
 
+<!-- Order Details Modal -->
+<div class="modal-overlay" id="orderModal">
+  <div class="modal-box order-modal-box">
+    <div class="order-modal-title"><i class="mdi mdi-package-variant-closed"></i> Order Details</div>
+    <div class="od-row"><span class="od-label">Order</span><span class="od-value" id="od-order"></span></div>
+    <div class="od-row"><span class="od-label">Product</span><span class="od-value" id="od-product"></span></div>
+    <div class="od-row"><span class="od-label">Size</span><span class="od-value" id="od-size"></span></div>
+    <div class="od-row"><span class="od-label">Quantity</span><span class="od-value" id="od-qty"></span></div>
+    <div class="od-row"><span class="od-label">Item Price</span><span class="od-value" id="od-price"></span></div>
+    <div class="od-row"><span class="od-label">Payment Method</span><span class="od-value" id="od-payment"></span></div>
+    <div class="od-row"><span class="od-label">Order Date</span><span class="od-value" id="od-date"></span></div>
+    <div class="od-row"><span class="od-label">Order Total</span><span class="od-value" id="od-total"></span></div>
+    <div class="od-row"><span class="od-label">Delivery Address</span><span class="od-value" id="od-address"></span></div>
+    <div class="od-row"><span class="od-label">Return Reason</span><span class="od-value" id="od-reason"></span></div>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-cancel" onclick="document.getElementById('orderModal').classList.remove('show')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 function openRejectModal(url) {
   document.getElementById('rejectForm').action = url;
@@ -245,5 +295,54 @@ function openRejectModal(url) {
 document.getElementById('rejectModal').addEventListener('click', function(e) {
   if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
 });
+
+function openOrderModal(data) {
+  document.getElementById('od-order').innerText = '#' + data.orderId;
+  document.getElementById('od-product').innerText = data.product;
+  document.getElementById('od-size').innerText = data.size;
+  document.getElementById('od-qty').innerText = data.qty;
+  document.getElementById('od-price').innerText = '₹' + data.price;
+  document.getElementById('od-payment').innerText = data.payment;
+  document.getElementById('od-date').innerText = data.date;
+  document.getElementById('od-total').innerText = '₹' + data.total;
+  document.getElementById('od-address').innerText = data.address;
+  document.getElementById('od-reason').innerText = data.reason;
+  document.getElementById('orderModal').classList.add('show');
+}
+document.getElementById('orderModal').addEventListener('click', function(e) {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
+});
+
+function confirmApprove(event, url) {
+  event.preventDefault();
+  Swal.fire({
+    title: 'Approve this return?',
+    text: 'This will approve the return request and process any refund.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, approve',
+    cancelButtonText: 'Cancel',
+    confirmButtonColor: '#0ead69'
+  }).then((result) => {
+    if (result.isConfirmed) window.location.href = url;
+  });
+  return false;
+}
+
+{% if messages %}
+document.addEventListener('DOMContentLoaded', function () {
+  {% for message in messages %}
+    Swal.fire({
+      icon: '{% if message.tags == "error" %}error{% else %}success{% endif %}',
+      title: "{{ message|escapejs }}",
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2500,
+      timerProgressBar: true
+    });
+  {% endfor %}
+});
+{% endif %}
 </script>
 {% endblock %}

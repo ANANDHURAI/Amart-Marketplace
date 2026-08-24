@@ -470,6 +470,8 @@ def default_address(request, address_id):
 
 
 
+from customer.models import ReturnRequest
+
 @customer_required
 def orders(request):
     """List all orders for the current customer with items and subtotals."""
@@ -477,7 +479,13 @@ def orders(request):
 
     order_items_qs = OrderItem.objects.select_related(
         "product", "inventory"
-    ).prefetch_related("product__product_images")
+    ).prefetch_related(
+        "product__product_images",
+        Prefetch(
+            "return_requests",
+            queryset=ReturnRequest.objects.order_by("-requested_at"),
+        ),
+    )
 
     orders_qs = (
         Order.objects.filter(customer=customer)
@@ -517,6 +525,13 @@ def orders(request):
                 .first()
             )
 
+            
+            order_item.rejected_note = None
+            if order_item.status == "delivered":
+                latest_returns = list(order_item.return_requests.all())
+                if latest_returns and latest_returns[0].status == "rejected":
+                    order_item.rejected_note = latest_returns[0].admin_note
+
     return render(
         request,
         "customer/customer-orders.html",
@@ -526,7 +541,6 @@ def orders(request):
             "paginator": paginator,
         },
     )
-
 
 
 

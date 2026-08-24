@@ -43,6 +43,15 @@
         background-color: #ffca2c;
         border-color: #ffc720;
     }
+    .return-rejected-note {
+        background: #fef0f1;
+        color: #991b1b;
+        border: 1px solid #fca5a5;
+        padding: 8px 12px;
+        font-size: 12.5px;
+        margin-top: 6px;
+        border-radius: 4px;
+    }
 
 }
     </style>
@@ -183,6 +192,11 @@
                                                                                     <span class="label label-success">Delivered</span>
                                                                                 {% endif %}
                                                                             </p>
+                                                                            {% if order_item.rejected_note %}
+                                                                            <div class="return-rejected-note">
+                                                                            <b>Return rejected:</b> {{ order_item.rejected_note }}
+                                                                            </div>
+                                                                            {% endif %}
                                                                             </div>
                                                                                 <div class="modal fade" id="cancel-order-item-modal-{{ order_item.id }}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
                                                                                         <div class="modal-dialog" role="document">
