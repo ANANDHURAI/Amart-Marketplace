@@ -17,8 +17,26 @@
         border: 1px solid #ddd; background: #fff;
     }
     .otp-inputs input:focus { border-color: var(--accent); outline: none; }
-    .timer-display { font-size: 0.8rem; letter-spacing: 1px; color: #888; text-transform: uppercase; }
-    @media (max-width: 992px) { .auth-image-side { display: none; } }
+        .timer-display { font-size: 0.8rem; letter-spacing: 1px; color: #888; text-transform: uppercase; }
+        @media (max-width: 992px) { .auth-image-side { display: none; } }
+        .auth-message {
+        padding: 12px 15px;
+        margin-bottom: 20px;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+
+    .success-message {
+        color: #155724;
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+    }
+
+    .error-message {
+        color: #721c24;
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+    }
 </style>
 {% endblock %}
 
@@ -32,7 +50,11 @@
             </div>
 
             {% if messages %}
-                {% for message in messages %}<div class="alert alert-danger">{{ message }}</div>{% endfor %}
+                {% for message in messages %}
+                    <div class="auth-message {% if message.tags == 'success' %}success-message{% elif message.tags == 'error' %}error-message{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
             {% endif %}
 
             <form method="post" id="otpForm">

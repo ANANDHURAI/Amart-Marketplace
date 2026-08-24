@@ -48,6 +48,24 @@
     @media (max-width: 992px) {
         .signup-image-side { display: none; } /* Hide image on mobile */
     }
+    .auth-message {
+        padding: 12px 15px;
+        margin-bottom: 20px;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+
+    .success-message {
+        color: #155724;
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+    }
+
+    .error-message {
+        color: #721c24;
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+    }
 </style>
 {% endblock %}
 
@@ -66,7 +84,11 @@
             <form method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
                 {% if messages %}
-                    {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
+                    {% for message in messages %}
+                        <div class="auth-message {% if message.tags == 'success' %}success-message{% elif message.tags == 'error' %}error-message{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
                 {% endif %}
 
                 <div class="row">
