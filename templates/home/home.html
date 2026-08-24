@@ -337,10 +337,64 @@
     .footer-grid { grid-template-columns: 1fr; gap: 2rem; }
     .nav-links { display: none; }
   }
+  /* ─── Splash Screen ──────────────────────── */
+  body.splash-active { overflow: hidden; height: 100vh; }
+
+  .splash-screen {
+    position: fixed; inset: 0; z-index: 99999;
+    background: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+  }
+  .splash-screen.splash-hide {
+    animation: splashFade 0.7s ease forwards;
+  }
+  @keyframes splashFade {
+    to { opacity: 0; visibility: hidden; pointer-events: none; }
+  }
+
+  .splash-logo-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(2.8rem, 8vw, 5.5rem);
+    font-weight: 300;
+    letter-spacing: 0.18em;
+    color: #fff;
+    display: flex;
+  }
+  .splash-logo-text span {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(40px);
+    animation: splashLetterUp 0.7s cubic-bezier(.17,.67,.35,1) forwards;
+  }
+  .splash-tagline {
+    margin-top: 1.1rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--gold);
+    opacity: 0;
+    animation: splashFadeIn 0.8s 1.5s forwards;
+  }
+  .splash-line {
+    width: 0; height: 1px;
+    background: var(--gold);
+    margin-top: 1.4rem;
+    animation: splashLineGrow 0.8s 1.7s forwards;
+  }
+  @keyframes splashLetterUp { to { opacity: 1; transform: translateY(0); } }
+  @keyframes splashFadeIn { to { opacity: 1; } }
+  @keyframes splashLineGrow { to { width: 110px; } }
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="splash-screen" id="splashScreen">
+  <div class="splash-logo-text" id="splashText"></div>
+  <p class="splash-tagline">Wear What Moves You</p>
+  <div class="splash-line"></div>
+</div>
 
 <div class="cursor" id="cursor"></div>
 <div class="cursor-ring" id="cursorRing"></div>
@@ -514,6 +568,38 @@
         slider.scrollBy({ left: moveDistance, behavior: 'smooth' });
     }
   };
+})();
+</script>
+<script>
+(function() {
+  var splash = document.getElementById('splashScreen');
+  if (!splash) return;
+
+  // Show only once per browser session (skip repeat splash on internal navigation)
+  if (sessionStorage.getItem('amart_splash_shown')) {
+    splash.style.display = 'none';
+    return;
+  }
+
+  document.body.classList.add('splash-active');
+
+  // Build animated letters
+  var text = "AMART";
+  var wrap = document.getElementById('splashText');
+  text.split('').forEach(function(ch, i) {
+    var span = document.createElement('span');
+    span.textContent = ch;
+    span.style.animationDelay = (i * 0.08) + 's';
+    wrap.appendChild(span);
+  });
+
+  sessionStorage.setItem('amart_splash_shown', '1');
+
+  setTimeout(function() {
+    splash.classList.add('splash-hide');
+    document.body.classList.remove('splash-active');
+    setTimeout(function() { splash.remove(); }, 800);
+  }, 3400);
 })();
 </script>
 {% endblock %}
