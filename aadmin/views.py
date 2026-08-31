@@ -53,6 +53,8 @@ def admin_profile(request):
 
 
 
+import re
+
 @admin_login_required
 def edit_admin_profile(request):
     title = "Edit Admin Profile"
@@ -65,7 +67,38 @@ def edit_admin_profile(request):
         mobile = request.POST.get("mobile", "").strip()
         profile_image = request.FILES.get("profile_image")
 
-       
+        has_error = False
+
+        if not first_name:
+            messages.error(request, "First name is required.")
+            has_error = True
+        elif len(first_name) > 150:
+            messages.error(request, "First name cannot exceed 150 characters.")
+            has_error = True
+
+        if last_name and len(last_name) > 150:
+            messages.error(request, "Last name cannot exceed 150 characters.")
+            has_error = True
+
+        
+        if mobile:
+            indian_mobile_pattern = re.compile(r"^[6-9]\d{9}$")
+            if not indian_mobile_pattern.match(mobile):
+                messages.error(request, "Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.")
+                has_error = True
+
+        
+        if profile_image:
+            allowed_types = ["image/jpeg", "image/png", "image/webp"]
+            if profile_image.content_type not in allowed_types:
+                messages.error(request, "Only JPEG, PNG, and WebP image formats are allowed.")
+                has_error = True
+            
+
+        if has_error:
+            return redirect("edit_admin_profile")
+
+     
         if first_name:
             admin.first_name = first_name
         if last_name:
@@ -86,6 +119,9 @@ def edit_admin_profile(request):
         "admin": admin,
     }
     return render(request, "aadmin/edit-admin-profile.html", context)
+
+
+
 
 
 
