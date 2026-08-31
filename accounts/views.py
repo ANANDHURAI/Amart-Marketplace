@@ -82,11 +82,7 @@ def customer_signup(request):
 
 
 
-from django.contrib import messages
-from django.contrib.auth import authenticate, login
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
-from django.shortcuts import redirect, render
+
 
 
 def customer_login(request):
@@ -309,7 +305,6 @@ def change_password(request):
         return redirect("customer_login")
 
     return render(request, "accounts/change-password.html")
-
 
 
 
