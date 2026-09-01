@@ -1,18 +1,14 @@
 """Payment views: Razorpay, COD, and wallet-based flows for customers."""
 
 import logging
-
 import razorpay
 from django.conf import settings
 from django.contrib import messages
 from django.db import transaction
-from django.http import HttpResponse, HttpResponseBadRequest, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
-
-from accounts.models import Customer
-from customer.models import Cart, CartItem, Order, OrderItem, Wallet
+from customer.models import Order, Wallet
 from customer.views import customer_required
 
 
