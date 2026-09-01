@@ -794,7 +794,6 @@ razorpay_client = razorpay.Client(
 
 
 
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 @customer_required
 def customer_wallet(request):
     customer = _get_customer(request)
