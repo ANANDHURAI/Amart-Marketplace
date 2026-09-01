@@ -528,9 +528,9 @@ def orders(request):
             
             order_item.rejected_note = None
             if order_item.status == "delivered":
-                latest_returns = list(order_item.return_requests.all())
-                if latest_returns and latest_returns[0].status == "rejected":
-                    order_item.rejected_note = latest_returns[0].admin_note
+                latest_return = order_item.return_requests.order_by("-created_at").first()
+                if latest_return and latest_return.status == "rejected":
+                    order_item.rejected_note = latest_return.admin_note
 
     return render(
         request,
