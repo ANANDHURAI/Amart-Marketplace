@@ -1,4 +1,5 @@
-from django.urls import path; from . import views
+from django.urls import path
+from . import views
 
 urlpatterns = [
     path("payments/razorpay/order/<int:amount>/", views.razorpay_order_creation, name="razorpay_order_creation"),
