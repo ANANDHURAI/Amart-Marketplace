@@ -7,8 +7,6 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from accounts.models import Customer
 from aadmin.models import CategoryOffer, Coupon
-from ecom.views import get_next_url
-
 from .models import Product, ProductImage, Inventory
 from customer.models import Address, Cart, CartItem, FavouriteItem, Order, Wallet
 from customer.views import _get_customer , customer_required ,create_order
@@ -240,6 +238,9 @@ def favourites(request):
 
 
 
+
+def get_next_url(request):
+    return request.META.get("HTTP_REFERER") or "/"
 
 
 @customer_required
