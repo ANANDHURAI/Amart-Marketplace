@@ -8,10 +8,11 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
-from customer.models import Order, Wallet
+from customer.models import Order, Wallet , WalletTransaction
 from customer.views import customer_required
 
 
+logger = logging.getLogger(__name__)
 
 
 
@@ -44,11 +45,7 @@ def razorpay_order_creation(request, amount):
     return render(request, "customer/customer-payment.html", context=context)
 
 
-logger = logging.getLogger(__name__)
 
-
-
-from customer.models import WalletTransaction
 
 @customer_required
 @csrf_exempt
@@ -118,19 +115,6 @@ def razorpay_paymenthandler(request):
     except Exception:
         messages.error(request, "Something went wrong during payment.")
         return redirect("payment_failed")
-
-
-
-
-
-@customer_required
-def cash_on_delivery(request):
-    """Mark upcoming order as COD in the session and finalize later."""
-    request.session["payment_method"] = "cod"
-    request.session["payment_successful"] = False
-    return redirect("finalize-order")
-
-
 
 
 
