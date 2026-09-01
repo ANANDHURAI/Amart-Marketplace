@@ -1,17 +1,8 @@
 from django.shortcuts import render
 import logging
-import re
-
-from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import logout
 from django.db import transaction
-from django.db.models import F, Prefetch, Sum
-from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
-
-import razorpay
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from accounts.models import Customer
@@ -20,13 +11,13 @@ from ecom.views import get_next_url
 
 from .models import Product, ProductImage, Inventory
 from customer.models import Address, Cart, CartItem, FavouriteItem, Order, Wallet
-
-
-logger = logging.getLogger(__name__)
 from customer.views import _get_customer , customer_required ,create_order
 from customer.utils import list_of_states_in_india
 from django.utils import timezone
 from django.db.models import Q
+
+logger = logging.getLogger(__name__)
+
 
 
 
