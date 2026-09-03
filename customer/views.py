@@ -528,10 +528,10 @@ def orders(request):
             
             order_item.rejected_note = None
             if order_item.status == "delivered":
-                latest_return = order_item.return_requests.order_by("-created_at").first()
+                latest_return = order_item.return_requests.order_by("-requested_at").first()
                 if latest_return and latest_return.status == "rejected":
                     order_item.rejected_note = latest_return.admin_note
-
+                    
     return render(
         request,
         "customer/customer-orders.html",
